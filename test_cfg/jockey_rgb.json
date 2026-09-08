@@ -1,0 +1,18 @@
+{
+  "root_path": "data/test_sequences/PNG",
+  "test_classes": {
+    "Jockey": {
+      "test": 1,
+      "base_path": "",
+      "src_type": "png",
+      "sequences": {
+        "jockey": {
+          "width": 512,
+          "height": 512,
+          "frames": 141,
+          "intra_period": -1
+        }
+      }
+    }
+  }
+}

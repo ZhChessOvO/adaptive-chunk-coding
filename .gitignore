@@ -8,3 +8,26 @@ build/
 *.pyd
 *.egg-info
 *.json
+
+# Adaptive Chunk Coding: local-only research assets
+/output/
+/out_bin/
+/checkpoints/
+/checkpoint/
+/data/
+/doc/
+/third_party/cutlass/
+/cuda-keyring_*.deb
+
+# Model weights and experimental bitstreams may also appear outside the
+# standard directories above.
+*.pth
+*.pth.tar
+*.ckpt
+*.safetensors
+*.d1s
+*.d1m
+*:Zone.Identifier
+
+# Test descriptions are source-controlled configuration, not experiment output.
+!test_cfg/*.json

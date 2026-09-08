@@ -365,6 +365,16 @@ std::shared_ptr<std::vector<int8_t>> RansDecoder::get_decoded_tensor_cpp()
     return m_decoded_tensor;
 }
 
+py::array_t<int8_t> RansDecoder::get_decoded_tensor()
+{
+    auto decoded = get_decoded_tensor_cpp();
+    py::array_t<int8_t> out({ m_current_decoded_tensor_size }, { sizeof(int8_t) });
+    py::buffer_info out_buf = out.request();
+    auto* out_ptr = static_cast<int8_t*>(out_buf.ptr);
+    std::copy(decoded->begin(), decoded->begin() + m_current_decoded_tensor_size, out_ptr);
+    return out;
+}
+
 void RansDecoder::set_cdf(const std::shared_ptr<std::vector<int32_t>>& cdfs,
                           const std::shared_ptr<std::vector<int32_t>>& cdfs_sizes, const int index)
 {

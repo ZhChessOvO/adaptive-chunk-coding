@@ -50,12 +50,15 @@ cutlass_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 py_rans_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             '../../../cpp/py_rans')
 
-mem = psutil.virtual_memory()
-mem_gb = mem.available / 1024**3
-if mem_gb < 32:
-    os.environ['MAX_JOBS'] = '8'
-elif mem_gb < 64:
-    os.environ['MAX_JOBS'] = '16'
+# Respect an explicitly supplied MAX_JOBS.  CUTLASS translation units are
+# memory-heavy, and forcing 8/16 workers can trigger the OOM killer on WSL.
+if 'MAX_JOBS' not in os.environ:
+    mem = psutil.virtual_memory()
+    mem_gb = mem.available / 1024**3
+    if mem_gb < 32:
+        os.environ['MAX_JOBS'] = '4'
+    elif mem_gb < 64:
+        os.environ['MAX_JOBS'] = '8'
 
 setup(
     name='inference_extensions_cuda',

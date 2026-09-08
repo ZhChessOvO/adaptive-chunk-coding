@@ -1,5 +1,27 @@
 <div align="center">
 
+# Adaptive Chunk Coding
+
+**Bandwidth-compute scalable selective latent transmission for chunk video compression**
+
+</div>
+
+This repository contains the research implementation of **Adaptive Chunk Coding**, built on
+DCVC-UF. The project studies how independently entropy-coded latent blocks can switch between
+real transmission and decoder-side prediction according to bandwidth and compute budgets.
+
+The current implementation includes real latent-symbol skipping, an explicit route stream,
+independently readable single- and multi-chunk research containers, multi-chunk error
+propagation, Oracle routing experiments, matched-rate-distortion analysis, and routing-granularity
+comparisons. Datasets, model checkpoints, generated outputs, and local research notes are kept
+outside version control.
+
+The original DCVC-UF documentation is retained below for baseline setup, usage, and attribution.
+
+---
+
+<div align="center">
+
 # DCVC-UF: Ultra-Fast Neural Video Compression
 
 **CVPR2026**

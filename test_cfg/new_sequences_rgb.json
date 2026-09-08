@@ -1,0 +1,30 @@
+{
+  "root_path": "data/test_sequences/PNG",
+  "test_classes": {
+    "NEW_SEQUENCES": {
+      "test": 1,
+      "base_path": "",
+      "src_type": "png",
+      "sequences": {
+        "shake": {
+          "width": 512,
+          "height": 512,
+          "frames": 140,
+          "intra_period": -1
+        },
+        "sky": {
+          "width": 512,
+          "height": 512,
+          "frames": 141,
+          "intra_period": -1
+        },
+        "uvg": {
+          "width": 512,
+          "height": 512,
+          "frames": 141,
+          "intra_period": -1
+        }
+      }
+    }
+  }
+}

@@ -1,33 +1,92 @@
-*.pyc
-.vscode/
-*.bin
-*.png
-*.so
-build/
-*.tar
+# Python, editors, and local environments
+__pycache__/
+*.py[cod]
 *.pyd
-*.egg-info
-*.json
+*.so
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+*:Zone.Identifier
+.env
+.env.*
+!.env.example
 
-# Adaptive Chunk Coding: local-only research assets
-/output/
-/out_bin/
-/checkpoints/
-/checkpoint/
+# Local data, checkpoints, experiment products, and caches
 /data/
+/datasets/
+/checkpoint/
+/checkpoints/
+/weights/
+/models/
+/output/
+/outputs/
+/out_bin/
+/results/
+/runs/
+/logs/
+/wandb/
+/artifacts/
+/cache/
+/.cache/
 /doc/
-/third_party/cutlass/
 /cuda-keyring_*.deb
 
-# Model weights and experimental bitstreams may also appear outside the
-# standard directories above.
+# Third-party source trees are restored from the links in README.md.
+/third_party/cutlass/
+/third_party/PnP-VCVE/
+/third_party/mmagic/
+/third_party/SeedVR2/
+
+# Weights, tensors, bitstreams, generated media, and bulky archives
 *.pth
 *.pth.tar
+*.pt
 *.ckpt
 *.safetensors
+*.onnx
+*.engine
+*.plan
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.bin
 *.d1s
 *.d1m
-*:Zone.Identifier
+*.yuv
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+*.gz
+*.zst
+*.log
+*.part
+*.partial
+*.tmp
+*.json
 
 # Test descriptions are source-controlled configuration, not experiment output.
 !test_cfg/*.json
+!test_cfg/**/*.json

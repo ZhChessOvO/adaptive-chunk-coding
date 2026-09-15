@@ -1,3 +1,8 @@
+`demo/standalone_basicvsrpp.py` is adapted and modified from the BasicVSR++
+implementation in MMagic (https://github.com/open-mmlab/mmagic).
+Copyright (c) OpenMMLab. All rights reserved. MMagic is licensed under the
+Apache License, Version 2.0. The Apache license text follows below.
+
 The implementation is based on [CompressAI](https://github.com/InterDigitalInc/CompressAI).
 The license when we obtained the code was Apache License, Version 2.0.
                                 Apache License

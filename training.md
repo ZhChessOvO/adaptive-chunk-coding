@@ -1,5 +1,11 @@
 # Training DCVC-UF
 
+> **Current-project note (2026-09-15):** This upstream recipe is retained as a reference for
+> full DCVC-UF training.  The active Generate / Base / Enhance work uses pretrained checkpoints;
+> no sustained controller or spatial-quality fine-tuning has been authorized yet.  Do not start
+> the schedules below for the current experiments until the data protocol and compute plan have
+> been approved.
+
 This document describes how to train DCVC-UF and DCVC-UF-Intra from scratch, including the dataset format, launcher scripts, and the multi-stage training schedule.
 
 ## Train dataset

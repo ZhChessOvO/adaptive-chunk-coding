@@ -1,0 +1,283 @@
+#!/usr/bin/env python3
+"""Prepare and evaluate connected-component SeedVR2 Generate ROIs."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import sys
+import time
+from collections import deque
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from demo.stage_c_evaluate_seedvr2_gate import load_pngs, load_source
+from demo.stage_c_evaluate_spatial_quality_codec import generate_composite, panel
+from demo.stage_c_three_path_roi_probe import LPIPSAlex, evaluate_variant
+
+
+ACTION_GENERATE = 1
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="mode", required=True)
+    prepare = subparsers.add_parser("prepare")
+    prepare.add_argument("--route-summary", type=Path, required=True)
+    prepare.add_argument("--input-dir", type=Path, required=True)
+    prepare.add_argument("--output-dir", type=Path, required=True)
+    prepare.add_argument("--context-pixels", type=int, default=64)
+    prepare.add_argument("--processing-scale", type=float, default=1.5)
+
+    evaluate = subparsers.add_parser("evaluate")
+    evaluate.add_argument("--manifest", type=Path, required=True)
+    evaluate.add_argument("--gate-summary", type=Path, required=True)
+    evaluate.add_argument("--codec-dir", type=Path, required=True)
+    evaluate.add_argument("--restored-root", type=Path, required=True)
+    evaluate.add_argument("--full-seedvr2-dir", type=Path, required=True)
+    evaluate.add_argument("--output-dir", type=Path, required=True)
+    evaluate.add_argument("--feather-pixels", type=int, default=8)
+    return parser.parse_args()
+
+
+def connected_components(mask: np.ndarray) -> list[list[tuple[int, int]]]:
+    seen = np.zeros_like(mask, dtype=np.bool_)
+    output = []
+    for start_row, start_column in zip(*np.where(mask)):
+        if seen[start_row, start_column]:
+            continue
+        queue = deque([(int(start_row), int(start_column))])
+        seen[start_row, start_column] = True
+        component = []
+        while queue:
+            row, column = queue.popleft()
+            component.append((row, column))
+            for next_row, next_column in (
+                (row - 1, column), (row + 1, column),
+                (row, column - 1), (row, column + 1),
+            ):
+                if (0 <= next_row < mask.shape[0]
+                        and 0 <= next_column < mask.shape[1]
+                        and mask[next_row, next_column]
+                        and not seen[next_row, next_column]):
+                    seen[next_row, next_column] = True
+                    queue.append((next_row, next_column))
+        output.append(component)
+    return output
+
+
+def round_up(value: float, multiple: int) -> int:
+    return int(math.ceil(value / multiple) * multiple)
+
+
+def prepare(args: argparse.Namespace) -> None:
+    if args.context_pixels < 0 or args.processing_scale <= 0:
+        raise ValueError("context and processing scale must be nonnegative/positive")
+    route = json.loads(args.route_summary.read_text(encoding="utf-8"))
+    frames = load_pngs(args.input_dir)
+    height, width = frames[0].shape[:2]
+    tile_size = int(route["configuration"]["tile_size"])
+    rows, columns = route["configuration"]["tile_grid"]
+    actions = np.asarray(
+        route["variants"]["joint-three-path-oracle"]["actions"], dtype=np.int64,
+    ).reshape(rows, columns)
+    components = connected_components(actions == ACTION_GENERATE)
+    records = []
+    for index, component in enumerate(components):
+        component_rows = [item[0] for item in component]
+        component_columns = [item[1] for item in component]
+        x0 = max(0, min(component_columns) * tile_size - args.context_pixels)
+        y0 = max(0, min(component_rows) * tile_size - args.context_pixels)
+        x1 = min(width, (max(component_columns) + 1) * tile_size + args.context_pixels)
+        y1 = min(height, (max(component_rows) + 1) * tile_size + args.context_pixels)
+        # All current cells/context are multiples of 16.  Keep that explicit
+        # because SeedVR2 requires a multiple-of-16 output geometry.
+        if any(value % 16 for value in (x0, y0, x1, y1)):
+            raise ValueError("ROI bounds must be divisible by 16")
+        crop_dir = args.output_dir / f"component_{index:02d}" / "input"
+        crop_dir.mkdir(parents=True, exist_ok=True)
+        for frame_index, frame in enumerate(frames, start=1):
+            Image.fromarray(frame[y0:y1, x0:x1]).save(
+                crop_dir / f"im{frame_index:05d}.png")
+        crop_height, crop_width = y1 - y0, x1 - x0
+        records.append({
+            "index": index,
+            "cells": component,
+            "crop": {"x": x0, "y": y0, "width": crop_width, "height": crop_height},
+            "input_dir": str(crop_dir),
+            "expected_restored_dir": str(
+                args.output_dir / f"component_{index:02d}" / "restored"),
+            "processing_height": round_up(crop_height * args.processing_scale, 16),
+            "processing_width": round_up(crop_width * args.processing_scale, 16),
+        })
+    total_processing_pixels = sum(
+        record["processing_height"] * record["processing_width"]
+        for record in records)
+    full_processing_height = round_up(height * args.processing_scale, 16)
+    full_processing_width = round_up(width * args.processing_scale, 16)
+    result = {
+        "route_summary": str(args.route_summary),
+        "input_dir": str(args.input_dir),
+        "frame_count": len(frames),
+        "frame_height": height,
+        "frame_width": width,
+        "tile_size": tile_size,
+        "actions": actions.tolist(),
+        "context_pixels": args.context_pixels,
+        "processing_scale": args.processing_scale,
+        "components": records,
+        "total_roi_processing_pixels_per_frame": total_processing_pixels,
+        "full_processing_pixels_per_frame": full_processing_height * full_processing_width,
+        "roi_to_full_processing_pixel_ratio": (
+            total_processing_pixels / (full_processing_height * full_processing_width)),
+        "scientific_boundary": {
+            "roi_is_derived_only_from_transmitted_action_map": True,
+            "source_rgb_used_for_roi_geometry": False,
+            "model_weights_changed": False,
+        },
+    }
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    manifest = args.output_dir / "manifest.json"
+    manifest.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def evaluate(args: argparse.Namespace) -> None:
+    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    gate = json.loads(args.gate_summary.read_text(encoding="utf-8"))
+    decode = json.loads((args.codec_dir / "decode_summary.json").read_text())
+    reference = load_source(gate, manifest["frame_count"])
+    decoded = load_pngs(args.codec_dir / "fresh_decode")
+    full_generated = load_pngs(args.full_seedvr2_dir)
+    actions = np.asarray(manifest["actions"], dtype=np.int64)
+    tile_size = int(manifest["tile_size"])
+    generated_canvas = [frame.copy() for frame in decoded]
+    roi_core_seconds = 0.0
+    roi_total_seconds = 0.0
+    roi_peak = 0
+    component_runtime = []
+    for record in manifest["components"]:
+        restored_dir = args.restored_root / f"component_{record['index']:02d}" / "restored"
+        restored = load_pngs(restored_dir)
+        metadata = json.loads((restored_dir / "seedvr2_metadata.json").read_text())
+        crop = record["crop"]
+        x, y = crop["x"], crop["y"]
+        height, width = crop["height"], crop["width"]
+        for frame_index, frame in enumerate(restored):
+            generated_canvas[frame_index][y:y + height, x:x + width] = frame
+        roi_core_seconds += float(metadata["runtime_seconds"])
+        roi_total_seconds += float(metadata["total_after_argument_parse_seconds"])
+        roi_peak = max(roi_peak, int(metadata["peak_cuda_allocated_bytes"]))
+        component_runtime.append({
+            "index": record["index"],
+            "runtime_seconds_model_load_excluded": metadata["runtime_seconds"],
+            "total_after_argument_parse_seconds": metadata[
+                "total_after_argument_parse_seconds"],
+            "peak_cuda_allocated_bytes": metadata["peak_cuda_allocated_bytes"],
+        })
+    started = time.perf_counter()
+    stitched = generate_composite(
+        decoded, generated_canvas, actions, tile_size, args.feather_pixels)
+    composite_seconds = time.perf_counter() - started
+    full_started = time.perf_counter()
+    full_stitched = generate_composite(
+        decoded, full_generated, actions, tile_size, args.feather_pixels)
+    full_composite_seconds = time.perf_counter() - full_started
+    output_frames = args.output_dir / "frames" / "roi-spatial-bge-stitched"
+    output_frames.mkdir(parents=True, exist_ok=True)
+    for index, frame in enumerate(stitched, start=1):
+        Image.fromarray(frame).save(output_frames / f"im{index:05d}.png")
+    metric = LPIPSAlex(True)
+    roi_quality = evaluate_variant(reference, stitched, metric)
+    full_quality = evaluate_variant(reference, full_generated, metric)
+    full_stitched_quality = evaluate_variant(reference, full_stitched, metric)
+    full_metadata = json.loads(
+        (args.full_seedvr2_dir / "seedvr2_metadata.json").read_text())
+    full_pipeline_seconds = (
+        decode["total_after_argument_parse_seconds"]
+        + full_metadata["total_after_argument_parse_seconds"]
+        + full_composite_seconds)
+    roi_pipeline_seconds = (
+        decode["total_after_argument_parse_seconds"]
+        + roi_total_seconds + composite_seconds)
+    visual_frame = min(8, len(reference) - 1)
+    visual_panels = [
+        panel(reference[visual_frame], "GT", None),
+        panel(decoded[visual_frame], "Spatial QP raw", evaluate_variant(
+            reference, decoded, metric)),
+        panel(full_stitched[visual_frame], "Full-frame SeedVR2 B/G/E",
+              full_stitched_quality),
+        panel(stitched[visual_frame], "Connected-ROI SeedVR2 B/G/E", roi_quality),
+    ]
+    panel_width = max(item.width for item in visual_panels)
+    panel_height = max(item.height for item in visual_panels)
+    visual_image = Image.new("RGB", (2 * panel_width, 2 * panel_height), (230, 230, 230))
+    for index, item in enumerate(visual_panels):
+        visual_image.paste(
+            item, ((index % 2) * panel_width, (index // 2) * panel_height))
+    visual_path = args.output_dir / "visuals" / "roi_vs_full_seedvr2.png"
+    visual_path.parent.mkdir(parents=True, exist_ok=True)
+    visual_image.save(visual_path, optimize=True)
+    result = {
+        "experiment": "E25 connected-ROI SeedVR2 compute probe",
+        "status": "no-training-single-component-probe-complete",
+        "manifest": str(args.manifest),
+        "component_count": len(manifest["components"]),
+        "processing_pixel_ratio_vs_full": manifest["roi_to_full_processing_pixel_ratio"],
+        "quality": {
+            "roi-spatial-bge-stitched": roi_quality,
+            "full-frame-seedvr2-spatial-bge-stitched": full_stitched_quality,
+            "full-seedvr2": full_quality,
+        },
+        "runtime": {
+            "components": component_runtime,
+            "roi_seedvr2_inference_seconds_model_load_excluded_sum": roi_core_seconds,
+            "roi_seedvr2_total_after_argument_parse_seconds_sum": roi_total_seconds,
+            "roi_composite_seconds_cpu": composite_seconds,
+            "codec_fresh_decode_after_argument_parse_seconds": decode[
+                "total_after_argument_parse_seconds"],
+            "full_roi_pipeline_seconds": roi_pipeline_seconds,
+            "full_frame_seedvr2_pipeline_seconds": full_pipeline_seconds,
+            "pipeline_speedup_fraction_vs_full_frame": (
+                1.0 - roi_pipeline_seconds / full_pipeline_seconds),
+            "seedvr2_core_speedup_fraction_vs_full_frame": (
+                1.0 - roi_core_seconds / full_metadata["runtime_seconds"]),
+            "peak_cuda_allocated_bytes": max(
+                roi_peak, int(decode["peak_cuda_allocated_bytes"])),
+        },
+        "scientific_boundary": {
+            "diffusion_executed_only_on_generate_component_crop": True,
+            "generate_geometry_available_from_bitstream": True,
+            "source_rgb_read_by_decoder": False,
+            "training_or_finetuning": False,
+            "multi_component_model_reload_not_optimized": True,
+        },
+        "output_frames": str(output_frames),
+        "visual": str(visual_path),
+    }
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    summary = args.output_dir / "summary.json"
+    summary.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def main() -> None:
+    args = parse_args()
+    if args.mode == "prepare":
+        prepare(args)
+    else:
+        evaluate(args)
+
+
+if __name__ == "__main__":
+    main()

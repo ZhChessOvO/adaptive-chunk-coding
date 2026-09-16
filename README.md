@@ -32,8 +32,10 @@
 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)、
 [`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md)，再执行本节。当前已授权的云端范围是
 **1×A800 80GB、8–12 小时的单卡试跑**：冻结 DCVC-UF 和 SeedVR2，生成有界的反事实标签并训练轻量控制器；多卡完整阶段和大模型／codec 微调仍需下一次决定。
+可直接粘贴到新会话的版本保存在
+[`docs/CLOUD_CODEX_PROMPT.md`](docs/CLOUD_CODEX_PROMPT.md)。
 
-租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器使用 30GB 系统盘、50GB 数据盘和挂载在 `/root/autodl-fs` 的 200GB 文件存储；模型、数据和正式输出放文件存储，环境和编译放数据盘。具体上传清单、链接方式和停止条件见云端存储文档。
+租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
 
 ### 1. 克隆代码并检查下载源
 
@@ -155,7 +157,9 @@ hf download ByteDance-Seed/SeedVR2-3B \
   --local-dir third_party/SeedVR2
 ```
 
-四个文件合计约 14.6 GB。`demo/stage_c_seedvr2_bridge.py` 保留官方结构和权重，但用 PyTorch SDPA 与参数兼容的 norm 替代 Apex／FlashAttention，因此当前路径**不需要编译 Apex 或 FlashAttention**。实际推理必须用单进程 `torchrun` 启动：
+四个文件合计约 14.6 GB。`demo/stage_c_seedvr2_bridge.py` 保留官方结构和权重，但用 PyTorch SDPA 与参数兼容的 norm 替代 Apex／FlashAttention，因此当前路径**不需要编译 Apex 或 FlashAttention**。
+
+当前 AutoDL 服务器已经在 `/root/autodl-fs/` 上传 BF16 DiT，不要再执行上面的整组下载。只从官方仓库补下 `ema_vae.pth`、`pos_emb.pt` 和 `neg_emb.pt`，保存位置按 `docs/CLOUD_STORAGE_AND_UPLOAD.md` 执行。实际推理必须用单进程 `torchrun` 启动：
 
 ```bash
 torchrun --standalone --nproc-per-node=1 demo/stage_c_seedvr2_bridge.py \
@@ -194,7 +198,8 @@ wget -c \
 
 ## 数据、输出与继续实验
 
-- 当前云端资产统一放在 `/root/autodl-fs/DCVC/assets`，正式结果统一放在 `/root/autodl-fs/DCVC/runs`；不要把全部数据或正式输出复制到 50GB 数据盘。详见 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
+- 当前已上传的权重和两个 ZIP 直接位于 `/root/autodl-fs/`；补充下载和解压后的数据放在 `/root/autodl-fs/DCVC/`，正式结果放在 `/root/autodl-fs/DCVC/runs`。不要把全部数据或正式输出复制到 `/root/autodl-tmp`。详见 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
+- `val_sharp.zip` 本轮只解压 `000..005`；其余边界以 `AGENTS.md` 和云端试跑文档为准。
 - 数据集不进 Git。只把数据协议允许使用的部分挂载到 `data/`，或通过脚本的 `--data-root`／`--input-dir` 显式传入；不要复制封存数据。
 - `output/`、真实码流、PNG／视频、checkpoint、第三方源码和编译产物均已在 `.gitignore` 排除。
 - 历史 Stage B 脚本的默认数据目录已改为仓库相对路径 `data/REDS`；也可以用 `--data-root` 指向服务器上的合规数据挂载。当前 Stage C 主线参数使用仓库相对路径或显式输入路径。

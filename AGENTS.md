@@ -39,9 +39,13 @@ checkpoints, and enforce time and disk limits. Store datasets, checkpoints,
 third-party repositories, streams, generated media, and experiment outputs
 only in ignored paths. Do not commit large artifacts.
 
-On the current cloud host, keep datasets, model weights, and all formal run
-outputs under `/root/autodl-fs/DCVC`. Keep the repository, conda environment,
-compiled extensions, and at most 8GB of per-sample scratch on the 50GB data
-disk. Do not fill the 30GB system disk or copy the full dataset to the data
-disk. Prefer the uploaded assets over downloading another copy. Follow
-`docs/CLOUD_STORAGE_AND_UPLOAD.md` for the exact layout and limits.
+On the current cloud host, `/root` is the 30GB system disk,
+`/root/autodl-tmp` is the 50GB data disk, and `/root/autodl-fs` is the slower
+200GB file store. The five user uploads are flat files directly under
+`/root/autodl-fs`: two DCVC-UF checkpoints, the SeedVR2 BF16 DiT,
+`train_sharp.zip`, and `val_sharp.zip`. Prefer them over another download.
+Extract training data and formal outputs on the file store; keep the repository,
+conda environment, source builds, and at most 8GB of per-sample scratch on the
+data disk. Download genuinely missing dependencies directly to the locations
+specified in `docs/CLOUD_STORAGE_AND_UPLOAD.md`; the data ledger above remains
+authoritative for archive extraction and experiments.

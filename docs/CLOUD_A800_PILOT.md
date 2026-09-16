@@ -51,10 +51,10 @@ nvcc --version
 - `nvidia-smi` 应显示一张约 80GB 的完整 A800，而不是 10／20／40GB MIG 切片；
 - 使用带编译工具链的 CUDA devel 镜像；
 - 建议至少 64GB 主机内存；
-- 当前 200GB 文件存储挂载在 `/root/autodl-fs`，保存数据、模型和正式输出；50GB 数据盘保存仓库、环境、编译产物和不超过 8GB 的单样本临时缓存；30GB 系统盘不放大文件；
+- 当前系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），文件存储是 `/root/autodl-fs`（200GB）；文件存储保存数据、模型和正式输出，数据盘保存仓库、环境、编译产物和不超过 8GB 的单样本临时缓存；
 - 文件存储或 50GB 数据盘达到容量的 80% 时停止新样本、保存断点并汇报，不以删除已有正式结果掩盖空间问题。
 
-上传资产和磁盘布局严格按 `docs/CLOUD_STORAGE_AND_UPLOAD.md` 执行，环境、扩展和 checkpoint 安装按 `README.md` 执行。优先使用 `/root/autodl-fs/DCVC/assets` 中已经上传的文件；只下载缺少的小依赖。下载前检查并移除镜像覆盖，不编译当前 bridge 不需要的 Apex 或 FlashAttention。
+上传资产和磁盘布局严格按 `docs/CLOUD_STORAGE_AND_UPLOAD.md` 执行，环境、扩展和 checkpoint 安装按 `README.md` 执行。两个 DCVC-UF 权重、SeedVR2 BF16 DiT、`train_sharp.zip` 和 `val_sharp.zip` 已经直接放在 `/root/autodl-fs/`；不要重复下载。其余依赖按文档直接下载到指定盘。下载前检查并移除镜像覆盖，不编译当前 bridge 不需要的 Apex 或 FlashAttention。
 
 ## 执行阶段
 

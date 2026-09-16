@@ -28,6 +28,12 @@
 
 下面按一台全新的 Linux NVIDIA 服务器编写。已经在 Python 3.12、CUDA 13.0、`torch 2.13.0+cu130`、`torchvision 0.28.0+cu130` 上验证；DCVC-UF 上游也说明 Python 3.12、CUDA 13.0 和 PyTorch 2.9.1 可用。CUDA 运行时和本机 `nvcc` 要匹配，建议直接选择带 CUDA 13.0 **devel** 工具链的云镜像。
 
+如果由新的 Codex 会话接手，请先阅读根目录的 `AGENTS.md` 和
+[`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md)，再执行本节。当前已授权的云端范围是
+**1×A800 80GB、8–12 小时的单卡试跑**：冻结 DCVC-UF 和 SeedVR2，生成有界的反事实标签并训练轻量控制器；多卡完整阶段和大模型／codec 微调仍需下一次决定。
+
+租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。建议至少准备 64GB 主机内存和 300GB 可写磁盘；完整要求和停止条件见云端试跑交接文档。
+
 ### 1. 克隆代码并检查下载源
 
 ```bash
@@ -185,7 +191,7 @@ wget -c \
 - 数据集不进 Git。只把数据协议允许使用的部分挂载到 `data/`，或通过脚本的 `--data-root`／`--input-dir` 显式传入；不要复制封存数据。
 - `output/`、真实码流、PNG／视频、checkpoint、第三方源码和编译产物均已在 `.gitignore` 排除。
 - 历史 Stage B 脚本的默认数据目录已改为仓库相对路径 `data/REDS`；也可以用 `--data-root` 指向服务器上的合规数据挂载。当前 Stage C 主线参数使用仓库相对路径或显式输入路径。
-- `training.md` 是上游 DCVC-UF 全量训练说明。当前空间质量 codec 和控制器尚未获准开始持续大规模训练；云端 Codex 应先恢复环境、复现小实验，再向项目所有者确认训练规模。
+- `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器试跑入口。当前已获准执行 `docs/CLOUD_A800_PILOT.md` 中的单卡 A800 80GB 试跑；云端 Codex 应先恢复环境和复现 smoke test，再自动推进到 500–1000 个反事实标签及轻量控制器。试跑结束后停止并汇报，不自行进入多卡完整生产或 SeedVR2／spatial-QP codec 微调。
 
 ## 主要脚本
 

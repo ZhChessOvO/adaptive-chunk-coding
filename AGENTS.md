@@ -3,7 +3,8 @@
 Before changing code or starting an experiment, read these files in order:
 
 1. `README.md`
-2. `docs/CLOUD_A800_PILOT.md`
+2. `docs/CLOUD_STORAGE_AND_UPLOAD.md`
+3. `docs/CLOUD_A800_PILOT.md`
 
 The current research line is budget-conditioned regional Generate / Base /
 Enhance routing around DCVC-UF. It is not the historical latent-prediction
@@ -37,3 +38,10 @@ Long jobs must be resumable, emit progress heartbeats, save manifests and
 checkpoints, and enforce time and disk limits. Store datasets, checkpoints,
 third-party repositories, streams, generated media, and experiment outputs
 only in ignored paths. Do not commit large artifacts.
+
+On the current cloud host, keep datasets, model weights, and all formal run
+outputs under `/root/autodl-fs/DCVC`. Keep the repository, conda environment,
+compiled extensions, and at most 8GB of per-sample scratch on the 50GB data
+disk. Do not fill the 30GB system disk or copy the full dataset to the data
+disk. Prefer the uploaded assets over downloading another copy. Follow
+`docs/CLOUD_STORAGE_AND_UPLOAD.md` for the exact layout and limits.

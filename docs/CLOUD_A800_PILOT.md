@@ -41,7 +41,7 @@ E20–E25 已经完成无训练验证：
 nvidia-smi --query-gpu=name,memory.total,memory.free,driver_version \
   --format=csv,noheader
 nvidia-smi -L
-df -h .
+df -h / /root/autodl-fs /root/autodl-tmp .
 free -h
 nvcc --version
 ```
@@ -51,10 +51,10 @@ nvcc --version
 - `nvidia-smi` 应显示一张约 80GB 的完整 A800，而不是 10／20／40GB MIG 切片；
 - 使用带编译工具链的 CUDA devel 镜像；
 - 建议至少 64GB 主机内存；
-- 开始试跑前建议至少有 300GB 可写磁盘。若要长期保留每个候选的全部 PNG，需要更大空间；默认只保留训练所需标签、摘要和少量固定可视化；
-- 输出目录达到磁盘容量的 80% 时停止生成并汇报，不以删除现有结果掩盖空间问题。
+- 当前 200GB 文件存储挂载在 `/root/autodl-fs`，保存数据、模型和正式输出；50GB 数据盘保存仓库、环境、编译产物和不超过 8GB 的单样本临时缓存；30GB 系统盘不放大文件；
+- 文件存储或 50GB 数据盘达到容量的 80% 时停止新样本、保存断点并汇报，不以删除已有正式结果掩盖空间问题。
 
-环境、扩展和 checkpoint 安装严格按 `README.md` 执行。下载前检查并移除镜像覆盖，不编译当前 bridge 不需要的 Apex 或 FlashAttention。
+上传资产和磁盘布局严格按 `docs/CLOUD_STORAGE_AND_UPLOAD.md` 执行，环境、扩展和 checkpoint 安装按 `README.md` 执行。优先使用 `/root/autodl-fs/DCVC/assets` 中已经上传的文件；只下载缺少的小依赖。下载前检查并移除镜像覆盖，不编译当前 bridge 不需要的 Apex 或 FlashAttention。
 
 ## 执行阶段
 
@@ -80,7 +80,7 @@ nvcc --version
 - 哪些中间图像必须保存，哪些可以只保存指标和紧凑特征；
 - 任务中断后能否根据 manifest 继续，而不重复已完成样本。
 
-通过后可继续到 500–1000 个标签；不需要再次请求许可。若预计超过 12 小时或 300GB，先调整缓存策略和样本量，并在结果中保留原始估计。
+通过后可继续到 500–1000 个标签；不需要再次请求许可。若预计超过 12 小时，或文件存储／数据盘将达到 80% 使用率，先调整缓存策略和样本量，并在结果中保留原始估计。
 
 ### 阶段 2：teacher labels
 
@@ -131,6 +131,7 @@ DCVC-UF 与 SeedVR2 在本阶段冻结。teacher 可以使用源图计算监督�
 - 单卡 SeedVR2 使用单进程 `torchrun`，显式指定 GPU，并在退出前清理 process group；
 - 每个正式 benchmark 使用独立进程，避免 CUDA warm-up 和共享 codec context 污染；
 - 不批量保存所有视觉候选。固定保存少量 GT／Base／SeedVR2／三路拼接／action map 对照，供人工检查。
+- 正式 manifest、码流、日志、checkpoint、指标和可视化直接写入 `/root/autodl-fs/DCVC/runs`；慢盘有明显随机 I/O 瓶颈时，只在 50GB 数据盘使用不超过 8GB 的当前样本缓存，样本结束后立即写回并清理。
 
 ## 试跑完成标准
 

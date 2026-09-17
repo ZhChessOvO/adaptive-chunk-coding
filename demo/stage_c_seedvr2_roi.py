@@ -13,6 +13,7 @@ from collections import deque
 from pathlib import Path
 
 import numpy as np
+import torch
 from PIL import Image
 
 
@@ -28,6 +29,7 @@ from demo.stage_c_evaluate_spatial_quality_codec import (
 )
 from demo.stage_c_spatial_quality_codec import selected_route_variant
 from demo.stage_c_three_path_roi_probe import LPIPSAlex, evaluate_variant
+from demo.stage_c_a800_teacher import PersistentSeedVR2
 
 
 ACTION_GENERATE = 1
@@ -51,6 +53,33 @@ def parse_args() -> argparse.Namespace:
     prepare.add_argument("--output-dir", type=Path, required=True)
     prepare.add_argument("--context-pixels", type=int, default=64)
     prepare.add_argument("--processing-scale", type=float, default=1.5)
+
+    restore = subparsers.add_parser("restore")
+    restore.add_argument("--manifest", type=Path, required=True)
+    restore.add_argument("--output-root", type=Path, required=True)
+    restore.add_argument("--seed", type=int, required=True)
+    restore.add_argument(
+        "--upstream-root", type=Path,
+        default=REPO_ROOT / "third_party" / "SeedVR2")
+    restore.add_argument(
+        "--dit-checkpoint", type=Path,
+        default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
+                 "seedvr2_ema_3b_bf16.safetensors"))
+    restore.add_argument(
+        "--vae-checkpoint", type=Path,
+        default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
+                 "ema_vae.pth"))
+    restore.add_argument(
+        "--positive-embedding", type=Path,
+        default=REPO_ROOT / "third_party" / "SeedVR2" / "pos_emb.pt")
+    restore.add_argument(
+        "--negative-embedding", type=Path,
+        default=REPO_ROOT / "third_party" / "SeedVR2" / "neg_emb.pt")
+    restore.add_argument("--sample-steps", type=int, default=1)
+    restore.add_argument("--cfg-scale", type=float, default=1.0)
+    restore.add_argument(
+        "--dit-dtype", choices=("float32", "bfloat16"), default="bfloat16")
+    restore.add_argument("--cuda-idx", type=int, default=0)
 
     evaluate = subparsers.add_parser("evaluate")
     evaluate.add_argument("--manifest", type=Path, required=True)
@@ -168,6 +197,192 @@ def prepare(args: argparse.Namespace) -> None:
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+def save_frames(path: Path, frames: list[np.ndarray]) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    for index, frame in enumerate(frames, start=1):
+        Image.fromarray(frame).save(path / f"im{index:05d}.png")
+
+
+def valid_component_metadata(
+    path: Path, record: dict, seed: int, frame_count: int,
+) -> bool:
+    if not path.is_file():
+        return False
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    crop = record["crop"]
+    return (
+        value.get("persistent_roi_session") is True
+        and value.get("seed") == seed
+        and value.get("frame_count") == frame_count
+        and value.get("processing_height") == record["processing_height"]
+        and value.get("processing_width") == record["processing_width"]
+        and value.get("output_height") == crop["height"]
+        and value.get("output_width") == crop["width"]
+    )
+
+
+def valid_batch_metadata(
+    path: Path, manifest_path: Path, output_root: Path,
+    components: list[dict], seed: int, frame_count: int,
+) -> dict | None:
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if (
+        not value.get("complete")
+        or value.get("component_count") != len(components)
+        or value.get("completed_component_count") != len(components)
+        or value.get("base_seed") != seed
+        or Path(value.get("manifest", "")).resolve() != manifest_path.resolve()
+    ):
+        return None
+    for record in components:
+        index = int(record["index"])
+        component_seed = seed + index * 100003
+        metadata_path = (
+            output_root / f"component_{index:02d}" / "restored" /
+            "seedvr2_metadata.json")
+        if not valid_component_metadata(
+                metadata_path, record, component_seed, frame_count):
+            return None
+    return value
+
+
+def restore(args: argparse.Namespace) -> None:
+    process_started = time.perf_counter()
+    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    components = manifest["components"]
+    frame_count = int(manifest["frame_count"])
+    args.output_root.mkdir(parents=True, exist_ok=True)
+    batch_metadata_path = args.output_root / "roi_batch_metadata.json"
+    existing = valid_batch_metadata(
+        batch_metadata_path, args.manifest, args.output_root, components,
+        args.seed, frame_count)
+    if existing is not None:
+        print(json.dumps({
+            "stage": "persistent-roi-batch-resume-skip",
+            "output": str(batch_metadata_path),
+            "total_after_argument_parse_seconds": existing[
+                "total_after_argument_parse_seconds"],
+        }), flush=True)
+        print(json.dumps(existing, ensure_ascii=False, indent=2))
+        return
+
+    # A batch without a valid final marker may have been interrupted after one
+    # or more component files were written.  Recompute the whole small batch in
+    # one process so its outputs and wall-clock measurement describe the same
+    # execution.  Completed batches remain immediately resumable above.
+    model = None
+    model_load_seconds = 0.0
+    if components:
+        torch.cuda.set_device(args.cuda_idx)
+        model = PersistentSeedVR2(args)
+        model_load_seconds = model.model_load_seconds
+
+    completed = []
+    peak = 0
+    inference_seconds = 0.0
+    component_wall_seconds = 0.0
+    for record in components:
+        index = int(record["index"])
+        component_seed = args.seed + index * 100003
+        output_dir = args.output_root / f"component_{index:02d}" / "restored"
+        metadata_path = output_dir / "seedvr2_metadata.json"
+        if model is None:
+            raise RuntimeError("ROI component has no loaded model")
+        component_started = time.perf_counter()
+        frames = load_pngs(Path(record["input_dir"]))
+        crop = record["crop"]
+        restored, runtime = model.restore(
+            frames,
+            component_seed,
+            processing_height=int(record["processing_height"]),
+            processing_width=int(record["processing_width"]),
+            output_height=int(crop["height"]),
+            output_width=int(crop["width"]),
+        )
+        save_frames(output_dir, restored)
+        wall_seconds = time.perf_counter() - component_started
+        metadata = {
+            "model": "SeedVR2-3B persistent connected-ROI session",
+            "dit_checkpoint": str(args.dit_checkpoint),
+            "input_dir": record["input_dir"],
+            "output_dir": str(output_dir),
+            "frame_count": len(restored),
+            "input_height": int(crop["height"]),
+            "input_width": int(crop["width"]),
+            "processing_height": int(record["processing_height"]),
+            "processing_width": int(record["processing_width"]),
+            "output_height": int(crop["height"]),
+            "output_width": int(crop["width"]),
+            "seed": component_seed,
+            "sample_steps": args.sample_steps,
+            "cfg_scale": args.cfg_scale,
+            "dit_dtype": args.dit_dtype,
+            "runtime_seconds": runtime["seconds_model_load_excluded"],
+            "component_wall_seconds": wall_seconds,
+            "total_after_argument_parse_seconds": wall_seconds,
+            "peak_cuda_allocated_bytes": runtime[
+                "peak_cuda_allocated_bytes"],
+            "model_load_in_timing": False,
+            "persistent_roi_session": True,
+            "shared_model_load_seconds": model_load_seconds,
+            "input_and_output_png_lossless": True,
+            "training_or_finetuning": False,
+            "actual_compute_scope": runtime["actual_compute_scope"],
+        }
+        atomic_json(metadata_path, metadata)
+        print(json.dumps({
+            "stage": "persistent-roi-component-complete",
+            "component": index,
+            "runtime_seconds": metadata["runtime_seconds"],
+            "component_wall_seconds": wall_seconds,
+            "peak_cuda_mib": metadata["peak_cuda_allocated_bytes"] / 1048576,
+        }), flush=True)
+        inference_seconds += float(metadata["runtime_seconds"])
+        component_wall_seconds += float(metadata.get(
+            "component_wall_seconds", metadata["total_after_argument_parse_seconds"]))
+        peak = max(peak, int(metadata["peak_cuda_allocated_bytes"]))
+        completed.append({
+            "index": index,
+            "metadata": str(metadata_path),
+            "runtime_seconds": metadata["runtime_seconds"],
+            "component_wall_seconds": metadata.get(
+                "component_wall_seconds",
+                metadata["total_after_argument_parse_seconds"]),
+        })
+
+    result = {
+        "experiment": "persistent single-process SeedVR2 ROI restoration",
+        "manifest": str(args.manifest),
+        "base_seed": args.seed,
+        "component_count": len(components),
+        "completed_component_count": len(completed),
+        "complete": len(completed) == len(components),
+        "model_load_seconds_this_process": model_load_seconds,
+        "component_inference_seconds_sum": inference_seconds,
+        "component_wall_seconds_sum": component_wall_seconds,
+        "total_after_argument_parse_seconds": (
+            time.perf_counter() - process_started),
+        "peak_cuda_allocated_bytes": peak,
+        "components": completed,
+        "scientific_boundary": {
+            "one_model_load_shared_by_all_pending_components": True,
+            "components_processed_sequentially_in_one_process": True,
+            "component_seeds_match_legacy_runner": True,
+            "training_or_finetuning": False,
+        },
+    }
+    atomic_json(batch_metadata_path, result)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
 def evaluate(args: argparse.Namespace) -> None:
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     gate = json.loads(args.gate_summary.read_text(encoding="utf-8"))
@@ -207,6 +422,19 @@ def evaluate(args: argparse.Namespace) -> None:
                 "total_after_argument_parse_seconds"],
             "peak_cuda_allocated_bytes": metadata["peak_cuda_allocated_bytes"],
         })
+    batch_metadata_path = args.restored_root / "roi_batch_metadata.json"
+    batch_metadata = (
+        json.loads(batch_metadata_path.read_text(encoding="utf-8"))
+        if batch_metadata_path.is_file() else None)
+    if batch_metadata is not None:
+        if (not batch_metadata.get("complete")
+                or batch_metadata.get("component_count")
+                != len(manifest["components"])):
+            raise RuntimeError("persistent ROI batch metadata is incomplete")
+        roi_total_seconds = float(
+            batch_metadata["total_after_argument_parse_seconds"])
+        roi_peak = max(
+            roi_peak, int(batch_metadata["peak_cuda_allocated_bytes"]))
     started = time.perf_counter()
     stitched = generate_composite(
         decoded, generated_canvas, actions, tile_size, args.feather_pixels)
@@ -288,6 +516,9 @@ def evaluate(args: argparse.Namespace) -> None:
             "components": component_runtime,
             "roi_seedvr2_inference_seconds_model_load_excluded_sum": roi_core_seconds,
             "roi_seedvr2_total_after_argument_parse_seconds_sum": roi_total_seconds,
+            "persistent_roi_batch_metadata": (
+                str(batch_metadata_path) if batch_metadata is not None else None),
+            "persistent_single_process_roi": batch_metadata is not None,
             "roi_composite_seconds_cpu": composite_seconds,
             "codec_fresh_decode_after_argument_parse_seconds": decode[
                 "total_after_argument_parse_seconds"],
@@ -307,7 +538,8 @@ def evaluate(args: argparse.Namespace) -> None:
             "generate_geometry_available_from_bitstream": True,
             "source_rgb_read_by_decoder": False,
             "training_or_finetuning": False,
-            "multi_component_model_reload_not_optimized": True,
+            "multi_component_model_reload_not_optimized": batch_metadata is None,
+            "one_model_load_shared_across_components": batch_metadata is not None,
             "optional_full_frame_control_run": full_metadata is not None,
         },
         "output_frames": str(output_frames),
@@ -323,9 +555,15 @@ def main() -> None:
     args = parse_args()
     if args.mode == "prepare":
         prepare(args)
+    elif args.mode == "restore":
+        restore(args)
     else:
         evaluate(args)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            torch.distributed.destroy_process_group()

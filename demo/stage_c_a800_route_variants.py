@@ -26,6 +26,11 @@ def parse_args() -> argparse.Namespace:
         description="Build learned-route controls without using ground truth")
     parser.add_argument("--route-summary", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--source-variant",
+        help=("Use one named budget variant instead of route-summary's "
+              "selected_variant.  This projects an already-computed route; "
+              "it does not consult ground-truth metrics."))
     return parser.parse_args()
 
 
@@ -47,9 +52,9 @@ def counts(actions: np.ndarray) -> dict[str, int]:
 
 def route_document(
     source: dict, source_path: Path, name: str, actions: np.ndarray,
-    route_kind: str, description: str,
+    route_kind: str, description: str, source_variant: str,
 ) -> dict:
-    source_selected = source["variants"][source["selected_variant"]]
+    source_selected = source["variants"][source_variant]
     return {
         "experiment": "A800 formal route control",
         "sample": source.get("sample"),
@@ -69,7 +74,7 @@ def route_document(
         },
         "provenance": {
             "source_route_summary": str(source_path.resolve()),
-            "source_selected_variant": source["selected_variant"],
+            "source_selected_variant": source_variant,
             "ground_truth_metrics_used_to_construct_control": False,
         },
     }
@@ -78,7 +83,9 @@ def route_document(
 def main() -> None:
     args = parse_args()
     source = json.loads(args.route_summary.read_text(encoding="utf-8"))
-    selected = source["selected_variant"]
+    selected = args.source_variant or source["selected_variant"]
+    if selected not in source["variants"]:
+        raise ValueError(f"route variant does not exist: {selected}")
     learned = np.asarray(
         source["variants"][selected]["actions"], dtype=np.uint8)
     if learned.shape != (16,) or np.any(learned > ACTION_ENHANCE):
@@ -120,7 +127,8 @@ def main() -> None:
     for name, (actions, kind, description) in variants.items():
         path = args.output_dir / f"{name}.json"
         document = route_document(
-            source, args.route_summary, name, actions, kind, description)
+            source, args.route_summary, name, actions, kind, description,
+            selected)
         atomic_json(path, document)
         manifest_entries.append({
             "name": name,
@@ -131,6 +139,7 @@ def main() -> None:
     manifest = {
         "experiment": "A800 formal route controls and ablations",
         "source_route_summary": str(args.route_summary.resolve()),
+        "source_selected_variant": selected,
         "entries": manifest_entries,
         "scientific_boundary": {
             "learned_route_changed_only_by_declared_ablation": True,

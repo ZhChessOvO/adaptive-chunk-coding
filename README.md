@@ -30,7 +30,8 @@
 
 如果由新的 Codex 会话接手，请先阅读根目录的 `AGENTS.md` 和
 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)、
-[`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md)，再执行本节。当前已授权的云端范围是
+[`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md) 与
+[`docs/CLOUD_A800_FOLLOWUP.md`](docs/CLOUD_A800_FOLLOWUP.md)，再执行本节。当前已完成的云端范围是
 **1×A800 80GB、8–12 小时的单卡试跑**：冻结 DCVC-UF 和 SeedVR2，生成有界的反事实标签并训练轻量控制器；多卡完整阶段和大模型／codec 微调仍需下一次决定。
 可直接粘贴到新会话的版本保存在
 [`docs/CLOUD_CODEX_PROMPT.md`](docs/CLOUD_CODEX_PROMPT.md)。
@@ -203,7 +204,9 @@ wget -c \
 - 数据集不进 Git。只把数据协议允许使用的部分挂载到 `data/`，或通过脚本的 `--data-root`／`--input-dir` 显式传入；不要复制封存数据。
 - `output/`、真实码流、PNG／视频、checkpoint、第三方源码和编译产物均已在 `.gitignore` 排除。
 - 历史 Stage B 脚本的默认数据目录已改为仓库相对路径 `data/REDS`；也可以用 `--data-root` 指向服务器上的合规数据挂载。当前 Stage C 主线参数使用仓库相对路径或显式输入路径。
-- `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器试跑入口。当前已获准执行 `docs/CLOUD_A800_PILOT.md` 中的单卡 A800 80GB 试跑；云端 Codex 应先恢复环境和复现 smoke test，再自动推进到 500–1000 个反事实标签及轻量控制器。试跑结束后停止并汇报，不自行进入多卡完整生产或 SeedVR2／spatial-QP codec 微调。
+- `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器入口。单卡试跑和有界后续
+  复验均已完成；下一阶段要先确定独立测试数据。不要自行进入多卡完整生产或
+  SeedVR2／spatial-QP codec 微调。
 
 ### A800 单卡试跑状态
 
@@ -213,10 +216,23 @@ wget -c \
 均匀 QP24 为 13571.8 字节、LPIPS 0.472186。所有正式码流均通过独立进程 fresh
 decode 和逐像素一致性检查。
 
-这仍是开发集信号，不是独立测试。当前中预算路由没有选择 Base，且多个 Generate ROI
+这仍是开发集信号，不是独立测试。第一轮结束时，中预算路由没有选择 Base，且多个 Generate ROI
 使完整解码比全画面 SeedVR2 更慢；下一轮应先在单卡上修正动作平衡和 ROI 调度，不直接
 扩大到多卡。完整指标、资源记录和复现边界见
 [`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md)。
+
+2026-09-18 的单卡后续复验进一步拆开了这两个问题。没有重新训练或调参，只选择此前
+已经固定的低预算点；它在 96 个区域中自然产生 Base 24、Generate 24、Enhance 48。
+低预算联合路由平均为 10497.5 B／17 帧、LPIPS 0.463212，逐样本相对最近的已测均匀
+QP 点平均改善 0.058304 LPIPS，6/6 个样本方向一致。关闭 Generate 或 Enhance 后分别变差 0.022021 和
+0.046784，说明低预算点也保留了两条分支的可测贡献。
+
+ROI 执行改为一个进程只加载一次 SeedVR2 后，中预算输出在 6/6 个样本上与旧执行器
+逐像素一致，平均完整时间由 37.923 秒降到 24.895 秒；这比全画面 Generate 的
+28.248 秒快 11.87%，逐样本为 5/6 更快。正式均值处于已预热文件缓存的共同基线下；服务器重启后的单个
+冷启动回归另记为 51.52 秒，其中模型加载 42.70 秒。新正式评估峰值为 17.65 GiB，
+仍只需要一张 A800。详细协议与结果见
+[`docs/CLOUD_A800_FOLLOWUP.md`](docs/CLOUD_A800_FOLLOWUP.md)。
 
 ## 主要脚本
 
@@ -228,12 +244,15 @@ decode 和逐像素一致性检查。
 - `demo/stage_c_a800_scalar_fresh_decode.py`：为每个均匀 QP／BasicVSR++ 对照启动独立进程，记录包含模型加载的完整 fresh-decode 时间；
 - `demo/stage_c_a800_evaluate_variant.py`、`demo/stage_c_a800_formal_summary.py`：复核真实落盘字节、fresh decode、LPIPS／PSNR／时序指标并汇总六条开发视频；
 - `demo/stage_c_a800_formal_visual.py`：在固定第 9 帧生成包含基线、联合策略、消融和动作图的完整对照；
+- `demo/stage_c_a800_followup_summary.py`、`demo/stage_c_a800_followup_visual.py`：汇总低预算三路复验、常驻 ROI 执行和固定 12 宫格；
+- `demo/stage_c_a800_compare_frames.py`：对新旧执行器做逐像素序列回归，不记录文件哈希；
+- `demo/stage_c_a800_followup_finalize.py`：复核完成标志、单卡边界、显存、耗时和三个挂载点；
 - `demo/stage_c_seedvr2_three_path_oracle.py`：三种动作的真实码流收益探针；
 - `demo/stage_c_spatial_quality_format_test.py`：空间语法和旧格式兼容测试；
 - `demo/stage_c_spatial_quality_forward_probe.py`：不训练的空间质量调制检查；
 - `demo/stage_c_spatial_quality_codec.py`：一次编码的空间质量写盘／fresh decode；
 - `demo/stage_c_evaluate_spatial_quality_codec.py`：LPIPS 优先的三路评价；
-- `demo/stage_c_seedvr2_roi.py`：Generate 连通区域推理与算力对比；
+- `demo/stage_c_seedvr2_roi.py`：Generate 连通区域准备、单进程常驻恢复、逐像素拼接与算力对比；
 - `demo/stage_c_make_visuals.py`：生成 GT、恢复结果和拼接结果的可视化材料。
 
 本仓库基于 [Microsoft DCVC-UF](https://github.com/microsoft/DCVC)；研究代码仍在持续迭代。

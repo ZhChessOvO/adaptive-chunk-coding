@@ -100,6 +100,12 @@ def parse_args() -> argparse.Namespace:
     route.add_argument("--psnr-risk-weight", type=float, default=0.001)
     route.add_argument("--compute-time-weight", type=float, default=0.001)
     route.add_argument("--fragment-penalty", type=float, default=0.004)
+    route.add_argument(
+        "--selected-budget-index", type=int,
+        help=("Budget point to expose as selected_variant.  The default keeps "
+              "the historical middle point; follow-up frontier evaluations "
+              "can select another already-declared budget without changing "
+              "the learned predictions or solver."))
     route.add_argument("--limit", type=int)
     args = parser.parse_args()
     if args.mode == "train":
@@ -115,6 +121,10 @@ def parse_args() -> argparse.Namespace:
             parser.error("byte budget ratios must lie in [0, 1]")
         if any(not 0 <= value <= 16 for value in args.generate_budget_tiles):
             parser.error("Generate tile budgets must lie in [0, 16]")
+        if (args.selected_budget_index is not None
+                and not 0 <= args.selected_budget_index
+                < len(args.byte_budget_ratios)):
+            parser.error("selected budget index is outside the budget list")
     return args
 
 
@@ -591,7 +601,12 @@ def route_main(args: argparse.Namespace) -> None:
             len(set(int(actions[index]) for actions in actions_by_budget)) > 1
             for index in range(16)
         )
-        selected_variant = f"{args.method}-budget-{len(actions_by_budget) // 2}"
+        selected_budget_index = (
+            args.selected_budget_index
+            if args.selected_budget_index is not None
+            else len(actions_by_budget) // 2
+        )
+        selected_variant = f"{args.method}-budget-{selected_budget_index}"
         result = {
             "experiment": "A800 deployable lightweight-controller route",
             "sample": record,
@@ -608,6 +623,7 @@ def route_main(args: argparse.Namespace) -> None:
             "soft_predictions": predictions.tolist(),
             "variants": variants,
             "regions_changing_action_across_budgets": changes,
+            "selected_budget_index": selected_budget_index,
             "scientific_boundary": {
                 "source_rgb_used_at_encoder": True,
                 "ground_truth_quality_metrics_used_for_route": False,
@@ -623,6 +639,7 @@ def route_main(args: argparse.Namespace) -> None:
             "sample_id": record["sample_id"],
             "path": str(path),
             "selected_variant": result["selected_variant"],
+            "selected_budget_index": result["selected_budget_index"],
             "regions_changing_action_across_budgets": changes,
         })
         print(json.dumps({

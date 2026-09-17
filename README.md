@@ -205,8 +205,29 @@ wget -c \
 - 历史 Stage B 脚本的默认数据目录已改为仓库相对路径 `data/REDS`；也可以用 `--data-root` 指向服务器上的合规数据挂载。当前 Stage C 主线参数使用仓库相对路径或显式输入路径。
 - `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器试跑入口。当前已获准执行 `docs/CLOUD_A800_PILOT.md` 中的单卡 A800 80GB 试跑；云端 Codex 应先恢复环境和复现 smoke test，再自动推进到 500–1000 个反事实标签及轻量控制器。试跑结束后停止并汇报，不自行进入多卡完整生产或 SeedVR2／spatial-QP codec 微调。
 
+### A800 单卡试跑状态
+
+2026-09-17 的单卡试跑已经完成：冻结模型生成了 500 个训练样本和 6 个开发样本的
+反事实标签，并训练了 5768 参数的预算条件化 MLP。六条 REDS 开发视频上，学习到的
+联合路由平均使用 13771.5 个真实落盘字节／17 帧，LPIPS 为 0.432362；字节最接近的
+均匀 QP24 为 13571.8 字节、LPIPS 0.472186。所有正式码流均通过独立进程 fresh
+decode 和逐像素一致性检查。
+
+这仍是开发集信号，不是独立测试。当前中预算路由没有选择 Base，且多个 Generate ROI
+使完整解码比全画面 SeedVR2 更慢；下一轮应先在单卡上修正动作平衡和 ROI 调度，不直接
+扩大到多卡。完整指标、资源记录和复现边界见
+[`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md)。
+
 ## 主要脚本
 
+- `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
+- `demo/stage_c_a800_teacher.py`：可断点续跑的冻结模型反事实质量／字节标签；
+- `demo/stage_c_a800_roi_cost_teacher.py`：实测四类连通 ROI 几何的 SeedVR2 单卡耗时，不用全画面时间按面积估算；
+- `demo/stage_c_a800_controller.py`：固定日程训练线性模型和小型 MLP，并在带宽／Generate tile 预算下求解动作；
+- `demo/stage_c_a800_route_variants.py`：生成学习联合路由、全 Generate、Enhance-only 及关闭 G／E 的同路由消融；
+- `demo/stage_c_a800_scalar_fresh_decode.py`：为每个均匀 QP／BasicVSR++ 对照启动独立进程，记录包含模型加载的完整 fresh-decode 时间；
+- `demo/stage_c_a800_evaluate_variant.py`、`demo/stage_c_a800_formal_summary.py`：复核真实落盘字节、fresh decode、LPIPS／PSNR／时序指标并汇总六条开发视频；
+- `demo/stage_c_a800_formal_visual.py`：在固定第 9 帧生成包含基线、联合策略、消融和动作图的完整对照；
 - `demo/stage_c_seedvr2_three_path_oracle.py`：三种动作的真实码流收益探针；
 - `demo/stage_c_spatial_quality_format_test.py`：空间语法和旧格式兼容测试；
 - `demo/stage_c_spatial_quality_forward_probe.py`：不训练的空间质量调制检查；

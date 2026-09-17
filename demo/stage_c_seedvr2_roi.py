@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import time
 from collections import deque
@@ -20,11 +21,25 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from demo.stage_c_evaluate_seedvr2_gate import load_pngs, load_source
-from demo.stage_c_evaluate_spatial_quality_codec import generate_composite, panel
+from demo.stage_c_evaluate_spatial_quality_codec import (
+    exact_frame_comparison,
+    generate_composite,
+    panel,
+)
+from demo.stage_c_spatial_quality_codec import selected_route_variant
 from demo.stage_c_three_path_roi_probe import LPIPSAlex, evaluate_variant
 
 
 ACTION_GENERATE = 1
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,7 +57,10 @@ def parse_args() -> argparse.Namespace:
     evaluate.add_argument("--gate-summary", type=Path, required=True)
     evaluate.add_argument("--codec-dir", type=Path, required=True)
     evaluate.add_argument("--restored-root", type=Path, required=True)
-    evaluate.add_argument("--full-seedvr2-dir", type=Path, required=True)
+    evaluate.add_argument(
+        "--full-seedvr2-dir", type=Path,
+        help=("Optional full-frame SeedVR2 control. The connected-ROI result "
+              "remains evaluable without running this extra control."))
     evaluate.add_argument("--output-dir", type=Path, required=True)
     evaluate.add_argument("--feather-pixels", type=int, default=8)
     return parser.parse_args()
@@ -86,9 +104,8 @@ def prepare(args: argparse.Namespace) -> None:
     height, width = frames[0].shape[:2]
     tile_size = int(route["configuration"]["tile_size"])
     rows, columns = route["configuration"]["tile_grid"]
-    actions = np.asarray(
-        route["variants"]["joint-three-path-oracle"]["actions"], dtype=np.int64,
-    ).reshape(rows, columns)
+    variant_name, variant = selected_route_variant(route)
+    actions = np.asarray(variant["actions"], dtype=np.int64).reshape(rows, columns)
     components = connected_components(actions == ACTION_GENERATE)
     records = []
     for index, component in enumerate(components):
@@ -125,6 +142,7 @@ def prepare(args: argparse.Namespace) -> None:
     full_processing_width = round_up(width * args.processing_scale, 16)
     result = {
         "route_summary": str(args.route_summary),
+        "route_variant": variant_name,
         "input_dir": str(args.input_dir),
         "frame_count": len(frames),
         "frame_height": height,
@@ -146,8 +164,7 @@ def prepare(args: argparse.Namespace) -> None:
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest = args.output_dir / "manifest.json"
-    manifest.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_json(manifest, result)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
@@ -156,8 +173,14 @@ def evaluate(args: argparse.Namespace) -> None:
     gate = json.loads(args.gate_summary.read_text(encoding="utf-8"))
     decode = json.loads((args.codec_dir / "decode_summary.json").read_text())
     reference = load_source(gate, manifest["frame_count"])
+    encoder_reconstruction = load_pngs(args.codec_dir / "encoder_reconstruction")
     decoded = load_pngs(args.codec_dir / "fresh_decode")
-    full_generated = load_pngs(args.full_seedvr2_dir)
+    fresh_regression = exact_frame_comparison(encoder_reconstruction, decoded)
+    if not fresh_regression.get("pixel_exact"):
+        raise RuntimeError("fresh spatial decode differs from encoder reconstruction")
+    full_generated = (
+        load_pngs(args.full_seedvr2_dir)
+        if args.full_seedvr2_dir is not None else None)
     actions = np.asarray(manifest["actions"], dtype=np.int64)
     tile_size = int(manifest["tile_size"])
     generated_canvas = [frame.copy() for frame in decoded]
@@ -188,39 +211,61 @@ def evaluate(args: argparse.Namespace) -> None:
     stitched = generate_composite(
         decoded, generated_canvas, actions, tile_size, args.feather_pixels)
     composite_seconds = time.perf_counter() - started
-    full_started = time.perf_counter()
-    full_stitched = generate_composite(
-        decoded, full_generated, actions, tile_size, args.feather_pixels)
-    full_composite_seconds = time.perf_counter() - full_started
+    full_stitched = None
+    full_composite_seconds = None
+    if full_generated is not None:
+        full_started = time.perf_counter()
+        full_stitched = generate_composite(
+            decoded, full_generated, actions, tile_size, args.feather_pixels)
+        full_composite_seconds = time.perf_counter() - full_started
     output_frames = args.output_dir / "frames" / "roi-spatial-bge-stitched"
     output_frames.mkdir(parents=True, exist_ok=True)
     for index, frame in enumerate(stitched, start=1):
         Image.fromarray(frame).save(output_frames / f"im{index:05d}.png")
     metric = LPIPSAlex(True)
     roi_quality = evaluate_variant(reference, stitched, metric)
-    full_quality = evaluate_variant(reference, full_generated, metric)
-    full_stitched_quality = evaluate_variant(reference, full_stitched, metric)
-    full_metadata = json.loads(
-        (args.full_seedvr2_dir / "seedvr2_metadata.json").read_text())
+    full_quality = (
+        evaluate_variant(reference, full_generated, metric)
+        if full_generated is not None else None)
+    full_stitched_quality = (
+        evaluate_variant(reference, full_stitched, metric)
+        if full_stitched is not None else None)
+    full_metadata = (
+        json.loads((args.full_seedvr2_dir / "seedvr2_metadata.json").read_text())
+        if args.full_seedvr2_dir is not None else None)
     full_pipeline_seconds = (
         decode["total_after_argument_parse_seconds"]
         + full_metadata["total_after_argument_parse_seconds"]
-        + full_composite_seconds)
+        + full_composite_seconds
+        if full_metadata is not None else None)
     roi_pipeline_seconds = (
         decode["total_after_argument_parse_seconds"]
         + roi_total_seconds + composite_seconds)
     visual_frame = min(8, len(reference) - 1)
+    action_colors = np.asarray([
+        (74, 144, 226),
+        (242, 160, 42),
+        (70, 170, 92),
+    ], dtype=np.uint8)
+    action_map_frame = np.repeat(
+        np.repeat(action_colors[actions], tile_size, axis=0),
+        tile_size, axis=1)
     visual_panels = [
         panel(reference[visual_frame], "GT", None),
         panel(decoded[visual_frame], "Spatial QP raw", evaluate_variant(
             reference, decoded, metric)),
-        panel(full_stitched[visual_frame], "Full-frame SeedVR2 B/G/E",
-              full_stitched_quality),
+        panel(action_map_frame, "Action map (B / G / E)", None),
         panel(stitched[visual_frame], "Connected-ROI SeedVR2 B/G/E", roi_quality),
     ]
+    if full_stitched is not None:
+        visual_panels.insert(2, panel(
+            full_stitched[visual_frame], "Full-frame SeedVR2 B/G/E",
+            full_stitched_quality))
     panel_width = max(item.width for item in visual_panels)
     panel_height = max(item.height for item in visual_panels)
-    visual_image = Image.new("RGB", (2 * panel_width, 2 * panel_height), (230, 230, 230))
+    visual_rows = (len(visual_panels) + 1) // 2
+    visual_image = Image.new(
+        "RGB", (2 * panel_width, visual_rows * panel_height), (230, 230, 230))
     for index, item in enumerate(visual_panels):
         visual_image.paste(
             item, ((index % 2) * panel_width, (index // 2) * panel_height))
@@ -229,10 +274,11 @@ def evaluate(args: argparse.Namespace) -> None:
     visual_image.save(visual_path, optimize=True)
     result = {
         "experiment": "E25 connected-ROI SeedVR2 compute probe",
-        "status": "no-training-single-component-probe-complete",
+        "status": "no-training-connected-component-roi-complete",
         "manifest": str(args.manifest),
         "component_count": len(manifest["components"]),
         "processing_pixel_ratio_vs_full": manifest["roi_to_full_processing_pixel_ratio"],
+        "fresh_decode_regression": fresh_regression,
         "quality": {
             "roi-spatial-bge-stitched": roi_quality,
             "full-frame-seedvr2-spatial-bge-stitched": full_stitched_quality,
@@ -248,9 +294,11 @@ def evaluate(args: argparse.Namespace) -> None:
             "full_roi_pipeline_seconds": roi_pipeline_seconds,
             "full_frame_seedvr2_pipeline_seconds": full_pipeline_seconds,
             "pipeline_speedup_fraction_vs_full_frame": (
-                1.0 - roi_pipeline_seconds / full_pipeline_seconds),
+                1.0 - roi_pipeline_seconds / full_pipeline_seconds
+                if full_pipeline_seconds is not None else None),
             "seedvr2_core_speedup_fraction_vs_full_frame": (
-                1.0 - roi_core_seconds / full_metadata["runtime_seconds"]),
+                1.0 - roi_core_seconds / full_metadata["runtime_seconds"]
+                if full_metadata is not None else None),
             "peak_cuda_allocated_bytes": max(
                 roi_peak, int(decode["peak_cuda_allocated_bytes"])),
         },
@@ -260,14 +308,14 @@ def evaluate(args: argparse.Namespace) -> None:
             "source_rgb_read_by_decoder": False,
             "training_or_finetuning": False,
             "multi_component_model_reload_not_optimized": True,
+            "optional_full_frame_control_run": full_metadata is not None,
         },
         "output_frames": str(output_frames),
         "visual": str(visual_path),
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     summary = args.output_dir / "summary.json"
-    summary.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_json(summary, result)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

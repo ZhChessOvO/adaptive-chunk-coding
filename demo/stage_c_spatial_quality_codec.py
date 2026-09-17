@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import struct
 import sys
 import time
@@ -684,19 +685,38 @@ def save_reconstruction(path: Path, frames: list[torch.Tensor], height: int, wid
     return arrays
 
 
-def load_actions(route: dict, height: int, width: int, cell_size: int) -> np.ndarray:
+def selected_route_variant(route: dict) -> tuple[str, dict]:
+    name = route.get("selected_variant", "joint-three-path-oracle")
+    variants = route.get("variants", {})
+    if name not in variants:
+        raise ValueError(f"selected route variant is absent: {name}")
+    return name, variants[name]
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def load_actions(
+    route: dict, height: int, width: int, cell_size: int,
+) -> tuple[np.ndarray, str, dict]:
     config = route["configuration"]
     route_height, route_width = config["tile_grid"]
     route_tile_size = config["tile_size"]
-    values = np.asarray(
-        route["variants"]["joint-three-path-oracle"]["actions"], dtype=np.int64)
+    variant_name, variant = selected_route_variant(route)
+    values = np.asarray(variant["actions"], dtype=np.int64)
     values = values.reshape(route_height, route_width)
     if route_tile_size % cell_size:
         raise ValueError("route tile size must be divisible by syntax cell size")
     repeat = route_tile_size // cell_size
     actions = np.repeat(np.repeat(values, repeat, axis=0), repeat, axis=1)
     validate_spatial_actions(width, height, cell_size, actions.reshape(-1))
-    return actions
+    return actions, variant_name, variant
 
 
 @torch.inference_mode()
@@ -708,7 +728,9 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
     height, width = reference[0].shape[:2]
     if height % 64 or width % 64:
         raise ValueError("current spatial-quality prototype requires dimensions divisible by 64")
-    actions = load_actions(route, height, width, args.cell_size)
+    actions, route_variant_name, route_variant = load_actions(
+        route, height, width, args.cell_size)
+    route_kind = route.get("route_kind", "encoder-side-oracle")
     profile = (args.generate_qp, args.base_qp, args.enhance_qp)
     action_map, qp_map = quality_maps(actions, profile, device)
     tensors = [tensor_from_rgb(frame, device) for frame in reference]
@@ -766,6 +788,14 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
         "cell_size": args.cell_size,
         "action_map_shape": list(actions.shape),
         "actions": actions.tolist(),
+        "route": {
+            "kind": route_kind,
+            "selected_variant": route_variant_name,
+            "selected_variant_metadata": {
+                key: value for key, value in route_variant.items()
+                if key != "actions"
+            },
+        },
         "action_counts": {
             ACTION_NAMES[action]: int(np.count_nonzero(actions == action))
             for action in ACTION_NAMES
@@ -789,15 +819,17 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
             "different_qp_latents_spliced": False,
             "area_prorated_bytes": False,
             "ground_truth_used_by_codec_forward_path": False,
-            "route_is_encoder_side_oracle_for_this_probe": True,
+            "route_is_encoder_side_oracle_for_this_probe": (
+                "oracle" in route_kind.lower()),
+            "route_is_learned_controller": (
+                route_kind == "learned-controller"),
             "budget_known_before_encoding": True,
             "training_or_finetuning": False,
         },
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = args.output_dir / "encode_summary.json"
-    summary_path.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_json(summary_path, summary)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
@@ -915,8 +947,7 @@ def decode_main(args: argparse.Namespace, device: torch.device) -> None:
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = args.output_dir / "decode_summary.json"
-    summary_path.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_json(summary_path, summary)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import statistics
 import sys
 import time
@@ -44,6 +45,15 @@ from demo.stage_c_three_path_roi_probe import (
     save_frames,
 )
 from src.utils.common import set_torch_env
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def parse_args() -> argparse.Namespace:
@@ -335,14 +345,12 @@ def main() -> None:
             "compare Base, BasicVSR++, and SeedVR2 before any controller training."),
     }
     summary_path = args.output_dir / "summary.json"
-    summary_path.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8")
     write_csv(args.output_dir / "per_variant.csv", records)
     make_visual(
         args.output_dir / "visuals" / f"frame_{args.visual_frame:05d}.png",
         originals, decoded_by_qp, restored_by_qp, records, args.qps,
         args.visual_frame - 1)
+    atomic_json(summary_path, summary)
     print(json.dumps({
         "summary": str(summary_path),
         "visual": str(

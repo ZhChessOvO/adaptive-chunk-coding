@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -17,6 +18,15 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from demo.stage_c_three_path_roi_probe import LPIPSAlex, evaluate_variant
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def parse_args() -> argparse.Namespace:
@@ -209,15 +219,13 @@ def main() -> None:
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     output_path = args.output_dir / "evaluation.json"
-    output_path.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8")
     frame_index = min(max(args.visual_frame, 1), count) - 1
     visual_path = args.output_dir / "visuals" / f"frame_{frame_index + 1:05d}.png"
     write_visual(visual_path, frame_index, reference, variants)
     temporal_path = args.output_dir / "visuals" / "three_consecutive_frames.png"
     write_temporal_visual(
         temporal_path, frame_index, reference, variants)
+    atomic_json(output_path, result)
     print(json.dumps({
         "evaluation": str(output_path),
         "visual": str(visual_path),

@@ -141,6 +141,15 @@ def load_frames(
     return paths, tensor.float().div_(255.0)
 
 
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
+    os.replace(temporary, path)
+
+
 def resize_and_normalize(
     frames: torch.Tensor, height: int, width: int, device: torch.device
 ) -> torch.Tensor:
@@ -162,6 +171,11 @@ def resize_and_normalize(
 def resize_output(sample: torch.Tensor, height: int, width: int) -> torch.Tensor:
     """Resize a C,T,H,W result while keeping the temporal axis untouched."""
 
+    if sample.ndim == 3:
+        sample = sample.unsqueeze(1)
+    if sample.ndim != 4:
+        raise ValueError(
+            f"SeedVR2 output must be C,T,H,W (or C,H,W for T=1), got {sample.shape}")
     if sample.shape[-2:] == (height, width):
         return sample
     frames = sample.permute(1, 0, 2, 3)
@@ -259,6 +273,11 @@ def configure_runner(args: argparse.Namespace):
 
 def save_frames(path: Path, sample: torch.Tensor, frame_count: int) -> None:
     path.mkdir(parents=True, exist_ok=True)
+    if sample.ndim == 3:
+        sample = sample.unsqueeze(1)
+    if sample.ndim != 4:
+        raise ValueError(
+            f"SeedVR2 output must be C,T,H,W (or C,H,W for T=1), got {sample.shape}")
     sample = sample[:, :frame_count]
     sample = sample.permute(1, 2, 3, 0).float().cpu()
     sample = sample.clamp(-1, 1).add_(1).mul_(127.5).round_().byte().numpy()
@@ -391,9 +410,7 @@ def main() -> None:
         "color_fix": False,
     }
     metadata_path = args.output_dir / "seedvr2_metadata.json"
-    metadata_path.write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8")
+    atomic_json(metadata_path, metadata)
     print(json.dumps(metadata, ensure_ascii=False, indent=2))
 
 

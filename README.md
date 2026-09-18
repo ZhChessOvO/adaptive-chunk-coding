@@ -266,10 +266,16 @@ Base 预分析只学习纠错。训练集分组折外自动选中二者融合版
 纠错，只有方向一致且各自不确定性足够小时才采用较小的可信幅度。训练集分组折外自动选择
 `z=0.25`、纠错比例 `1.0`；六条开发视频上平均为 10429.5 B／17 帧、LPIPS 0.461972，
 相对 v1 少 68 B、LPIPS 低 0.001240，但逐视频只有 3/6 更好。关闭 Generate／Enhance 后
-分别平均变差 0.023291／0.048774，均为 6/6。按“不设硬门槛、综合选择”的口径，v5 被
-冻结进入 REDS validation + UVG 联合论文评估；扩展结果不再反向修改 controller。完整
-协议、结果和诚实的数据角色见
-[`docs/CLOUD_A800_LOW_BUDGET_V5.md`](docs/CLOUD_A800_LOW_BUDGET_V5.md)。
+分别平均变差 0.023291／0.048774，均为 6/6。按“不设硬门槛、综合选择”的口径冻结 v5
+后，已经完成 REDS validation 30 条 + UVG 7 条联合论文评估。
+
+联合 37 条平均为 9956.5 B／17 帧、LPIPS 0.447651，相对逐样本最近均匀 QP 改善
+0.014411，21/37 条更好。分开看更有意义：REDS 平均改善 0.020686，新读取的
+`024..029` 为 6/6 改善；UVG 平均反而差 0.012478，只有 2/7 改善。Enhance 在
+37/37 条上都有贡献，而 Generate 在 REDS 上大多有益、在 UVG 上平均略有害；固定图还
+显示部分 UVG 的跨动作接缝。完整协议见
+[`docs/CLOUD_A800_LOW_BUDGET_V5.md`](docs/CLOUD_A800_LOW_BUDGET_V5.md)，联合结果、资源和
+下一步见 [`docs/CLOUD_A800_JOINT_EVALUATION.md`](docs/CLOUD_A800_JOINT_EVALUATION.md)。
 
 ## 主要脚本
 

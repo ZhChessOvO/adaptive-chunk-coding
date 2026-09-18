@@ -330,6 +330,24 @@ v5 把 v2 上下文和 v3 Base 预分析保留为两个独立专家，只有二�
 官方整库前明确标为暂未纳入，不用旧 `sky` 别名冒充可复现样本。详细记录见
 [`CLOUD_A800_LOW_BUDGET_V5.md`](CLOUD_A800_LOW_BUDGET_V5.md)。
 
+## 2026-09-18 REDS + UVG 联合评估
+
+冻结 v5 随后完成 30 条 REDS validation 与 7 条 UVG 的联合评估。合并 37 条时，最终
+路由平均 9956.5 B／17 帧、LPIPS 0.447651，相对逐样本最近均匀 QP 平均降低
+0.014411，21/37 条更好；相对全 Generate 平均快 29.74%，37/37 条更快。
+
+分数据集结论并不相同。REDS 上平均改善 0.020686，19/30 条更好；特别是冻结后新读取的
+`024..029` 为 6/6 改善。UVG 上却平均差 0.012478，只有 2/7 更好。关闭 Enhance 后
+37/37 条都变差，说明 Enhance 很稳；关闭 Generate 在 REDS 上 27/30 变差，但在 UVG
+平均反而略好。人工固定图也看到 Beauty、YachtRide 的跨动作接缝，以及 Jockey 的
+Generate 平滑纹理失真。
+
+全部 37 个正式样本、真实字节、fresh decode、固定图和消融均通过完整性复核。墙钟约
+2 小时 7 分，峰值 23275 MiB，正式目录约 2.80 GB，三块盘约 12%／17%／26%。这说明
+下一轮仍完全可以单卡完成。推荐保留 v5 和 Enhance，只针对 Generate 做更宽／自适应边界
+融合、动作图空间一致性和跨域置信度；详细结果见
+[`CLOUD_A800_JOINT_EVALUATION.md`](CLOUD_A800_JOINT_EVALUATION.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
@@ -339,3 +357,4 @@ v5 把 v2 上下文和 v3 Base 预分析保留为两个独立专家，只有二�
 - [Notion：11 E20–E25 结果与可视化](https://app.notion.com/p/3dc8b22ebd8d81cc84b8d2d658444c6f)
 - [Notion：12 实现踩坑与排障](https://app.notion.com/p/3dc8b22ebd8d81d3ae37c7bfd17be89c)
 - [Notion：15 v4 融合控制器](https://app.notion.com/p/3df8b22ebd8d81218518fd1c2a967c51)
+- [Notion：17 REDS + UVG 联合评估与 Generate 下一步](https://app.notion.com/p/3df8b22ebd8d81389267e7a9579102a6)

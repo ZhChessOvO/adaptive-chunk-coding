@@ -135,6 +135,24 @@ download_worker() {
   done
 }
 
+cleanup_completed_chunk_dir() {
+  local chunk_dir=$1
+  local chunk_artifact
+
+  if [[ ! -d "$chunk_dir" ]]; then
+    return
+  fi
+  shopt -s nullglob
+  for chunk_artifact in \
+    "$chunk_dir"/*.part \
+    "$chunk_dir"/*.part.tmp.headers \
+    "$chunk_dir"/*.part.tmp.piece; do
+    unlink "$chunk_artifact"
+  done
+  shopt -u nullglob
+  rmdir "$chunk_dir"
+}
+
 download_in_chunks() {
   local url=$1
   local partial=$2
@@ -153,6 +171,7 @@ download_in_chunks() {
   if [[ -e "$partial" ]]; then
     actual_chunk_size=$(stat -c %s "$partial")
     if [[ "$actual_chunk_size" -eq "$expected_size" ]]; then
+      cleanup_completed_chunk_dir "$chunk_dir"
       echo "DOWNLOAD assembled_file_complete bytes=$actual_chunk_size"
       return
     fi
@@ -201,10 +220,7 @@ download_in_chunks() {
     echo "assembled download size mismatch: $actual_chunk_size != $expected_size" >&2
     return 1
   fi
-  for chunk_path in "$chunk_dir"/*.part; do
-    unlink "$chunk_path"
-  done
-  rmdir "$chunk_dir"
+  cleanup_completed_chunk_dir "$chunk_dir"
   echo "DOWNLOAD assembled bytes=$actual_chunk_size"
 }
 

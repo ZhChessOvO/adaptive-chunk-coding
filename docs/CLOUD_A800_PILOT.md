@@ -381,3 +381,4 @@ LPIPS 增加 0.001702，而 32 像素代价为 0.005303，因此选择 16 像素
 - [Notion：12 实现踩坑与排障](https://app.notion.com/p/3dc8b22ebd8d81d3ae37c7bfd17be89c)
 - [Notion：15 v4 融合控制器](https://app.notion.com/p/3df8b22ebd8d81218518fd1c2a967c51)
 - [Notion：17 REDS + UVG 联合评估与 Generate 下一步](https://app.notion.com/p/3df8b22ebd8d81389267e7a9579102a6)
+- [Notion：18 当前整体方法（论文 Method 结构）](https://app.notion.com/p/3df8b22ebd8d819e8509d1ff2dc97095)

@@ -348,6 +348,29 @@ Generate 平滑纹理失真。
 融合、动作图空间一致性和跨域置信度；详细结果见
 [`CLOUD_A800_JOINT_EVALUATION.md`](CLOUD_A800_JOINT_EVALUATION.md)。
 
+## 2026-09-19 v6 跨域适配数据调整
+
+REDS 继续作为训练主体，同时把 UVG 的 Beauty、Bosphorus、HoneyBee、Jockey、
+ShakeNDry 纳入小比例适配训练；ReadySetGo、YachtRide 不进入本轮训练，作为 v6
+留出测试侧序列。七条 UVG 的前 17 帧都已参加过 v5 联合评估，因此后两条只称
+“v6 未参与训练”，不声称从未见过。
+
+训练侧每条序列恢复 4 个相隔较远的时段，每个时段取左、中、右三个 512×512 裁剪，
+合计 60 个窗口。下载与转换在 tmux 中断点执行，完成一条序列后删除其 7z 和原始 YUV；
+DCVC-UF、SeedVR2 和 spatial-QP codec 继续冻结。完整协议见
+[`CLOUD_A800_UVG_ADAPTATION.md`](CLOUD_A800_UVG_ADAPTATION.md)。
+
+## 2026-09-19 Generate 羽化诊断完成
+
+冻结 v5 的 37 条已有输出已完成 8／16／32 像素羽化诊断，没有重跑 DCVC-UF 或
+SeedVR2，也没有改变动作图。8 像素 37/37 与正式结果逐像素一致；16 像素在 33/33 条
+有 Generate 边界的样本上改善边界指标，并使 UVG 平均 LPIPS 降低 0.000866。它让合并
+LPIPS 增加 0.001702，而 32 像素代价为 0.005303，因此选择 16 像素作为 v6 默认折中。
+
+固定图显示 Beauty、YachtRide 的交界更柔和，但 Jockey 的平滑背景仍被误生成，说明
+羽化只解决贴回边界，不能替代空间一致性和跨域路由校准。完整记录见
+[`CLOUD_A800_FEATHER_DIAGNOSTIC.md`](CLOUD_A800_FEATHER_DIAGNOSTIC.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

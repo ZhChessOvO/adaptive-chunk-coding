@@ -277,6 +277,12 @@ Base 预分析只学习纠错。训练集分组折外自动选中二者融合版
 [`docs/CLOUD_A800_LOW_BUDGET_V5.md`](docs/CLOUD_A800_LOW_BUDGET_V5.md)，联合结果、资源和
 下一步见 [`docs/CLOUD_A800_JOINT_EVALUATION.md`](docs/CLOUD_A800_JOINT_EVALUATION.md)。
 
+随后完成的冻结羽化诊断复用了上述 37 条已有输出，没有重跑 codec 或 SeedVR2。16 像素
+在 33/33 条有 Generate 边界的样本上降低边界梯度误差，并改善 UVG 平均 LPIPS；合并
+LPIPS 相比 8 像素增加 0.001702，明显小于 32 像素的 0.005303 代价。因此 v6 选择
+16 像素作为默认折中，并继续单独修正 Generate 误选。详见
+[`docs/CLOUD_A800_FEATHER_DIAGNOSTIC.md`](docs/CLOUD_A800_FEATHER_DIAGNOSTIC.md)。
+
 ## 主要脚本
 
 - `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
@@ -315,6 +321,9 @@ Base 预分析只学习纠错。训练集分组折外自动选中二者融合版
   两项消融、fresh decode、固定图和资源；
 - `demo/restore_uvg_evaluation_samples.sh`：从 UVG 官方站断点恢复七条标准序列，验证原始
   YUV 大小后固定前 17 帧中央裁剪，并删除临时归档和 YUV；
+- `demo/prepare_uvg_adaptation_samples.sh`：从 UVG 官方站断点恢复五条 v6 训练侧序列的
+  更多时段，生成 60 个跨域适配窗口；ReadySetGo、YachtRide 不进入本轮训练。协议见
+  [`docs/CLOUD_A800_UVG_ADAPTATION.md`](docs/CLOUD_A800_UVG_ADAPTATION.md)；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、
   `demo/stage_c_a800_joint_evaluation_summary.py`：在 tmux 中可断点续跑 REDS validation
   与 UVG 联合评估，按数据集和合并口径汇总，并只在路由完全相同时复用历史正式输出；

@@ -75,8 +75,9 @@ Base-probe 可信幅度 = max(|Base-probe 纠错| - z × Base-probe 模型分歧
 `/root/autodl-fs/DCVC/data/REDS/val_sharp/000..029`。
 
 原先的 Jockey／UVG／QST 文件当前不在服务器。标准 UVG 七条 1080p YUV 已从 Ultra
-Video Group 官方站点开始恢复；每条固定取前 17 帧中央 512×512 裁剪，成功验证 PNG 后
-删除 7z 和临时 YUV。QST 官方只提供整库百度网盘入口，尚未把含糊的旧 `sky` 别名冒充成
+Video Group 官方站点全部恢复；每条固定取前 17 帧中央 512×512 裁剪，共 119 张 PNG
+全部通过解码和尺寸检查，随后删除 7z 和临时 YUV。QST 官方只提供整库百度网盘入口，
+尚未把含糊的旧 `sky` 别名冒充成
 可复现样本；若后续确需 QST，必须登记官方 clip ID、来源、帧窗、裁剪和历史角色。
 
 ## 正式目录
@@ -125,3 +126,13 @@ spatial-QP 文件；LPIPS 越低越好。
 联合评估固定 REDS validation 30 条和 UVG 标准 7 条，每条前 17 帧、512×512；同时报告
 REDS、UVG 和合并统计，并保留每条样本的历史角色。QST 不用含糊的旧 `sky` 别名替代：在
 取得官方整库或可登记的官方 clip ID 前，账本会明确写成“暂未纳入”，而不是静默换数据。
+
+## 2026-09-18 联合评估执行状态
+
+代码 `03d1503` 和 v5 checkpoint SHA-256
+`0809fe755e3ae21d8f49c8b6b75dc26bbcefba02a80cf356ca72a8f91ccdbce6` 已在读取联合
+质量结果前冻结。37 条样本的运行目录为
+`/root/autodl-fs/DCVC/runs/a800_joint_evaluation_20260918`；任务于 13:44 UTC 在
+`a800_joint_evaluation` tmux 会话启动，可按逐步骤 JSON 和 `sample.complete` 标志断点续跑。
+启动时三块盘约为 12%／17%／25%，GPU 空闲；后续会在同一目录补齐真实落盘字节、fresh
+decode、均匀 QP 与 BasicVSR++ 基线、两项固定路由消融、固定第 9 帧可视化及最终资源快照。

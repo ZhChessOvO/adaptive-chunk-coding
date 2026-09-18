@@ -199,13 +199,14 @@ wget -c \
 
 ## 数据、输出与继续实验
 
-- 当前已上传的权重和两个 ZIP 直接位于 `/root/autodl-fs/`；补充下载和解压后的数据放在 `/root/autodl-fs/DCVC/`，正式结果放在 `/root/autodl-fs/DCVC/runs`。不要把全部数据或正式输出复制到 `/root/autodl-tmp`。详见 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
-- `val_sharp.zip` 本轮只解压 `000..005`；其余边界以 `AGENTS.md` 和云端试跑文档为准。
+- 上传的权重位于 `/root/autodl-fs/`；两个 ZIP 已在验证解压后按要求删除。解压后的数据放在 `/root/autodl-fs/DCVC/`，正式结果放在 `/root/autodl-fs/DCVC/runs`。不要把全部数据或正式输出复制到 `/root/autodl-tmp`。详见 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
+- REDS `val/000..005` 是开发集；一次性独立测试已消费 `012..023`，`024..029` 仍封存且
+  未解压。具体边界以 `AGENTS.md` 和云端试跑文档为准。
 - 数据集不进 Git。只把数据协议允许使用的部分挂载到 `data/`，或通过脚本的 `--data-root`／`--input-dir` 显式传入；不要复制封存数据。
 - `output/`、真实码流、PNG／视频、checkpoint、第三方源码和编译产物均已在 `.gitignore` 排除。
 - 历史 Stage B 脚本的默认数据目录已改为仓库相对路径 `data/REDS`；也可以用 `--data-root` 指向服务器上的合规数据挂载。当前 Stage C 主线参数使用仓库相对路径或显式输入路径。
-- `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器入口。单卡试跑和有界后续
-  复验均已完成；下一阶段要先确定独立测试数据。不要自行进入多卡完整生产或
+- `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器入口。单卡试跑、有界后续
+  复验和一次性独立测试均已完成。不要自行读取封存数据、进入多卡完整生产或
   SeedVR2／spatial-QP codec 微调。
 
 ### A800 单卡试跑状态
@@ -234,6 +235,18 @@ ROI 执行改为一个进程只加载一次 SeedVR2 后，中预算输出在 6/6
 仍只需要一张 A800。详细协议与结果见
 [`docs/CLOUD_A800_FOLLOWUP.md`](docs/CLOUD_A800_FOLLOWUP.md)。
 
+2026-09-18 随后在此前未读取的 REDS `val/012..023` 上完成了预注册的一次性独立测试。
+中预算联合路线平均 17193.4 B／17 帧、LPIPS 0.451470，相对逐样本最近的已测均匀
+QP 平均改善 0.024350，12/12 条更好；关闭 Generate／Enhance 分别有 10/12、12/12
+条变差，平均完整时间 21.602 秒，比全 Generate 快 26.55%，因此四项预注册判据全部
+通过。
+
+低预算平均 LPIPS 也改善 0.007339，两项分支消融和速度判据通过，但只有 5/12 条优于
+最近均匀 QP，未达到至少 8/12 的稳定性门槛，所以低预算总判定为失败。所有正式流均
+通过真实字节和逐像素 fresh decode 检查；正式峰值显存 18.33 GiB，总墙钟约 1 小时
+47 分，继续使用单张 A800 足够。`012..023` 已消费，`024..029` 仍封存。完整协议与
+结果见 [`docs/CLOUD_A800_INDEPENDENT_TEST.md`](docs/CLOUD_A800_INDEPENDENT_TEST.md)。
+
 ## 主要脚本
 
 - `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
@@ -247,6 +260,12 @@ ROI 执行改为一个进程只加载一次 SeedVR2 后，中预算输出在 6/6
 - `demo/stage_c_a800_followup_summary.py`、`demo/stage_c_a800_followup_visual.py`：汇总低预算三路复验、常驻 ROI 执行和固定 12 宫格；
 - `demo/stage_c_a800_compare_frames.py`：对新旧执行器做逐像素序列回归，不记录文件哈希；
 - `demo/stage_c_a800_followup_finalize.py`：复核完成标志、单卡边界、显存、耗时和三个挂载点；
+- `demo/stage_c_a800_independent_manifest.py`：在读取图片前固定 12 条独立测试样本；
+- `demo/stage_c_a800_independent_summary.py`、`demo/stage_c_a800_independent_visual.py`：
+  汇总预注册判据并生成固定 17 面板；
+- `demo/stage_c_a800_independent_finalize.py`：复核 12 个完成标志、fresh decode、资源和
+  数据封存边界；
+- `demo/run_stage_c_a800_independent_test.sh`：tmux 中可断点续跑的一次性独立测试入口；
 - `demo/stage_c_seedvr2_three_path_oracle.py`：三种动作的真实码流收益探针；
 - `demo/stage_c_spatial_quality_format_test.py`：空间语法和旧格式兼容测试；
 - `demo/stage_c_spatial_quality_forward_probe.py`：不训练的空间质量调制检查；

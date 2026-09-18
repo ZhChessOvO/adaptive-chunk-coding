@@ -256,6 +256,14 @@ QP 平均改善 0.024350，12/12 条更好；关闭 Generate／Enhance 分别有
 [`docs/CLOUD_A800_LOW_BUDGET_V2.md`](docs/CLOUD_A800_LOW_BUDGET_V2.md) 和
 [`docs/CLOUD_A800_LOW_BUDGET_V3.md`](docs/CLOUD_A800_LOW_BUDGET_V3.md)。
 
+随后不再设置硬性门槛，完成了 v4 锚定式融合：让 v1 保持默认判断，v2 上下文和 v3
+Base 预分析只学习纠错。训练集分组折外自动选中二者融合版本，oracle regret 从 v1 的
+0.113505 降到 0.093707；但冻结后在六条开发视频上为 10594.2 B／17 帧、LPIPS
+0.468980，比 v1 多 96.7 B 且差 0.005769，只有 2/6 条质量更好。关闭 Generate／Enhance
+后均为 6/6 变差，说明信号和两条分支都有贡献，但纠错尚未稳定迁移到完整视频。因此当前
+低预算主版本仍选择 v1，v4 不进入新独立测试；完整方法、负结果和资源记录见
+[`docs/CLOUD_A800_LOW_BUDGET_V4.md`](docs/CLOUD_A800_LOW_BUDGET_V4.md)。
+
 ## 主要脚本
 
 - `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
@@ -282,6 +290,11 @@ QP 平均改善 0.024350，12/12 条更好；关闭 Generate／Enhance 分别有
 - `demo/run_stage_c_a800_low_budget_v3_formal.sh`、
   `demo/stage_c_a800_low_budget_v3_summary.py`：可断点续跑的六条开发复验、消融、固定
   可视化和预注册判据汇总；
+- `demo/stage_c_a800_low_budget_v4.py`、`demo/run_stage_c_a800_low_budget_v4.sh`：以 v1
+  为锚点，比较 v2 上下文、v3 Base 预分析及二者融合的训练折外残差纠错；
+- `demo/run_stage_c_a800_low_budget_v4_formal.sh`、
+  `demo/stage_c_a800_low_budget_v4_summary.py`：运行唯一冻结的 v4 候选，汇总真实字节、
+  fresh decode、两项消融、固定可视化和资源边界；
 - `demo/stage_c_seedvr2_three_path_oracle.py`：三种动作的真实码流收益探针；
 - `demo/stage_c_spatial_quality_format_test.py`：空间语法和旧格式兼容测试；
 - `demo/stage_c_spatial_quality_forward_probe.py`：不训练的空间质量调制检查；

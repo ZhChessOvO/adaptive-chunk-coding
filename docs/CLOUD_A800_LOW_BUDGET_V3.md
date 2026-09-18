@@ -137,3 +137,8 @@ Generate 或 Enhance 后分别平均变差 `0.016200` 和 `0.047327`，也都是
 
 通俗版方法与结果同步在
 [Notion：14 低预算稳定性：训练门槛与两遍编码](https://app.notion.com/p/3df8b22ebd8d81828d6bd210fefdd9e7)。
+
+后续已按上述诊断完成 v4：保留 v1 作为锚点，让 v2 上下文和本页 Base 预分析共同做
+残差纠错。训练折外选择了融合版本，但六条开发视频仍比 v1 平均差 0.005769 LPIPS，
+因此低预算主版本继续使用 v1。完整记录见
+[`CLOUD_A800_LOW_BUDGET_V4.md`](CLOUD_A800_LOW_BUDGET_V4.md)。

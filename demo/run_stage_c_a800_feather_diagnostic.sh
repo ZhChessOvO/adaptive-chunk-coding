@@ -78,7 +78,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 [[ -s "$joint_root/formal/joint_evaluation_summary.json" ]]
-[[ -s "$joint_root/formal_evaluation.complete" ]]
+[[ -f "$joint_root/formal_evaluation.complete" ]]
 
 git_commit=$(git rev-parse HEAD)
 joint_sha=$(sha256sum "$joint_root/formal/joint_evaluation_summary.json" | awk '{print $1}')

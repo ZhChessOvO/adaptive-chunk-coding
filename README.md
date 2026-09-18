@@ -247,6 +247,15 @@ QP 平均改善 0.024350，12/12 条更好；关闭 Generate／Enhance 分别有
 47 分，继续使用单张 A800 足够。`012..023` 已消费，`024..029` 仍封存。完整协议与
 结果见 [`docs/CLOUD_A800_INDEPENDENT_TEST.md`](docs/CLOUD_A800_INDEPENDENT_TEST.md)。
 
+同日又只用既有训练／开发数据做了两轮低预算稳定性改进。v2 的同画面上下文特征在训练
+集分组交叉验证中只把 oracle regret 降低 0.62%，没有达到预先规定的 10%，因此未进入
+开发集。v3 改用可部署的编码端两遍分析：先临时做一次统一 QP16 Base 编解码，再用局部
+重建失真选 B/G/E。它在训练集把 regret 降低 18.83% 并过门槛，但六条开发视频上平均
+10349.0 B／17 帧、LPIPS 0.470660，虽以 6/6 胜过最近均匀 QP，却比相近字节的 v1
+差 0.007448 LPIPS，因此没有进入新的独立测试。两项协议与完整负结果见
+[`docs/CLOUD_A800_LOW_BUDGET_V2.md`](docs/CLOUD_A800_LOW_BUDGET_V2.md) 和
+[`docs/CLOUD_A800_LOW_BUDGET_V3.md`](docs/CLOUD_A800_LOW_BUDGET_V3.md)。
+
 ## 主要脚本
 
 - `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
@@ -266,6 +275,13 @@ QP 平均改善 0.024350，12/12 条更好；关闭 Generate／Enhance 分别有
 - `demo/stage_c_a800_independent_finalize.py`：复核 12 个完成标志、fresh decode、资源和
   数据封存边界；
 - `demo/run_stage_c_a800_independent_test.sh`：tmux 中可断点续跑的一次性独立测试入口；
+- `demo/stage_c_a800_low_budget_v2.py`、`demo/run_stage_c_a800_low_budget_v2.sh`：按原视频
+  分组交叉验证上下文特征，并在训练门槛失败时自动停止；
+- `demo/stage_c_a800_low_budget_v3.py`、`demo/run_stage_c_a800_low_budget_v3.sh`：训练并
+  冻结编码端 Base 预分析控制器；
+- `demo/run_stage_c_a800_low_budget_v3_formal.sh`、
+  `demo/stage_c_a800_low_budget_v3_summary.py`：可断点续跑的六条开发复验、消融、固定
+  可视化和预注册判据汇总；
 - `demo/stage_c_seedvr2_three_path_oracle.py`：三种动作的真实码流收益探针；
 - `demo/stage_c_spatial_quality_format_test.py`：空间语法和旧格式兼容测试；
 - `demo/stage_c_spatial_quality_forward_probe.py`：不训练的空间质量调制检查；

@@ -277,6 +277,10 @@ for index in "${!names[@]}"; do
   if [[ -e "$archive" ]] \
     && [[ "$(stat -c %s "$archive")" -eq "$expected_archive_size" ]]; then
     echo "DOWNLOAD reuse assembled archive $archive"
+    # A manually supplied complete archive takes precedence over resumable
+    # chunks left by an interrupted cloud download.  Remove those stale
+    # chunks only after the complete archive size has been verified.
+    cleanup_completed_chunk_dir "${partial}.chunks"
   else
     if [[ -e "$archive" ]]; then unlink "$archive"; fi
     download_in_chunks "$url" "$partial" "$expected_archive_size"

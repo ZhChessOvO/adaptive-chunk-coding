@@ -39,6 +39,18 @@ QST 当前没有可登记的官方 clip ID，本轮不使用含糊的旧别名�
 直接下载，只处理五条训练侧序列，并显式清除代理和镜像环境变量。下载按 1 MiB 分块保存，
 网络中断后可以继续已有分块；每完成一条序列就写完成标记。
 
+也可以在别处下载完整归档后放到
+`/root/autodl-fs/DCVC/downloads/uvg-adaptation/`。文件必须使用下面的短文件名；准备脚本会先
+核对真实字节数，确认完整后才清理同名断点分块，不会把半截文件当成可用数据。
+
+| 短文件名 | 官方下载地址 | 预期字节数 |
+|---|---|---:|
+| `Beauty.7z` | `https://ultravideo.fi/video/Beauty_1920x1080_120fps_420_8bit_YUV_RAW.7z` | 925,430,047 |
+| `Bosphorus.7z` | `https://ultravideo.fi/video/Bosphorus_1920x1080_120fps_420_8bit_YUV_RAW.7z` | 680,772,328 |
+| `HoneyBee.7z` | `https://ultravideo.fi/video/HoneyBee_1920x1080_120fps_420_8bit_YUV_RAW.7z` | 906,770,507 |
+| `Jockey.7z` | `https://ultravideo.fi/video/Jockey_1920x1080_120fps_420_8bit_YUV_RAW.7z` | 770,631,599 |
+| `ShakeNDry.7z` | `https://ultravideo.fi/video/ShakeNDry_1920x1080_120fps_420_8bit_YUV_RAW.7z` | 460,046,003 |
+
 压缩包和原始 YUV 只作为临时文件。每条序列的 12 个样本全部通过图片解码、尺寸和数量
 检查后，立即删除对应 7z 和 YUV。长期保留内容位于：
 

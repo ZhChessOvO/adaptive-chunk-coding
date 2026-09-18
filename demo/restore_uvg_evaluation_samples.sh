@@ -25,7 +25,16 @@ download_one_chunk() {
   local end_offset=$4
   local expected_chunk_size=$((end_offset - start_offset + 1))
   local temporary="${output}.tmp"
-  local actual_chunk_size
+  local piece="${temporary}.piece"
+  local headers="${temporary}.headers"
+  local actual_chunk_size=0
+  local piece_size
+  local request_start
+  local remaining_size
+  local http_code
+  local curl_status
+  local empty_failures=0
+  local stale
 
   if [[ -e "$output" ]]; then
     actual_chunk_size=$(stat -c %s "$output")
@@ -36,23 +45,63 @@ download_one_chunk() {
     unlink "$output"
   fi
   if [[ -e "$temporary" ]]; then
+    actual_chunk_size=$(stat -c %s "$temporary")
+  fi
+  if (( actual_chunk_size > expected_chunk_size )); then
     unlink "$temporary"
+    actual_chunk_size=0
+  elif [[ ! -e "$temporary" ]]; then
+    truncate -s 0 "$temporary"
   fi
 
-  echo "DOWNLOAD start range=${start_offset}-${end_offset} expected_bytes=$expected_chunk_size"
-  env \
-    -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY \
-    -u ALL_PROXY -u all_proxy -u FTP_PROXY -u ftp_proxy \
-    -u HF_ENDPOINT -u HUGGINGFACE_HUB_CACHE \
-    curl --noproxy '*' --silent --show-error -L --fail \
-      --retry 20 --retry-all-errors --connect-timeout 30 \
-      --speed-time 120 --speed-limit 1024 \
-      --range "${start_offset}-${end_offset}" -o "$temporary" \
-      --write-out \
-      "DOWNLOAD transfer range=${start_offset}-${end_offset} http=%{http_code} bytes=%{size_download} speed_Bps=%{speed_download}\n" \
-      "$url"
+  echo "DOWNLOAD start range=${start_offset}-${end_offset} expected_bytes=$expected_chunk_size resume_bytes=$actual_chunk_size"
+  while (( actual_chunk_size < expected_chunk_size )); do
+    request_start=$((start_offset + actual_chunk_size))
+    remaining_size=$((expected_chunk_size - actual_chunk_size))
+    for stale in "$piece" "$headers"; do
+      if [[ -e "$stale" ]]; then unlink "$stale"; fi
+    done
+    if http_code=$(env \
+      -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY \
+      -u ALL_PROXY -u all_proxy -u FTP_PROXY -u ftp_proxy \
+      -u HF_ENDPOINT -u HUGGINGFACE_HUB_CACHE \
+      curl --noproxy '*' --silent --show-error -L --fail \
+        --connect-timeout 30 --speed-time 60 --speed-limit 1024 \
+        --range "${request_start}-${end_offset}" \
+        --dump-header "$headers" -o "$piece" \
+        --write-out '%{http_code}' "$url"); then
+      curl_status=0
+    else
+      curl_status=$?
+    fi
 
-  actual_chunk_size=$(stat -c %s "$temporary")
+    piece_size=0
+    if [[ -e "$piece" ]]; then piece_size=$(stat -c %s "$piece"); fi
+    if [[ "$http_code" == 206 ]] \
+      && [[ "$piece_size" -gt 0 ]] \
+      && [[ "$piece_size" -le "$remaining_size" ]] \
+      && rg -q -i \
+        "^content-range: bytes ${request_start}-${end_offset}/" "$headers"; then
+      dd if="$piece" of="$temporary" oflag=append conv=notrunc status=none
+      unlink "$piece"
+      unlink "$headers"
+      actual_chunk_size=$(stat -c %s "$temporary")
+      empty_failures=0
+      echo "DOWNLOAD partial range=${request_start}-${end_offset} http=$http_code curl_status=$curl_status kept_bytes=$piece_size progress=${actual_chunk_size}/${expected_chunk_size}"
+    else
+      for stale in "$piece" "$headers"; do
+        if [[ -e "$stale" ]]; then unlink "$stale"; fi
+      done
+      empty_failures=$((empty_failures + 1))
+      echo "DOWNLOAD retry range=${request_start}-${end_offset} http=${http_code:-000} curl_status=$curl_status received_bytes=$piece_size empty_failures=$empty_failures" >&2
+      if (( empty_failures >= 100 )); then
+        echo "too many empty or invalid range responses" >&2
+        return 1
+      fi
+      sleep 2
+    fi
+  done
+
   if [[ "$actual_chunk_size" -ne "$expected_chunk_size" ]]; then
     echo "chunk size mismatch for range ${start_offset}-${end_offset}: $actual_chunk_size != $expected_chunk_size" >&2
     return 1

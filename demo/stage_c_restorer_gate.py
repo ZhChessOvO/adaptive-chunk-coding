@@ -61,6 +61,10 @@ def parse_args() -> argparse.Namespace:
         description="E20 DCVC-UF uniform-QP restoration gate")
     parser.add_argument("--sequence-name", default="jockey")
     parser.add_argument(
+        "--source-role",
+        default="previously used regression/development data",
+        help="Scientific data role recorded in the result metadata.")
+    parser.add_argument(
         "--source-dir", type=Path,
         default=Path("data/test_sequences/PNG/jockey"))
     parser.add_argument(
@@ -313,7 +317,7 @@ def main() -> None:
         "experiment": "E20 uniform-quality DCVC-UF restoration gate",
         "status": "deterministic_control_complete_diffusion_pending",
         "sequence": args.sequence_name,
-        "source_role": "previously used regression/development data",
+        "source_role": args.source_role,
         "source_files": [str(path) for path in source_paths],
         "crop": {
             "x": args.crop_x,

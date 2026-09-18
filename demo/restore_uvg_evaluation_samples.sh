@@ -15,7 +15,7 @@ names=(Beauty Bosphorus HoneyBee Jockey ReadySetGo ShakeNDry YachtRide)
 archive_sizes=(925430047 680772328 906770507 770631599 832143797 460046003 724220168)
 frame_counts=(600 600 600 600 600 300 600)
 download_chunk_bytes=$((1 * 1024 * 1024))
-download_parallelism=12
+download_parallelism=20
 download_pids=()
 
 download_one_chunk() {

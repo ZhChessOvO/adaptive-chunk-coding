@@ -324,6 +324,11 @@ LPIPS 相比 8 像素增加 0.001702，明显小于 32 像素的 0.005303 代价
 - `demo/prepare_uvg_adaptation_samples.sh`：从 UVG 官方站断点恢复五条 v6 训练侧序列的
   更多时段，生成 60 个跨域适配窗口；ReadySetGo、YachtRide 不进入本轮训练。协议见
   [`docs/CLOUD_A800_UVG_ADAPTATION.md`](docs/CLOUD_A800_UVG_ADAPTATION.md)；
+- `demo/run_stage_c_a800_uvg_adaptation.sh`、`demo/stage_c_a800_uvg_adaptation.py`：在单张
+  A800 上生成 UVG 质量／ROI 标签，与 REDS 标签无复制合并，只重训 v5 残差专家，并先
+  汇总 37 条样本的路由变化；
+- `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
+  帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、
   `demo/stage_c_a800_joint_evaluation_summary.py`：在 tmux 中可断点续跑 REDS validation
   与 UVG 联合评估，按数据集和合并口径汇总，并只在路由完全相同时复用历史正式输出；

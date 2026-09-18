@@ -88,6 +88,20 @@ df -h /root /root/autodl-tmp /root/autodl-fs
 无法解释收益。若这种小改动不足，再把“完整重训 v1 锚点”作为单独消融，而不是静默混入
 同一个版本。
 
+对应的可断点流水线为 `demo/run_stage_c_a800_uvg_adaptation.sh`。数据准备完成后在 tmux
+中启动：
+
+```bash
+tmux new-session -d -s uvg_adaptation_train \
+  'cd /root/autodl-tmp/adaptive-chunk-coding && \
+   bash demo/run_stage_c_a800_uvg_adaptation.sh'
+```
+
+质量 teacher、ROI teacher、合并 manifest、残差专家 checkpoint 和 37 条 route-only
+比较分别落在 `/root/autodl-fs/DCVC/runs/a800_uvg_adaptation_20260919/` 下。route-only 只
+回答动作是否变化，不能当作画质结论；只有它通过完整性检查后，才启动真实 spatial-QP、
+SeedVR2、fresh decode 和消融评估。
+
 ## 不变的科研边界
 
 - DCVC-UF、SeedVR2 3B BF16 和 spatial-QP codec 继续冻结；

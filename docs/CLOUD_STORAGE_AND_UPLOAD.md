@@ -24,14 +24,16 @@
 └── val_sharp.zip
 ```
 
-权重仍从这些路径以符号链接接入。两个 ZIP 已经按用户要求在验证解压后删除，当前根目录
-不再有 `train_sharp.zip` 或 `val_sharp.zip`，不要重复下载已有的解压数据。
+这些是最初的上传位置，不代表当前根目录仍保留原文件。权重可能已经移到持久目录或通过
+符号链接接入；两个 ZIP 已按用户要求在验证解压后删除。恢复时先盘点现有链接、权重和
+已解压目录，不重复下载已经存在的数据。
 
 最初上传的 `val_sharp.zip` 只解压了开发集 `000..005`。一次性独立测试获得授权后，
 又从 REDS 作者维护的
 [数据集页面](https://seungjunnah.github.io/Datasets/reds.html)所指向的
 [官方作者仓库](https://huggingface.co/datasets/snah/REDS)直接下载验证集归档，只选择性
-解压 `012..023`，验证完成后删除归档。`024..029` 从未解压或读取。
+解压 `012..023`，验证完成后删除归档。2026-09-18 后续研究不再把 `024..029` 设为
+永久封存；需要时可从同一官方来源补齐，但必须在 manifest 中记录实际用途。
 
 ## 仍需从服务器下载的内容
 
@@ -44,7 +46,7 @@
 | `ema_vae.pth` | `/root/autodl-fs/DCVC/assets/seedvr2/` | 从官方 SeedVR2-3B 下载 |
 | `pos_emb.pt`、`neg_emb.pt` | `/root/autodl-fs/DCVC/assets/seedvr2/` | 从官方 SeedVR2-3B 下载 |
 | BasicVSR++ 权重 | `/root/autodl-fs/DCVC/assets/basicvsrpp/` | 确定性恢复对照需要 |
-| Jockey | `/root/autodl-fs/DCVC/assets/regression/` | 只在需要旧回归对照时下载；不阻塞主试跑 |
+| UVG、QST 等论文评估视频 | `/root/autodl-fs/DCVC/assets/evaluation/` | 从数据集官方来源恢复；与 REDS validation 一起报告跨分布结果 |
 
 当前基线使用已经上传的 BF16 DiT。不要再下载约 13.6GB 的
 `seedvr2_ema_3b.pth`，也不要下载旧 SDXL、HT-L、LD、PnP-VCVE 或历史 latent predictor 权重。
@@ -96,16 +98,20 @@ conda activate "$DCVC_FAST/envs/dcvcuf"
 先用少量路径检查 ZIP 内的顶层结构，再选择正确的 `unzip -d` 目标，避免得到重复的
 `train_sharp/train_sharp`。解压后核对恰好有 `000..239`，不要读取图像内容做额外筛选。
 
-验证集归档必须使用带路径过滤的选择性解压。当前已经合法得到：
+验证集可以按实验需要选择性解压，也可以在空间允许时完整恢复。2026-09-18 下载前已有：
 
 ```text
 /root/autodl-fs/DCVC/data/REDS/val_sharp/000..005
 /root/autodl-fs/DCVC/data/REDS/val_sharp/012..023
 ```
 
-其中 `012..023` 是后来单独授权的一次性测试集，不是开发集。当前目录必须缺少
-`006..011` 和封存的 `024..029`。两个 ZIP 均已在完整性检查后删除；只有在得到新的
-数据授权且本地确实缺少所需内容时，才从官方来源重新下载相应归档。
+其中 `012..023` 是已经消费的一次性测试集，不是新的独立证据；`006..011` 和
+`024..029` 当时不在云端目录。后续可以从 REDS 作者指向的
+[官方作者仓库](https://huggingface.co/datasets/snah/REDS)补齐真正缺少的序列。下载应
+断点续传并校验完整性；解压后删除 ZIP。是否“独立”由使用历史决定，不由目录是否存在决定。
+
+2026-09-18 已完成上述恢复：`val_sharp/000..029` 共 3000 张 PNG 全部通过解码检查，
+归档和重复嵌套副本已删除。后续不需要再次下载 REDS val，除非盘上文件重新缺失或损坏。
 
 ## 接入仓库
 
@@ -137,5 +143,5 @@ ln -s "$DCVC_PERSIST/runs" output
 ```
 
 所有正式 manifest、码流、日志、controller checkpoint、指标和可视化写入 `output/`，即
-`/root/autodl-fs/DCVC/runs`。两个 ZIP 已删除，但仍要在每个阶段记录 `df -h` 与输出目录大小。
+`/root/autodl-fs/DCVC/runs`。数据归档在解压校验后删除，但仍要在每个阶段记录 `df -h` 与输出目录大小。
 文件存储或数据盘达到 80% 时停止新样本、保存断点并汇报，不删除已有正式结果来掩盖空间问题。

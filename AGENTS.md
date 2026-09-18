@@ -22,9 +22,19 @@ Respect the data ledger exactly:
 
 - Training may use REDS `train/000..239`.
 - REDS `val/000..005` is development data, never an independent test set.
-- Do not read `val/012..023`.
-- Keep `val/024..029` sealed.
-- Jockey and other previously used clips are regression material only.
+- REDS `val/006..011` and `val/012..023` have already influenced earlier
+  experiments. They may be reused for analysis or paper evaluation, but must
+  not be described as newly independent evidence.
+- REDS `val/024..029` may be used when the experiment records the frozen
+  method, exact frame window, crop, and whether the result later influenced a
+  design choice. Do not invent a permanent "sealed" boundary.
+- UVG, QST and other external videos belong in the cross-distribution paper
+  evaluation together with REDS validation data. Report per-dataset results
+  as well as the combined result; do not label them as an application test.
+- Before every experiment, record each sample's role as training,
+  development, previously used evaluation, or new evaluation. Once a result
+  changes the method or hyperparameters, update that role instead of still
+  calling it independent.
 
 Report all actual on-disk stream bytes, including action maps, headers, masks,
 and auxiliary payloads. Codec results must be reproducible by fresh decode
@@ -41,11 +51,12 @@ only in ignored paths. Do not commit large artifacts.
 
 On the current cloud host, `/root` is the 30GB system disk,
 `/root/autodl-tmp` is the 50GB data disk, and `/root/autodl-fs` is the slower
-200GB file store. The five user uploads are flat files directly under
+200GB file store. The five user uploads originally arrived as flat files under
 `/root/autodl-fs`: two DCVC-UF checkpoints, the SeedVR2 BF16 DiT,
-`train_sharp.zip`, and `val_sharp.zip`. Prefer them over another download.
-Extract training data and formal outputs on the file store; keep the repository,
-conda environment, source builds, and at most 8GB of per-sample scratch on the
-data disk. Download genuinely missing dependencies directly to the locations
-specified in `docs/CLOUD_STORAGE_AND_UPLOAD.md`; the data ledger above remains
-authoritative for archive extraction and experiments.
+`train_sharp.zip`, and `val_sharp.zip`. They may since have been moved,
+linked, extracted, or deleted after verification. Always inventory current
+files first, reuse existing extracted data, and download only genuinely
+missing material from the official source. Extract datasets and keep formal
+outputs on the file store; keep the repository, conda environment, source
+builds, and at most 8GB of per-sample scratch on the data disk. The detailed
+layout and recovery commands live in `docs/CLOUD_STORAGE_AND_UPLOAD.md`.

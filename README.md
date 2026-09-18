@@ -33,8 +33,6 @@
 [`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md) 与
 [`docs/CLOUD_A800_FOLLOWUP.md`](docs/CLOUD_A800_FOLLOWUP.md)，再执行本节。当前已完成的云端范围是
 **1×A800 80GB、8–12 小时的单卡试跑**：冻结 DCVC-UF 和 SeedVR2，生成有界的反事实标签并训练轻量控制器；多卡完整阶段和大模型／codec 微调仍需下一次决定。
-可直接粘贴到新会话的版本保存在
-[`docs/CLOUD_CODEX_PROMPT.md`](docs/CLOUD_CODEX_PROMPT.md)。
 
 租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
 
@@ -199,15 +197,15 @@ wget -c \
 
 ## 数据、输出与继续实验
 
-- 上传的权重位于 `/root/autodl-fs/`；两个 ZIP 已在验证解压后按要求删除。解压后的数据放在 `/root/autodl-fs/DCVC/`，正式结果放在 `/root/autodl-fs/DCVC/runs`。不要把全部数据或正式输出复制到 `/root/autodl-tmp`。详见 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
-- REDS `val/000..005` 是开发集；一次性独立测试已消费 `012..023`，`024..029` 仍封存且
-  未解压。具体边界以 `AGENTS.md` 和云端试跑文档为准。
-- 数据集不进 Git。只把数据协议允许使用的部分挂载到 `data/`，或通过脚本的 `--data-root`／`--input-dir` 显式传入；不要复制封存数据。
+- 用户上传的两个 ZIP 已在验证解压后删除；2026-09-18 已从 REDS 作者指向的官方仓库补齐 validation，当前 `val_sharp/000..029` 共 3000 张 PNG 完整。解压后的数据放在 `/root/autodl-fs/DCVC/`，正式结果放在 `/root/autodl-fs/DCVC/runs`。不要把全部数据或正式输出复制到 `/root/autodl-tmp`。详见 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
+- REDS `val/000..005` 是开发集，`006..023` 已影响历史实验；`024..029` 可以用于后续论文评估，但必须在读取前固定版本、帧窗和裁剪，并在用结果改方案后把它改记为“已用于开发”。
+- UVG、QST 等外部视频与 REDS validation 一起构成跨分布论文评估池；同时报告各数据集和合并结果，不再把外部视频单列成“应用测试”。
+- 数据集不进 Git。通过 `data/` 挂载或脚本的 `--data-root`／`--input-dir` 显式传入，并在 manifest 中记录每条样本的来源和角色。
 - `output/`、真实码流、PNG／视频、checkpoint、第三方源码和编译产物均已在 `.gitignore` 排除。
 - 历史 Stage B 脚本的默认数据目录已改为仓库相对路径 `data/REDS`；也可以用 `--data-root` 指向服务器上的合规数据挂载。当前 Stage C 主线参数使用仓库相对路径或显式输入路径。
 - `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器入口。单卡试跑、有界后续
-  复验和一次性独立测试均已完成。不要自行读取封存数据、进入多卡完整生产或
-  SeedVR2／spatial-QP codec 微调。
+  复验和一次性独立测试均已完成。后续仍优先在单张 A800 上推进，未经新决定不进入
+  多卡完整生产或 SeedVR2／spatial-QP codec 微调。
 
 ### A800 单卡试跑状态
 
@@ -264,6 +262,15 @@ Base 预分析只学习纠错。训练集分组折外自动选中二者融合版
 低预算主版本仍选择 v1，v4 不进入新独立测试；完整方法、负结果和资源记录见
 [`docs/CLOUD_A800_LOW_BUDGET_V4.md`](docs/CLOUD_A800_LOW_BUDGET_V4.md)。
 
+在此基础上又完成了 v5 保守共识：v2 上下文专家与 v3 Base-probe 专家分别预测对 v1 的
+纠错，只有方向一致且各自不确定性足够小时才采用较小的可信幅度。训练集分组折外自动选择
+`z=0.25`、纠错比例 `1.0`；六条开发视频上平均为 10429.5 B／17 帧、LPIPS 0.461972，
+相对 v1 少 68 B、LPIPS 低 0.001240，但逐视频只有 3/6 更好。关闭 Generate／Enhance 后
+分别平均变差 0.023291／0.048774，均为 6/6。按“不设硬门槛、综合选择”的口径，v5 被
+冻结进入 REDS validation + UVG 联合论文评估；扩展结果不再反向修改 controller。完整
+协议、结果和诚实的数据角色见
+[`docs/CLOUD_A800_LOW_BUDGET_V5.md`](docs/CLOUD_A800_LOW_BUDGET_V5.md)。
+
 ## 主要脚本
 
 - `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
@@ -295,6 +302,16 @@ Base 预分析只学习纠错。训练集分组折外自动选中二者融合版
 - `demo/run_stage_c_a800_low_budget_v4_formal.sh`、
   `demo/stage_c_a800_low_budget_v4_summary.py`：运行唯一冻结的 v4 候选，汇总真实字节、
   fresh decode、两项消融、固定可视化和资源边界；
+- `demo/stage_c_a800_low_budget_v5.py`、`demo/run_stage_c_a800_low_budget_v5.sh`：以 v1 为
+  默认答案，只在 v2 上下文与 v3 Base-probe 两个专家可信同向时作保守纠错；
+- `demo/run_stage_c_a800_low_budget_v5_formal.sh`、
+  `demo/stage_c_a800_low_budget_v5_summary.py`：运行冻结的 v5 开发闭环并汇总真实字节、
+  两项消融、fresh decode、固定图和资源；
+- `demo/restore_uvg_evaluation_samples.sh`：从 UVG 官方站断点恢复七条标准序列，验证原始
+  YUV 大小后固定前 17 帧中央裁剪，并删除临时归档和 YUV；
+- `demo/run_stage_c_a800_joint_evaluation.sh`、
+  `demo/stage_c_a800_joint_evaluation_summary.py`：在 tmux 中可断点续跑 REDS validation
+  与 UVG 联合评估，按数据集和合并口径汇总，并只在路由完全相同时复用历史正式输出；
 - `demo/stage_c_seedvr2_three_path_oracle.py`：三种动作的真实码流收益探针；
 - `demo/stage_c_spatial_quality_format_test.py`：空间语法和旧格式兼容测试；
 - `demo/stage_c_spatial_quality_forward_probe.py`：不训练的空间质量调制检查；

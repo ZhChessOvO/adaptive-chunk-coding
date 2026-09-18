@@ -67,7 +67,10 @@ valid_marker() {
 import json
 import sys
 from pathlib import Path
-json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+path = Path(sys.argv[1])
+value = json.loads(path.read_text(encoding="utf-8"))
+if path.name == "final_resource_snapshot.json" and value.get("status") != "complete":
+    raise SystemExit(1)
 PY
   fi
 }
@@ -339,6 +342,10 @@ run_if_missing "$run_root/formal/independent_summary.json" \
 
 touch "$run_root/formal_evaluation.complete"
 experiment_wall_seconds=$(($(date +%s) - experiment_start_epoch))
+# Stop the live heartbeat before taking the final resource snapshot.  The tee
+# log still receives the final report, so the snapshot explicitly excludes it.
+cleanup
+trap - EXIT
 run_if_missing "$run_root/final_resource_snapshot.json" \
   "independent-test resource snapshot" \
   python demo/stage_c_a800_independent_finalize.py \

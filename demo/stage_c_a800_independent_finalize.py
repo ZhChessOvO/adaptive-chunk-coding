@@ -33,14 +33,22 @@ def read(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def tree_bytes(path: Path) -> tuple[int, int]:
-    files = [item for item in path.rglob("*") if item.is_file()]
+def tree_bytes(
+        path: Path, excluded_paths: set[Path] | None = None) -> tuple[int, int]:
+    excluded_paths = excluded_paths or set()
+    files = [
+        item for item in path.rglob("*")
+        if item.is_file() and item.resolve() not in excluded_paths
+    ]
     return sum(item.stat().st_size for item in files), len(files)
 
 
-def du_apparent_bytes(path: Path) -> int:
-    output = subprocess.check_output(
-        ["du", "-sb", str(path)], text=True).splitlines()[0]
+def du_apparent_bytes(
+        path: Path, excluded_names: tuple[str, ...] = ()) -> int:
+    command = ["du", "-sb"]
+    command.extend(f"--exclude={name}" for name in excluded_names)
+    command.append(str(path))
+    output = subprocess.check_output(command, text=True).splitlines()[0]
     return int(output.split()[0])
 
 
@@ -83,7 +91,14 @@ def main() -> None:
             "all_scalar_and_spatial_fresh_decodes_pixel_exact"]:
         raise RuntimeError("a formal fresh decode is not pixel exact")
 
-    run_bytes, run_files = tree_bytes(args.run_root)
+    # The tee log can grow while the runner prints the final report, and this
+    # snapshot necessarily changes size when it is written.  Measure the
+    # immutable payload exactly and name the exclusions instead of asking a
+    # self-referential, still-growing tree to reach an impossible fixed point.
+    log_path = args.run_root / "logs" / "independent_test.log"
+    excluded_paths = {args.output.resolve(), log_path.resolve()}
+    excluded_names = (args.output.name, log_path.name)
+    run_bytes, run_files = tree_bytes(args.run_root, excluded_paths)
     formal_bytes, formal_files = tree_bytes(args.run_root / "formal")
     gpu = subprocess.check_output([
         "nvidia-smi",
@@ -91,6 +106,7 @@ def main() -> None:
         "--format=csv,noheader,nounits",
     ], text=True).strip()
     result = {
+        "status": "complete",
         "experiment": "A800 one-shot independent-test final resource snapshot",
         "completed_at_utc": datetime.now(timezone.utc).isoformat(),
         "orchestration_wall_seconds": args.wall_seconds,
@@ -121,9 +137,17 @@ def main() -> None:
                 for sample in summary["samples"] for name in FORMAL_VARIANTS),
         },
         "storage": {
-            "run_tree_bytes": run_bytes,
-            "du_apparent_bytes": du_apparent_bytes(args.run_root),
-            "run_file_count": run_files,
+            "run_payload_tree_bytes": run_bytes,
+            "run_payload_du_apparent_bytes": du_apparent_bytes(
+                args.run_root, excluded_names),
+            "run_payload_file_count": run_files,
+            "measurement_excludes": [
+                str(log_path.relative_to(args.run_root)),
+                str(args.output.resolve().relative_to(args.run_root.resolve())),
+            ],
+            "measurement_scope": (
+                "Exact run payload at finalization, excluding the live tee "
+                "log and this self-referential snapshot."),
             "system": disk(Path("/root")),
             "fast": disk(Path("/root/autodl-tmp")),
             "file_store": disk(Path("/root/autodl-fs")),
@@ -145,24 +169,6 @@ def main() -> None:
         for name in FORMAL_VARIANTS)
 
     atomic_json(args.output, result)
-    for _ in range(4):
-        current_bytes, current_files = tree_bytes(args.run_root)
-        current_du_bytes = du_apparent_bytes(args.run_root)
-        if (result["storage"]["run_tree_bytes"] == current_bytes
-                and result["storage"]["run_file_count"] == current_files
-                and result["storage"]["du_apparent_bytes"]
-                == current_du_bytes):
-            break
-        result["storage"]["run_tree_bytes"] = current_bytes
-        result["storage"]["run_file_count"] = current_files
-        result["storage"]["du_apparent_bytes"] = current_du_bytes
-        atomic_json(args.output, result)
-    final_bytes, final_files = tree_bytes(args.run_root)
-    final_du_bytes = du_apparent_bytes(args.run_root)
-    if (result["storage"]["run_tree_bytes"] != final_bytes
-            or result["storage"]["run_file_count"] != final_files
-            or result["storage"]["du_apparent_bytes"] != final_du_bytes):
-        raise RuntimeError("independent-test snapshot did not reach a fixed point")
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

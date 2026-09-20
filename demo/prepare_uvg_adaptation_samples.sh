@@ -376,6 +376,7 @@ from PIL import Image
 
 sample_root = Path(sys.argv[1]).resolve()
 manifest = Path(sys.argv[2])
+sample_id = sys.argv[3]
 paths = sorted(sample_root.glob("*.png"))
 if len(paths) != 17:
     raise RuntimeError(f"expected 17 PNG files, found {len(paths)}")
@@ -388,7 +389,10 @@ for path in paths:
             raise RuntimeError(f"{path}: unexpected size {image.size}")
     digest.update(path.read_bytes())
 value = {
-    "sample_id": sys.argv[3],
+    "sample_id": sample_id,
+    "seed": 20260920 + (
+        int.from_bytes(hashlib.sha256(sample_id.encode("utf-8")).digest()[:4],
+                       "big") % 1_000_000_000),
     "dataset": "UVG",
     "split": "v6_adaptation_train",
     "data_role": "v6 cross-domain adaptation training; not independent evidence",
@@ -459,6 +463,18 @@ if len(manifests) != 60:
 records = []
 for path in manifests:
     value = json.loads(path.read_text(encoding="utf-8"))
+    expected_seed = 20260920 + (
+        int.from_bytes(
+            hashlib.sha256(value["sample_id"].encode("utf-8")).digest()[:4],
+            "big") % 1_000_000_000)
+    if "seed" not in value:
+        value["seed"] = expected_seed
+        temporary = path.with_suffix(".json.tmp")
+        temporary.write_text(
+            json.dumps(value, indent=2) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+    elif value["seed"] != expected_seed:
+        raise RuntimeError(f"unexpected deterministic seed: {value['sample_id']}")
     if value["sequence"] not in expected_sequences:
         raise RuntimeError(f"unexpected training sequence: {value['sequence']}")
     if value["sequence"] in holdout_sequences:

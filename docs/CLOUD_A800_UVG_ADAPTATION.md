@@ -165,5 +165,6 @@ Jockey、ShakeNDry 仍保留 Generate，是否真正改善必须看真实画质�
 /root/autodl-fs/DCVC/runs/a800_uvg_adaptation_20260919/
 ```
 
-下一步把它与显式 Generate 空间一致性组合，见
-[`CLOUD_A800_SPATIAL_CONSISTENCY.md`](CLOUD_A800_SPATIAL_CONSISTENCY.md)。
+它随后已与显式 Generate 空间一致性组成正式 2×2。组合版在 UVG 7 条上平均 LPIPS 比
+v5 低 0.013719、6/7 条改善，并把 Generate 边界从 43 降到 26。完整结果见
+[`CLOUD_A800_V6_EVALUATION.md`](CLOUD_A800_V6_EVALUATION.md)。

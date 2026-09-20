@@ -106,16 +106,15 @@ tmux new-session -d -s a800_spatial_consistency \
 该阶段 24 秒完成、无失败日志，结束时三块盘仍约 12%／17%／27%。真实画质的 2×2 验证
 协议见 [`CLOUD_A800_V6_EVALUATION.md`](CLOUD_A800_V6_EVALUATION.md)。
 
-## 后续真实验证
+## 真实验证结果
 
-动作回放只能说明路线怎样变化，不能当画质结果。后续在同一组 30 条 REDS + 7 条 UVG
-上完成：
+同一组 30 条 REDS + 7 条 UVG 的真实 2×2 已完成。空间项单独把边界从 260 降到 207，
+但整体 LPIPS 比 v5 差 0.000946；它不是独立的画质增强器。与 UVG 适配组合后，边界进一步
+降到 186、连通块从 59 降到 36，平均完整时间从 20.00 秒降到 18.69 秒，同时 combined
+得到四个版本中最低的平均 LPIPS 0.446839。
 
-1. 真实 spatial-QP 落盘字节与 fresh decode；
-2. `适配关/开 × 空间项关/开` 的关键组合；
-3. Generate 使用 16 像素羽化，并保留旧 v5 结果作参照；
-4. 分别汇总 REDS、UVG、UVG 适配侧和两条未参与 v6 训练的序列；
-5. 固定保存 Beauty、Jockey、YachtRide 等动作图与第 9 帧效果图。
-
-我们的目标是确认这条方法链是否产生清楚、可解释的改善，不追求把每个数据集上的数字都
-调到最好。DCVC-UF、SeedVR2 和 spatial-QP codec 始终冻结，所有运行继续只用一张 A800。
+需要保留的边界是：空间项减少了需要融合和调度的边界数量，但剩余边界的平均误差没有
+同步下降。因此当前证据支持“空间一致的路由与连通 ROI”，不支持“每条接缝都被修好”。
+完整真实字节、fresh decode、分数据集结果和资源见
+[`CLOUD_A800_V6_EVALUATION.md`](CLOUD_A800_V6_EVALUATION.md)。DCVC-UF、SeedVR2 和
+spatial-QP codec 全程冻结，所有运行只用一张 A800。

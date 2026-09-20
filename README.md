@@ -287,12 +287,19 @@ LPIPS 相比 8 像素增加 0.001702，明显小于 32 像素的 0.005303 代价
 五条 UVG 训练侧序列随后完整恢复为 60 个跨域适配窗口。60/60 个质量标签、60/60 个 ROI
 成本标签和两个轻量残差专家已完成；37 条路由回放中，UVG 的 Generate 块从 24 降到 19，
 其中 HoneyBee 从 4 降到 0，而 REDS 的 Generate 总数保持 108。详情见
-[`docs/CLOUD_A800_UVG_ADAPTATION.md`](docs/CLOUD_A800_UVG_ADAPTATION.md)。下一步把该适配与
-精确 Generate 边界正则组合。组合路由已把 37 条中的 Generate 边从 237 降到 186，预测
+[`docs/CLOUD_A800_UVG_ADAPTATION.md`](docs/CLOUD_A800_UVG_ADAPTATION.md)。该适配已与精确
+Generate 边界正则组成正式 2×2；组合路由把 37 条中的 Generate 边从 237 降到 186，预测
 收益只减少约 0.35%。方法与 λ 来源见
 [`docs/CLOUD_A800_SPATIAL_CONSISTENCY.md`](docs/CLOUD_A800_SPATIAL_CONSISTENCY.md)，真实
-spatial-QP、fresh decode 和 2×2 消融协议见
+spatial-QP、fresh decode 和 2×2 消融结果见
 [`docs/CLOUD_A800_V6_EVALUATION.md`](docs/CLOUD_A800_V6_EVALUATION.md)。
+
+v6 的 58 个新真实动作图已经在单张 A800 上完成，另有 53 个逻辑目标仅在 16 个动作完全
+相同时严格复用。combined 相对 v5 平均只增加 51.1 B／17 帧，LPIPS 从 0.449352 降到
+0.446839、PSNR 从 24.499 提到 24.682，Generate 边界从 260 降到 186、连通块从 59 降到
+36，平均完整时间减少 6.58%。收益主要来自 UVG（LPIPS −0.013719、6/7 改善），REDS
+基本持平（+0.000101）。因此当前选择 combined 作为论文主方法，其他三项作为 2×2 消融；
+这证明了方法链有用，但不宣称每条视频都改善。
 
 ## 主要脚本
 

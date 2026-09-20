@@ -115,3 +115,25 @@ CUDA allocated 7,514,759,680 B。保存的 11,319,997 B adapter 随后又通过�
 当前视频实际需要的整数坐标前缀，数学结果与上游先构造 1024×128×128 再切片相同，但不再
 产生数十 GiB 的临时广播。完整烟测目录为
 `/root/autodl-fs/DCVC/runs/a800_seedvr2_lora_smoke_20260920`。
+
+## 9. 正式训练结果（2026-09-20）
+
+正式流水线已正常完成，不需要重新启动 tmux：
+
+- 560/560 个 cache 全部落盘，其中 500 个 REDS、60 个 UVG；
+- 1000/1000 个 step 连续，756 步抽到 REDS、244 步抽到 UVG；
+- 1000/1000 个 loss 和梯度均为有限值；
+- 前 25 步平均 loss 为 1.212808，后 25 步为 0.751153；这只证明优化正常，
+  不能据此声称显示质量已经提高；
+- 平均训练步耗时 0.188 秒，峰值 CUDA allocated 8,998,986,240 B（约 8.38 GiB）；
+- 整条流水线墙钟 4,520 秒，包含真实 codec round-trip 和 VAE cache；
+- 最终 adapter 为 11,319,997 B，SHA-256 为
+  `86d8344ec9f848f0a939d2df41a09b4ba0b566ffefd4cf795a5d3714c657f74a`；
+- 最终 adapter、step-1000 adapter 和 `resume.pt` 中 82 个 LoRA 张量逐一完全一致；
+- 正式目录共有 578 个普通文件、828,218,240 B；完成时三块盘约为 12%／17%／31%。
+
+`run.complete` 存在且 `run.failed` 不存在。正式结果目录为
+`/root/autodl-fs/DCVC/runs/a800_seedvr2_lora_v1_20260920`，runner 使用 Git commit
+`c154ac1`。下一步先固定 REDS + UVG 输入、codec 和随机噪声，比较冻结 SeedVR2 与 LoRA 的
+LPIPS、PSNR、时序误差和可视化，再决定是否用它重建 teacher；若不合适，再公平更换恢复
+后端。

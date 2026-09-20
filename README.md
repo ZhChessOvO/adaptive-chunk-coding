@@ -43,9 +43,11 @@ SeedVR2 微调。多卡生产仍未授权。
 BD-rate 分别为 −11.99%／−20.69%，但 UVG 分别退化 +29.71%／+6.39%。因此最终权重
 不直接替换冻结版。固定的 0.25／0.50／0.75 权重插值也已完成，按预先固定的跨数据集
 LPIPS BD-rate 规则最终选择 alpha=0，即继续使用冻结 codec；中间权重只保留为率失真消融。
-SeedVR2 LoRA 的真实 cache、两步反向传播和 adapter 重载烟测均已通过，下一项是 1000-step
-正式训练。当前实验不提前取消；如果它不适合微调，后续在
-固定 codec、路由、预算和评估输入的前提下替换 Generate 恢复后端，而不改动方法主干。
+SeedVR2 LoRA 的真实 cache、两步反向传播和 adapter 重载烟测均已通过；正式运行随后完成
+560/560 条 cache 和 1000/1000 个梯度 step。最终 adapter 已真实落盘，下一项是在固定
+codec 输入和随机噪声下比较冻结版与 LoRA 版。训练 loss 下降只说明优化正常，不能替代
+LPIPS、PSNR、时序和视觉评价；如果 SeedVR2 不适合微调，后续在固定 codec、路由、预算和
+评估输入的前提下替换 Generate 恢复后端，而不改动方法主干。
 
 租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
 

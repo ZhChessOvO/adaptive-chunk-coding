@@ -453,6 +453,19 @@ SeedVR2 LoRA 的 REDS／UVG 双样本真实 cache、2-step 反向传播、恢复
 SeedVR2 不适合该任务，再保持 codec、route、预算和评价输入不变比较其他恢复后端；当前
 实验不取消。详见 [`CLOUD_A800_SEEDVR2_LORA.md`](CLOUD_A800_SEEDVR2_LORA.md)。
 
+## 2026-09-20 SeedVR2 LoRA 正式训练完成
+
+正式单卡流水线已经完成 560/560 条真实 QP8／原视频 latent cache 和 1000/1000 个训练
+step。实际抽样为 REDS 756 步、UVG 244 步，全部 loss 与梯度有限；前 25 步平均 loss
+1.212808，后 25 步 0.751153。这个下降只说明优化正常，尚不能当作 LPIPS 或视觉质量收益。
+
+平均训练耗时为 0.188 秒／step，峰值 CUDA allocated 约 8.38 GiB；包含 cache 的总墙钟为
+4,520 秒。最终 11,319,997 B adapter、step-1000 adapter 和 `resume.pt` 权重逐张量一致，
+`run.complete` 已落盘且没有 `run.failed`。正式目录共 578 个普通文件、828,218,240 B，完成
+时三块盘约为 12%／17%／31%。下一步是固定输入比较冻结 SeedVR2 与 LoRA；只有评价后才决定
+是否重建 teacher、重训 router，或在其余条件不变时更换恢复后端。完整记录见
+[`CLOUD_A800_SEEDVR2_LORA.md`](CLOUD_A800_SEEDVR2_LORA.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

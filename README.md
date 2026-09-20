@@ -20,7 +20,8 @@
 - 一次编码的空间质量格式：两 bit 动作图、明确的质量档位和自描述码流；
 - 无源 RGB 的 fresh decode、真实落盘字节计费和完整运行时记录；
 - SeedVR2 生成恢复、BasicVSR++ 确定性对照、LPIPS 优先评价和时序诊断；
-- 只对 Generate 连通区域运行 SeedVR2 的 ROI 路径。
+- 只对 Generate 连通区域运行 SeedVR2 的 ROI 路径；
+- 在同一预算下联合优化区域收益和 Generate 边界数量的精确空间一致性求解器。
 
 所有 Base／Enhance 载荷、mask、头部和辅助语法都按真实文件大小计费。Generate 以 LPIPS 等感知指标为主，PSNR 仅作诊断；真实编码信息增加带来的收益不能记为生成收益。
 
@@ -283,6 +284,13 @@ LPIPS 相比 8 像素增加 0.001702，明显小于 32 像素的 0.005303 代价
 16 像素作为默认折中，并继续单独修正 Generate 误选。详见
 [`docs/CLOUD_A800_FEATHER_DIAGNOSTIC.md`](docs/CLOUD_A800_FEATHER_DIAGNOSTIC.md)。
 
+五条 UVG 训练侧序列随后完整恢复为 60 个跨域适配窗口。60/60 个质量标签、60/60 个 ROI
+成本标签和两个轻量残差专家已完成；37 条路由回放中，UVG 的 Generate 块从 24 降到 19，
+其中 HoneyBee 从 4 降到 0，而 REDS 的 Generate 总数保持 108。详情见
+[`docs/CLOUD_A800_UVG_ADAPTATION.md`](docs/CLOUD_A800_UVG_ADAPTATION.md)。下一步把该适配与
+精确 Generate 边界正则组合；方法、λ 的来源和消融设计见
+[`docs/CLOUD_A800_SPATIAL_CONSISTENCY.md`](docs/CLOUD_A800_SPATIAL_CONSISTENCY.md)。
+
 ## 主要脚本
 
 - `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
@@ -327,6 +335,10 @@ LPIPS 相比 8 像素增加 0.001702，明显小于 32 像素的 0.005303 代价
 - `demo/run_stage_c_a800_uvg_adaptation.sh`、`demo/stage_c_a800_uvg_adaptation.py`：在单张
   A800 上生成 UVG 质量／ROI 标签，与 REDS 标签无复制合并，只重训 v5 残差专家，并先
   汇总 37 条样本的路由变化；
+- `demo/stage_c_a800_spatial_consistency.py`：在不改变控制器预测和预算的前提下，用精确
+  frontier 动态规划联合优化区域收益与 Generate／非 Generate 边界；
+- `demo/run_stage_c_a800_spatial_consistency.sh`：对旧 v5 和 UVG 适配后路由执行 λ 敏感性
+  回放、`λ=0` 动作回归和空间项 2×2 消融所需的两组路由；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

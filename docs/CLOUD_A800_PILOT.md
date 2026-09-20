@@ -371,6 +371,23 @@ LPIPS 增加 0.001702，而 32 像素代价为 0.005303，因此选择 16 像素
 羽化只解决贴回边界，不能替代空间一致性和跨域路由校准。完整记录见
 [`CLOUD_A800_FEATHER_DIAGNOSTIC.md`](CLOUD_A800_FEATHER_DIAGNOSTIC.md)。
 
+## 2026-09-20 UVG 适配标签与轻量训练完成
+
+五个 UVG 官方 7z 已全部完整展开并在制作 60 个窗口后删除；最终保留 1,020 张
+512×512 PNG。60/60 个质量 teacher、60/60 个 ROI 成本 teacher 和两个轻量残差专家均
+完成。合并训练集为 REDS 500 + UVG 60 个窗口，UVG 占 10.7%；v1 锚点、v5 选择、预算、
+DCVC-UF、SeedVR2 和 spatial-QP codec 都没有改变。
+
+37 条 route-only 回放中，UVG 的 Generate 块从 24 降到 19，HoneyBee 从 4 降到 0；
+REDS 的 Generate 总数保持 108。这个结果支持“内容相关的跨域校正”，但还不是画质结论。
+详细数据、资源和边界见
+[`CLOUD_A800_UVG_ADAPTATION.md`](CLOUD_A800_UVG_ADAPTATION.md)。
+
+下一步把旧的事后孤立块规则改成显式目标：在原有字节／Generate 预算内，最大化区域预测
+收益，同时以 `λ=0.004` 轻度惩罚 Generate 与非 Generate 的相邻边。λ 沿用旧 fragment
+收益尺度，不设置新的硬门槛；精确动态规划、敏感性回放和 2×2 消融见
+[`CLOUD_A800_SPATIAL_CONSISTENCY.md`](CLOUD_A800_SPATIAL_CONSISTENCY.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

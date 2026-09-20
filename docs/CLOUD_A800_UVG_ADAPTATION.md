@@ -123,3 +123,47 @@ SeedVR2、fresh decode 和消融评估。
 - teacher 标签和训练样本可以用于方法改进，但不能再包装成独立测试证据；
 - 正式结论只认真实落盘字节、fresh decode、完整耗时和固定可视化；
 - 下载归档和原始 YUV 完成转换后不保留，大文件不进入 Git。
+
+## 2026-09-20 已完成结果
+
+用户上传的五个官方长文件名 7z 均通过预期字节数检查。脚本逐条完整解出原始 YUV、制作
+样本并验证 PNG 后删除 YUV 和 7z；不是只展开一小部分后保留压缩包。最终
+`UVG_adaptation` 有 60 个窗口、1,020 张 512×512 PNG，普通文件约 535.9 MB，下载目录
+为空。
+
+60/60 个质量 teacher 和 60/60 个 ROI 成本 teacher 已完成。新增质量标签的 960 个区域
+给出了很直观的信号：
+
+- Enhance 在 853/960 个区域改善 LPIPS，整体较稳定；
+- Generate 只有 426/960 个区域改善，而且非常依赖内容；
+- Beauty 多数区域适合 Generate，HoneyBee 和 ShakeNDry 则多数区域不适合。
+
+这正是区域三路选择的动机：不能给整帧固定一种恢复方式。
+
+标签与原有 500 个 REDS 窗口合并后，共 560 个窗口、8,960 个区域；UVG 占 10.7%。只重训
+了两个三成员残差专家，checkpoint 约 252 KB，REDS v1 锚点、v5 参数、预算、大模型和
+codec 都没变。
+
+37 条便宜路由回放的结果为：
+
+| 数据 | Generate 块（前→后） | Enhance 块（前→后） | Generate 边（前→后） |
+|---|---:|---:|---:|
+| 合并 37 条 | 132→127 | 227→226 | 260→237 |
+| REDS 30 条 | 108→108 | 191→192 | 217→199 |
+| UVG 7 条 | 24→19 | 36→34 | 43→38 |
+
+HoneyBee 从 4 个 Generate 块降到 0；ReadySetGo 完全没变；REDS 的 Generate 总数保持
+108。这说明适配不是简单地全局关闭 Generate，而是确实学到了一部分内容差异。不过
+Jockey、ShakeNDry 仍保留 Generate，是否真正改善必须看真实画质，不能由路由表直接下
+结论。
+
+本阶段包含数据准备、两类 teacher、轻量训练和 37 条路由的累计墙钟约 1,524 秒；
+`nvidia-smi` 采样峰值 25,897 MiB。结束时系统盘、50GB 数据盘、200GB 文件存储约为
+12%／17%／27%。正式目录为：
+
+```text
+/root/autodl-fs/DCVC/runs/a800_uvg_adaptation_20260919/
+```
+
+下一步把它与显式 Generate 空间一致性组合，见
+[`CLOUD_A800_SPATIAL_CONSISTENCY.md`](CLOUD_A800_SPATIAL_CONSISTENCY.md)。

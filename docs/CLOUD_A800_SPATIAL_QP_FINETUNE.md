@@ -89,3 +89,14 @@ tmux new-session -d -s a800_spatial_qp_train \
 重新生成 teacher 并重训 router。旧的冻结模型结果仍保留，可用于说明方法在不微调 codec
 时也能迁移；微调结果是额外的性能增强，不覆盖那组证据。
 
+训练后的第一轮比较已经预先写成
+`demo/run_stage_c_a800_spatial_qp_finetune_eval.sh`，不会看过微调画质再挑样本或 route：
+
+- 复用已有 30 条 REDS + 7 条 UVG 账本，对 37 条 v6 combined 动作图分别用冻结／微调
+  checkpoint 真实编码；
+- 固定 3 条 REDS + 3 条 UVG，在 QP 8／16／32 做均匀质量回归；
+- 110 个任务全部要求真实码流、独立 fresh decode 和逐像素一致；
+- 汇总 LPIPS、PSNR、时序误差、字节和 Generate 边界，并生成固定对照图；
+- 这批数据都已在项目中使用过，因此角色是开发与跨分布候选比较，不重新包装成独立测试；
+- 第一轮不运行 SeedVR2，以便把变化先单独归因给 codec。选定 checkpoint 后再评价完整
+  Generate／Base／Enhance 管线。

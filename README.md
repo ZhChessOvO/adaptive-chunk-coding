@@ -383,6 +383,9 @@ tmux 入口见
   `demo/run_stage_c_a800_spatial_qp_finetune.sh`：从官方 image／HT-S checkpoint 出发，
   使用区域 lambda、混合动作图和均匀 QP rehearsal 做可恢复的单卡 codec 适配，并以真实
   spatial-QP 码流和 fresh decode 验证导出物；
+- `demo/stage_c_spatial_qp_finetune_eval.py`、
+  `demo/run_stage_c_a800_spatial_qp_finetune_eval.sh`：冻结 37 条 combined routes 和 6 条
+  三档均匀 QP 回归，在训练后自动比较原始／微调 codec 的真实字节、画质、时序与边界；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

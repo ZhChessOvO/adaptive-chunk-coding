@@ -25,6 +25,7 @@ frame_bytes=$((frame_width * frame_height * 3 / 2))
 window_frames=17
 download_chunk_bytes=$((1 * 1024 * 1024))
 download_parallelism=20
+allow_download=${UVG_ALLOW_DOWNLOAD:-1}
 download_pids=()
 start_epoch=$(date +%s)
 
@@ -270,10 +271,20 @@ for index in "${!names[@]}"; do
   fi
   url="https://ultravideo.fi/video/${name}_1920x1080_120fps_420_8bit_YUV_RAW.7z"
   archive="$download_root/${name}.7z"
+  uploaded_archive="$download_root/${name}_1920x1080_120fps_420_8bit_YUV_RAW.7z"
   partial="$archive.part"
   raw_root="$download_root/raw-$name"
 
   echo "START sequence=$name utc=$(date -u +%FT%TZ)"
+  if [[ ! -e "$archive" ]] && [[ -e "$uploaded_archive" ]]; then
+    actual_uploaded_size=$(stat -c %s "$uploaded_archive")
+    if [[ "$actual_uploaded_size" -ne "$expected_archive_size" ]]; then
+      echo "uploaded archive size mismatch: $uploaded_archive ($actual_uploaded_size != $expected_archive_size)" >&2
+      exit 1
+    fi
+    echo "DOWNLOAD adopt user-uploaded archive $uploaded_archive"
+    mv "$uploaded_archive" "$archive"
+  fi
   if [[ -e "$archive" ]] \
     && [[ "$(stat -c %s "$archive")" -eq "$expected_archive_size" ]]; then
     echo "DOWNLOAD reuse assembled archive $archive"
@@ -282,6 +293,10 @@ for index in "${!names[@]}"; do
     # chunks only after the complete archive size has been verified.
     cleanup_completed_chunk_dir "${partial}.chunks"
   else
+    if [[ "$allow_download" != "1" ]]; then
+      echo "offline mode: complete archive unavailable for $name" >&2
+      exit 1
+    fi
     if [[ -e "$archive" ]]; then unlink "$archive"; fi
     download_in_chunks "$url" "$partial" "$expected_archive_size"
     mv "$partial" "$archive"

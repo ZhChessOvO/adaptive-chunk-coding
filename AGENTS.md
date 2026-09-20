@@ -16,8 +16,11 @@ authorized the next single-card sequence: validate continuous long-video
 coding and overlapping restoration, then run spatial-QP-aware DCVC-UF and
 SeedVR2 fine-tuning (including long runs when feasible), regenerate teachers,
 and retrain the router.  The 33-frame long-video mechanism smoke is complete;
-the active next stage is spatial-QP-aware DCVC-UF fine-tuning.  Long runtime
-alone is not a reason to skip a useful single-card experiment.  Do not start
+the 1000-step spatial-QP-aware DCVC-UF fine-tune and its 110-task endpoint
+comparison are complete.  It improves REDS rate-distortion but over-adapts on
+UVG, so the active stage is the fixed 0.25/0.50/0.75 checkpoint interpolation
+protocol in `docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`.  Long runtime alone
+is not a reason to skip a useful single-card experiment.  Do not start
 multi-GPU production work without a new user decision.
 
 The current codec adaptation protocol is documented in

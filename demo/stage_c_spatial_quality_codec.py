@@ -93,7 +93,11 @@ def common_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--skip-thres", type=float, default=0.0)
     parser.add_argument(
         "--checkpoint-role",
-        choices=("frozen-pretrained", "spatial-qp-finetuned"),
+        choices=(
+            "frozen-pretrained",
+            "spatial-qp-finetuned",
+            "spatial-qp-interpolated",
+        ),
         default="frozen-pretrained",
         help="Scientific provenance label; it does not alter codec syntax")
 
@@ -956,7 +960,7 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
                 route_kind == "learned-controller"),
             "budget_known_before_encoding": True,
             "training_or_finetuning": (
-                args.checkpoint_role == "spatial-qp-finetuned"),
+                args.checkpoint_role != "frozen-pretrained"),
         },
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -1104,7 +1108,7 @@ def decode_main(args: argparse.Namespace, device: torch.device) -> None:
         "fresh_decode_dir": str(frames_dir),
         "source_rgb_read_by_decoder": False,
         "training_or_finetuning": (
-            args.checkpoint_role == "spatial-qp-finetuned"),
+            args.checkpoint_role != "frozen-pretrained"),
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = args.output_dir / "decode_summary.json"

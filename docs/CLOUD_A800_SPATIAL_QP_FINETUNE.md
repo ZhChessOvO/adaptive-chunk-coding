@@ -104,3 +104,25 @@ tmux new-session -d -s a800_spatial_qp_train \
 - 这批数据都已在项目中使用过，因此角色是开发与跨分布候选比较，不重新包装成独立测试；
 - 第一轮不运行 SeedVR2，以便把变化先单独归因给 codec。选定 checkpoint 后再评价完整
   Generate／Base／Enhance 管线。
+
+## 2026-09-20 实测结果
+
+1000-step 训练在一张 A800 上完成，共见过 17,000 帧，其中 118 步来自 UVG adaptation；
+1000 条 loss 全部有限，峰值 CUDA allocated 为 3,574,242,816 B（约 3.33 GiB）。最终
+checkpoint 写出的 17 帧验证流为 10,845 B，fresh decode 逐像素一致。训练正式目录共有
+92 个普通文件、1,995,259,471 B。
+
+随后完成 110 个冻结／微调真实编解码任务，全部 fresh decode 精确。固定混合 route 上，
+微调版平均字节由 10,007.6 B 降到 7,217.1 B，但 LPIPS 从 0.471661 变差到 0.508935，
+所以不能用“同 QP 少字节”直接宣称获胜。三档均匀 QP 的等画质比较进一步显示明显域差异：
+
+| 数据 | 等 LPIPS BD-rate | 等 PSNR BD-rate | 解释 |
+|---|---:|---:|---|
+| REDS（3 条） | **−11.99%** | **−20.69%** | 微调有效 |
+| UVG（3 条） | +29.71% | +6.39% | 过度平滑、跨风格退化 |
+| 合并（6 条） | +8.86% | −7.15% | 两个指标给出不同取舍 |
+
+因此 alpha=1 的最终权重保留为有价值的域内结果和消融，但暂不作为全局默认。下一步按
+[`CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`](CLOUD_A800_SPATIAL_QP_INTERPOLATION.md)
+固定测试 0.25／0.50／0.75 权重插值；这不增加梯度更新，只寻找兼顾 REDS 与 UVG 的单一
+checkpoint。

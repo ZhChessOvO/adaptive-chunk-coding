@@ -39,6 +39,10 @@
 评估已经完成；用户已授权在长视频链路验证后继续做单卡 spatial-QP-aware codec 与
 SeedVR2 微调。多卡生产仍未授权。
 
+1000-step codec 适配与 110 项真实码流对比现已完成：REDS 的等 LPIPS／等 PSNR
+BD-rate 分别为 −11.99%／−20.69%，但 UVG 分别退化 +29.71%／+6.39%。因此最终权重
+不直接替换冻结版；当前用固定的 0.25／0.50／0.75 权重插值寻找一个跨风格折中点。
+
 租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
 
 ### 1. 克隆代码并检查下载源
@@ -386,6 +390,11 @@ tmux 入口见
 - `demo/stage_c_spatial_qp_finetune_eval.py`、
   `demo/run_stage_c_a800_spatial_qp_finetune_eval.sh`：冻结 37 条 combined routes 和 6 条
   三档均匀 QP 回归，在训练后自动比较原始／微调 codec 的真实字节、画质、时序与边界；
+- `demo/stage_c_spatial_qp_interpolation.py`、
+  `demo/run_stage_c_a800_spatial_qp_interpolation.sh`：在冻结与 1000-step codec 权重之间固定
+  测试 0.25／0.50／0.75，使用 REDS + UVG 三点 BD-rate 选择跨风格折中，并对同一批
+  mixed routes 做真实码流确认；协议见
+  [`docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`](docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md)；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

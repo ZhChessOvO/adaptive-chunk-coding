@@ -91,6 +91,11 @@ def common_parser(parser: argparse.ArgumentParser) -> None:
         "--model-path-p", type=Path,
         default=Path("checkpoints/cvpr2026_video_hts.pth.tar"))
     parser.add_argument("--skip-thres", type=float, default=0.0)
+    parser.add_argument(
+        "--checkpoint-role",
+        choices=("frozen-pretrained", "spatial-qp-finetuned"),
+        default="frozen-pretrained",
+        help="Scientific provenance label; it does not alter codec syntax")
 
 
 def parse_args() -> argparse.Namespace:
@@ -928,6 +933,11 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
         },
         "scale_interpolation": args.scale_interpolation,
         "model_load_seconds": model_load_seconds,
+        "model_checkpoints": {
+            "image": str(args.model_path_i.resolve()),
+            "video": str(args.model_path_p.resolve()),
+            "role": args.checkpoint_role,
+        },
         "codec_seconds": codec_seconds,
         "total_after_argument_parse_seconds": time.perf_counter() - process_started,
         "peak_cuda_allocated_bytes": int(torch.cuda.max_memory_allocated(device)),
@@ -945,7 +955,8 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
             "route_is_learned_controller": (
                 route_kind == "learned-controller"),
             "budget_known_before_encoding": True,
-            "training_or_finetuning": False,
+            "training_or_finetuning": (
+                args.checkpoint_role == "spatial-qp-finetuned"),
         },
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -1081,13 +1092,19 @@ def decode_main(args: argparse.Namespace, device: torch.device) -> None:
             record["actions"] != decoded_unit_stats[0]["actions"]
             for record in decoded_unit_stats[1:]),
         "model_load_seconds": model_load_seconds,
+        "model_checkpoints": {
+            "image": str(args.model_path_i.resolve()),
+            "video": str(args.model_path_p.resolve()),
+            "role": args.checkpoint_role,
+        },
         "bitstream_decode_seconds": decode_seconds,
         "total_after_argument_parse_seconds": time.perf_counter() - process_started,
         "peak_cuda_allocated_bytes": int(torch.cuda.max_memory_allocated(device)),
         "peak_cuda_reserved_bytes": int(torch.cuda.max_memory_reserved(device)),
         "fresh_decode_dir": str(frames_dir),
         "source_rgb_read_by_decoder": False,
-        "training_or_finetuning": False,
+        "training_or_finetuning": (
+            args.checkpoint_role == "spatial-qp-finetuned"),
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = args.output_dir / "decode_summary.json"

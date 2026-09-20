@@ -50,6 +50,7 @@ export PYTHONPATH="$repo:/root/autodl-tmp/DCVC/DCVC:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES=0
 
 mkdir -p "$log_root" "$codec_root"
+rm -f "$run_root/run.complete"
 started_marker="$run_root/run_started_epoch.txt"
 if [[ ! -s "$started_marker" ]]; then
   date +%s > "$started_marker.tmp"
@@ -126,12 +127,14 @@ if [[ ! -s "$codec_root/encode_summary.json" || ! -s "$stream" ]]; then
     --output-stream "$stream" --output-dir "$codec_root" \
     --frame-count 17 --cell-size 64 \
     --generate-qp 8 --base-qp 16 --enhance-qp 32 \
-    --model-path-i "$trained_i" --model-path-p "$trained_p"
+    --model-path-i "$trained_i" --model-path-p "$trained_p" \
+    --checkpoint-role spatial-qp-finetuned
 fi
 if [[ ! -s "$codec_root/decode_summary.json" ]]; then
   "$python_bin" demo/stage_c_spatial_quality_codec.py decode \
     --input-stream "$stream" --output-dir "$codec_root" \
-    --model-path-i "$trained_i" --model-path-p "$trained_p"
+    --model-path-i "$trained_i" --model-path-p "$trained_p" \
+    --checkpoint-role spatial-qp-finetuned
 fi
 
 regression="$validation_root/fresh_decode_regression.json"

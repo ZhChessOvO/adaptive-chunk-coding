@@ -86,6 +86,9 @@ def parse_args() -> argparse.Namespace:
         "--dit-checkpoint", type=Path,
         default=UPSTREAM_ROOT / "ckpts" / "seedvr2_ema_3b.pth")
     parser.add_argument(
+        "--lora-checkpoint", type=Path,
+        help="Optional project LoRA adapter applied on top of the frozen DiT")
+    parser.add_argument(
         "--vae-checkpoint", type=Path,
         default=UPSTREAM_ROOT / "ckpts" / "ema_vae.pth")
     parser.add_argument(
@@ -268,6 +271,16 @@ def configure_runner(args: argparse.Namespace):
     if hasattr(runner.vae, "set_memory_limit"):
         runner.vae.set_memory_limit(**runner.config.vae.memory_limit)
     runner.configure_diffusion()
+    runner.lora_adapter_info = None
+    lora_checkpoint = getattr(args, "lora_checkpoint", None)
+    if lora_checkpoint is not None:
+        from demo.stage_c_seedvr2_lora_utils import load_lora_adapter
+
+        lora_checkpoint = Path(lora_checkpoint).resolve()
+        if not lora_checkpoint.is_file():
+            raise FileNotFoundError(lora_checkpoint)
+        runner.lora_adapter_info = load_lora_adapter(
+            runner.dit, lora_checkpoint, trainable=False)
     return runner, get_device()
 
 
@@ -297,6 +310,8 @@ def main() -> None:
     ):
         if not path.is_file():
             raise FileNotFoundError(path)
+    if args.lora_checkpoint is not None and not args.lora_checkpoint.is_file():
+        raise FileNotFoundError(args.lora_checkpoint)
     input_paths, frames = load_frames(args.input_dir, args.max_frames)
     input_height = int(frames.shape[-2])
     input_width = int(frames.shape[-1])
@@ -378,6 +393,9 @@ def main() -> None:
             else None
         ),
         "dit_checkpoint": str(args.dit_checkpoint),
+        "lora_checkpoint": (
+            str(args.lora_checkpoint) if args.lora_checkpoint is not None else None),
+        "lora_adapter": runner.lora_adapter_info,
         "input_dir": str(args.input_dir),
         "input_frames": [str(path) for path in input_paths],
         "output_dir": str(args.output_dir),
@@ -406,7 +424,7 @@ def main() -> None:
             "exact per-sequence PyTorch scaled_dot_product_attention"),
         "normalization_substitution": (
             "parameter-compatible PyTorch LayerNorm/RMSNorm; no Apex"),
-        "training_or_finetuning": False,
+        "training_or_finetuning": args.lora_checkpoint is not None,
         "color_fix": False,
     }
     metadata_path = args.output_dir / "seedvr2_metadata.json"

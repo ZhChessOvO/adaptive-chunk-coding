@@ -395,6 +395,10 @@ tmux 入口见
   测试 0.25／0.50／0.75，使用 REDS + UVG 三点 BD-rate 选择跨风格折中，并对同一批
   mixed routes 做真实码流确认；协议见
   [`docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`](docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md)；
+- `demo/stage_c_seedvr2_lora_finetune.py`、
+  `demo/run_stage_c_a800_seedvr2_lora.sh`：选定 codec 后缓存真实 QP8／原视频 VAE latent，
+  在 SeedVR2-3B 最后 8 层训练 rank-8 LoRA；原 DiT／VAE 冻结，正式训练可断点续跑；协议见
+  [`docs/CLOUD_A800_SEEDVR2_LORA.md`](docs/CLOUD_A800_SEEDVR2_LORA.md)；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

@@ -74,6 +74,9 @@ def parse_args() -> argparse.Namespace:
         default=Path(
             "third_party/SeedVR2/ckpts/seedvr2_ema_3b_bf16.safetensors"))
     parser.add_argument(
+        "--lora-checkpoint", type=Path,
+        help="Optional SeedVR2 project LoRA adapter")
+    parser.add_argument(
         "--vae-checkpoint", type=Path,
         default=Path("third_party/SeedVR2/ckpts/ema_vae.pth"))
     parser.add_argument(
@@ -210,6 +213,9 @@ def main() -> None:
     seed_args = SimpleNamespace(
         upstream_root=resolve(args.upstream_root),
         dit_checkpoint=resolve(args.dit_checkpoint),
+        lora_checkpoint=(
+            resolve(args.lora_checkpoint)
+            if args.lora_checkpoint is not None else None),
         vae_checkpoint=resolve(args.vae_checkpoint),
         positive_embedding=resolve(args.positive_embedding),
         negative_embedding=resolve(args.negative_embedding),

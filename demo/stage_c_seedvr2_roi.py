@@ -66,6 +66,9 @@ def parse_args() -> argparse.Namespace:
         default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
                  "seedvr2_ema_3b_bf16.safetensors"))
     restore.add_argument(
+        "--lora-checkpoint", type=Path,
+        help="Optional SeedVR2 project LoRA adapter")
+    restore.add_argument(
         "--vae-checkpoint", type=Path,
         default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
                  "ema_vae.pth"))

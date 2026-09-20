@@ -67,6 +67,9 @@ def common_seedvr2_args(parser: argparse.ArgumentParser) -> None:
         default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
                  "seedvr2_ema_3b_bf16.safetensors"))
     parser.add_argument(
+        "--lora-checkpoint", type=Path,
+        help="Optional SeedVR2 project LoRA adapter")
+    parser.add_argument(
         "--vae-checkpoint", type=Path,
         default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
                  "ema_vae.pth"))

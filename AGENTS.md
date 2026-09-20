@@ -19,8 +19,11 @@ and retrain the router.  The 33-frame long-video mechanism smoke is complete;
 the 1000-step spatial-QP-aware DCVC-UF fine-tune and its 110-task endpoint
 comparison are complete.  It improves REDS rate-distortion but over-adapts on
 UVG, so the active stage is the fixed 0.25/0.50/0.75 checkpoint interpolation
-protocol in `docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`.  Long runtime alone
-is not a reason to skip a useful single-card experiment.  Do not start
+protocol in `docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`.  After selecting the
+codec, continue with the frozen-base SeedVR2 LoRA protocol in
+`docs/CLOUD_A800_SEEDVR2_LORA.md`; do not overlap its GPU work with the codec
+evaluation.  Long runtime alone is not a reason to skip a useful single-card
+experiment.  Do not start
 multi-GPU production work without a new user decision.
 
 The current codec adaptation protocol is documented in

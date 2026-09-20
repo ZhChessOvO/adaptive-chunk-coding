@@ -359,6 +359,92 @@ def comparison_summary(pairs: list[dict]) -> dict:
     }
 
 
+def bd_rate_percent(
+    reference: list[dict],
+    candidate: list[dict],
+    quality_key: str,
+    lower_quality_is_better: bool = False,
+) -> float | None:
+    """Estimate candidate bitrate change at equal quality from three QP points."""
+    def points(records: list[dict]) -> tuple[np.ndarray, np.ndarray]:
+        values = []
+        for record in records:
+            quality = float(record["quality"][quality_key])
+            if lower_quality_is_better:
+                quality = -quality
+            rate = float(record["stream_bytes"])
+            if math.isfinite(quality) and rate > 0:
+                values.append((quality, math.log(rate)))
+        values.sort()
+        deduplicated = {}
+        for quality, log_rate in values:
+            deduplicated[quality] = log_rate
+        return (
+            np.asarray(list(deduplicated), dtype=np.float64),
+            np.asarray(list(deduplicated.values()), dtype=np.float64),
+        )
+
+    ref_quality, ref_log_rate = points(reference)
+    can_quality, can_log_rate = points(candidate)
+    if len(ref_quality) < 2 or len(can_quality) < 2:
+        return None
+    lower = max(float(ref_quality.min()), float(can_quality.min()))
+    upper = min(float(ref_quality.max()), float(can_quality.max()))
+    if not upper > lower:
+        return None
+    ref_degree = min(2, len(ref_quality) - 1)
+    can_degree = min(2, len(can_quality) - 1)
+    ref_integral = np.polyint(np.polyfit(ref_quality, ref_log_rate, ref_degree))
+    can_integral = np.polyint(np.polyfit(can_quality, can_log_rate, can_degree))
+    ref_area = float(np.polyval(ref_integral, upper) - np.polyval(ref_integral, lower))
+    can_area = float(np.polyval(can_integral, upper) - np.polyval(can_integral, lower))
+    mean_log_rate_delta = (can_area - ref_area) / (upper - lower)
+    return float((math.exp(mean_log_rate_delta) - 1.0) * 100.0)
+
+
+def uniform_bd_rate_summary(records: list[dict]) -> dict:
+    grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for record in records:
+        if record["family"] == "uniform-regression":
+            grouped[(record["sample_id"], record["model_role"])].append(record)
+    rows = []
+    sample_ids = sorted({sample_id for sample_id, _ in grouped})
+    for sample_id in sample_ids:
+        frozen = grouped.get((sample_id, "frozen"), [])
+        tuned = grouped.get((sample_id, "tuned"), [])
+        if len(frozen) != 3 or len(tuned) != 3:
+            raise RuntimeError(f"uniform QP curve is incomplete: {sample_id}")
+        rows.append({
+            "sample_id": sample_id,
+            "dataset": frozen[0]["dataset"],
+            "psnr_bd_rate_percent": bd_rate_percent(
+                frozen, tuned, "psnr_db"),
+            "lpips_bd_rate_percent": bd_rate_percent(
+                frozen, tuned, "lpips_alex", lower_quality_is_better=True),
+        })
+
+    def summarize(selected: list[dict]) -> dict:
+        output = {"sample_count": len(selected)}
+        for key in ("psnr_bd_rate_percent", "lpips_bd_rate_percent"):
+            values = [row[key] for row in selected if row[key] is not None]
+            output[f"mean_{key}"] = finite_mean(values)
+            output[f"median_{key}"] = (
+                float(np.median(values)) if values else None)
+            output[f"improved_count_{key}"] = sum(value < 0 for value in values)
+            output[f"valid_count_{key}"] = len(values)
+        return output
+
+    return {
+        "definition": (
+            "tuned versus frozen bitrate change at equal quality; negative is better; "
+            "quadratic log-rate integration over the overlapping three-QP range"),
+        "combined": summarize(rows),
+        "REDS": summarize([row for row in rows if row["dataset"] == "REDS"]),
+        "UVG": summarize([row for row in rows if row["dataset"] == "UVG"]),
+        "per_sample": rows,
+    }
+
+
 def write_visual(
     path: Path,
     source: list[np.ndarray],
@@ -497,6 +583,8 @@ def summarize_main(args: argparse.Namespace) -> None:
             tuned_record["quality"], sample_protocol[sample_id]["mixed_actions"])
         visual_paths.append(str(target.resolve()))
 
+    uniform_bd_rate = uniform_bd_rate_summary(records)
+
     files = [path for path in args.output_dir.rglob("*") if path.is_file()]
     summary = {
         "experiment": protocol["experiment"],
@@ -508,6 +596,7 @@ def summarize_main(args: argparse.Namespace) -> None:
         "primary_metric": "LPIPS Alex, lower is better",
         "aggregates": aggregates,
         "comparisons_tuned_minus_frozen": comparisons,
+        "uniform_bd_rate_tuned_vs_frozen": uniform_bd_rate,
         "records": records,
         "visuals": visual_paths,
         "ordinary_file_count_before_summary_artifacts": len(files),
@@ -538,6 +627,14 @@ reading fine-tuned quality; SeedVR2 is excluded.
 | Mixed REDS | {mixed['REDS']['pair_count']} | {mixed['REDS']['mean_lpips_delta']:+.6f} | {mixed['REDS']['mean_psnr_delta_db']:+.4f} dB | {mixed['REDS']['mean_stream_byte_delta']:+.1f} B | {mixed['REDS']['lpips_improved_count']}/{mixed['REDS']['pair_count']} |
 | Mixed UVG | {mixed['UVG']['pair_count']} | {mixed['UVG']['mean_lpips_delta']:+.6f} | {mixed['UVG']['mean_psnr_delta_db']:+.4f} dB | {mixed['UVG']['mean_stream_byte_delta']:+.1f} B | {mixed['UVG']['lpips_improved_count']}/{mixed['UVG']['pair_count']} |
 | Uniform rehearsal | {uniform['combined']['pair_count']} | {uniform['combined']['mean_lpips_delta']:+.6f} | {uniform['combined']['mean_psnr_delta_db']:+.4f} dB | {uniform['combined']['mean_stream_byte_delta']:+.1f} B | {uniform['combined']['lpips_improved_count']}/{uniform['combined']['pair_count']} |
+
+Uniform QP 8/16/32 rate-distortion integration (negative BD-rate is better):
+
+| Set | Samples | PSNR BD-rate | LPIPS BD-rate |
+|---|---:|---:|---:|
+| Combined | {uniform_bd_rate['combined']['sample_count']} | {uniform_bd_rate['combined']['mean_psnr_bd_rate_percent']:+.2f}% | {uniform_bd_rate['combined']['mean_lpips_bd_rate_percent']:+.2f}% |
+| REDS | {uniform_bd_rate['REDS']['sample_count']} | {uniform_bd_rate['REDS']['mean_psnr_bd_rate_percent']:+.2f}% | {uniform_bd_rate['REDS']['mean_lpips_bd_rate_percent']:+.2f}% |
+| UVG | {uniform_bd_rate['UVG']['sample_count']} | {uniform_bd_rate['UVG']['mean_psnr_bd_rate_percent']:+.2f}% | {uniform_bd_rate['UVG']['mean_lpips_bd_rate_percent']:+.2f}% |
 """
     atomic_text(args.output_dir / "summary.md", markdown)
 
@@ -634,10 +731,22 @@ def self_test() -> None:
     pair = paired_comparison(values)
     assert pair["stream_byte_delta_tuned_minus_frozen"] == -5
     assert math.isclose(pair["lpips_alex_delta_tuned_minus_frozen"], -0.1)
+    reference_curve = [
+        {"stream_bytes": rate, "quality": {"psnr_db": quality}}
+        for rate, quality in ((100, 20), (200, 25), (400, 30))
+    ]
+    candidate_curve = [
+        {"stream_bytes": rate * 0.8, "quality": {"psnr_db": quality}}
+        for rate, quality in ((100, 20), (200, 25), (400, 30))
+    ]
+    assert math.isclose(
+        bd_rate_percent(reference_curve, candidate_curve, "psnr_db"),
+        -20.0, rel_tol=1e-6, abs_tol=1e-6)
     print(json.dumps({
         "status": "passed",
         "uniform_route_profiles": [8, 16, 32],
         "paired_delta_sign": "tuned minus frozen",
+        "bd_rate_sign": "negative means tuned needs fewer bytes at equal quality",
         "mixed_sample_count": 37,
         "uniform_sample_count": len(UNIFORM_SAMPLE_IDS),
     }, indent=2))

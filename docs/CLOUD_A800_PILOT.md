@@ -411,9 +411,21 @@ combined 平均为 10007.6 B／17 帧、LPIPS 0.446839、PSNR 24.682，相对 v5
 23275 MiB，正式目录真实普通文件约 1.114 GB；结束时三块盘约 12%／17%／27%。完整结果
 见 [`CLOUD_A800_V6_EVALUATION.md`](CLOUD_A800_V6_EVALUATION.md)。
 
+## 2026-09-20 v6 论文证据包完成
+
+当前 `combined` 已冻结，不再用同一批 37 条继续调参。方法图、正文主表、2×2 消融、
+REDS／UVG 分数据集表、定性图索引和主张边界已经从正式 JSON 自动生成，保存在
+`/root/autodl-fs/DCVC/runs/a800_paper_package_20260920/`。这个步骤没有运行 codec、SeedVR2
+或训练，只复核并整理既有证据。完整入口见
+[`PAPER_V6_PACKAGE.md`](PAPER_V6_PACKAGE.md)。
+
+下一项正式实验应是冻结 v6 的不同风格／较长时序检查，而不是立即微调 DCVC-UF 或
+SeedVR2。若需要大数据，先给用户明确下载与上传清单，不在服务器上启动慢速大文件下载。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
+- [Notion：01 当前论文证据包（主图、主表与边界）](https://app.notion.com/p/3e18b22ebd8d81c281e7d6ae63d9a58e)
 - [Notion：02 下一步怎么走与何时转向](https://app.notion.com/p/3d58b22ebd8d8157bfa8ee431ac2d358)
 - [Notion：07 数据怎样划分、哪些还不能看](https://app.notion.com/p/3d58b22ebd8d8195a3daebc308d4e354)
 - [Notion：09 主线澄清](https://app.notion.com/p/3dc8b22ebd8d81a5b15bd0fe39236b3e)

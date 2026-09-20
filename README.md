@@ -301,6 +301,13 @@ v6 的 58 个新真实动作图已经在单张 A800 上完成，另有 53 个逻
 基本持平（+0.000101）。因此当前选择 combined 作为论文主方法，其他三项作为 2×2 消融；
 这证明了方法链有用，但不宣称每条视频都改善。
 
+当前结果已经整理成可重复生成的论文证据包：方法总图、正文主表、2×2 消融、跨数据集表、
+定性图索引和“主张—证据—不能夸大之处”均直接从冻结 JSON 生成，不手抄数字，也不重新
+运行模型。入口见 [`docs/PAPER_V6_PACKAGE.md`](docs/PAPER_V6_PACKAGE.md)，正式小型材料保存在
+`/root/autodl-fs/DCVC/runs/a800_paper_package_20260920/`。近期继续冻结 DCVC-UF 和 SeedVR2；
+下一项大实验只考虑冻结 v6 的新风格／长时序外部检查。通俗图文入口为
+[Notion：01 当前论文证据包](https://app.notion.com/p/3e18b22ebd8d81c281e7d6ae63d9a58e)。
+
 ## 主要脚本
 
 - `demo/stage_c_a800_sample_manifest.py`：冻结 500 个训练裁剪和 6 个开发裁剪的确定性账本；
@@ -354,6 +361,8 @@ v6 的 58 个新真实动作图已经在单张 A800 上完成，另有 53 个逻
   运行适配×空间项的真实 spatial-QP、fresh decode 和 SeedVR2 评估；
 - `demo/stage_c_a800_v6_evaluation_summary.py`：核对真实字节和复用关系，汇总 2×2 因子
   效果、边界指标，并生成四版本输出与动作图的固定对照图；
+- `demo/stage_c_a800_paper_package.py`：从已完成的 v6 JSON 生成方法图、LaTeX 主表／消融表、
+  跨数据集图和主张证据矩阵；它只做验证与整理，不运行 codec、SeedVR2 或训练；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

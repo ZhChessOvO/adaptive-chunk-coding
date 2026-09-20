@@ -111,3 +111,25 @@ ROI 和缩短实际运行时间**，不能写成已经消除了每一条可见�
 ```
 
 Beauty、Jockey、YachtRide 的固定图和动作图已人工检查，并同步到 Notion 的 v6 页面。
+
+## 论文证据包
+
+v6 冻结后不再根据同一批 37 条调整路由或超参数。现有结果已由
+`demo/stage_c_a800_paper_package.py` 自动整理成论文材料，输出到：
+
+```text
+/root/autodl-fs/DCVC/runs/a800_paper_package_20260920/
+```
+
+脚本先复核样本数、四版本、冻结配置、真实字节、fresh decode、精确动作复用、单卡和资源
+快照，再生成方法总图、三张 LaTeX 表、两张结果图、定性图索引和主张证据矩阵。它不重新
+运行 DCVC-UF、SeedVR2 或训练。完整写作口径与下一步见
+[`PAPER_V6_PACKAGE.md`](PAPER_V6_PACKAGE.md)。
+
+同一份内容的通俗图文入口为
+[Notion：01 当前论文证据包（主图、主表与边界）](https://app.notion.com/p/3e18b22ebd8d81c281e7d6ae63d9a58e)。
+
+截至生成时，证据包共 13 个小型文件；其 `paper_snapshot.json` 固定了 v6 汇总 SHA-256
+`7132c36fb7fa11549d6dd99b88f47201f26db0b99b58152b620833b9450b59f6`，并保留所有文件的
+独立哈希。近期继续冻结 UF 与 diffusion；只有新的外部／长时序数据能回答新问题时才启动
+下一轮正式实验。

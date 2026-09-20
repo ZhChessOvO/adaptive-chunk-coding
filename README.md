@@ -21,7 +21,9 @@
 - 无源 RGB 的 fresh decode、真实落盘字节计费和完整运行时记录；
 - SeedVR2 生成恢复、BasicVSR++ 确定性对照、LPIPS 优先评价和时序诊断；
 - 只对 Generate 连通区域运行 SeedVR2 的 ROI 路径；
-- 在同一预算下联合优化区域收益和 Generate 边界数量的精确空间一致性求解器。
+- 在同一预算下联合优化区域收益和 Generate 边界数量的精确空间一致性求解器；
+- 连续长视频路径：每个 I／P8 单元可携带不同动作图，codec 参考环不中断，SeedVR2
+  使用重叠 17 帧窗口和固定时间融合，并按 ROI 组件断点续跑。
 
 所有 Base／Enhance 载荷、mask、头部和辅助语法都按真实文件大小计费。Generate 以 LPIPS 等感知指标为主，PSNR 仅作诊断；真实编码信息增加带来的收益不能记为生成收益。
 
@@ -32,8 +34,10 @@
 如果由新的 Codex 会话接手，请先阅读根目录的 `AGENTS.md` 和
 [`docs/CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)、
 [`docs/CLOUD_A800_PILOT.md`](docs/CLOUD_A800_PILOT.md) 与
-[`docs/CLOUD_A800_FOLLOWUP.md`](docs/CLOUD_A800_FOLLOWUP.md)，再执行本节。当前已完成的云端范围是
-**1×A800 80GB、8–12 小时的单卡试跑**：冻结 DCVC-UF 和 SeedVR2，生成有界的反事实标签并训练轻量控制器；多卡完整阶段和大模型／codec 微调仍需下一次决定。
+[`docs/CLOUD_A800_FOLLOWUP.md`](docs/CLOUD_A800_FOLLOWUP.md)，再执行本节。当前工作始终限定为
+**1×A800 80GB**。冻结 DCVC-UF／SeedVR2 的 controller、真实 spatial-QP 码流和 v6
+评估已经完成；用户已授权在长视频链路验证后继续做单卡 spatial-QP-aware codec 与
+SeedVR2 微调。多卡生产仍未授权。
 
 租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
 
@@ -205,8 +209,8 @@ wget -c \
 - `output/`、真实码流、PNG／视频、checkpoint、第三方源码和编译产物均已在 `.gitignore` 排除。
 - 历史 Stage B 脚本的默认数据目录已改为仓库相对路径 `data/REDS`；也可以用 `--data-root` 指向服务器上的合规数据挂载。当前 Stage C 主线参数使用仓库相对路径或显式输入路径。
 - `training.md` 是上游 DCVC-UF 全量训练说明，不是当前控制器入口。单卡试跑、有界后续
-  复验和一次性独立测试均已完成。后续仍优先在单张 A800 上推进，未经新决定不进入
-  多卡完整生产或 SeedVR2／spatial-QP codec 微调。
+  复验和既有评估均已完成。后续仍只在单张 A800 上推进；长视频机制确认后，已获授权
+  依次尝试 spatial-QP-aware DCVC-UF、SeedVR2 和 router 重训。未经新决定不进入多卡。
 
 ### A800 单卡试跑状态
 
@@ -304,9 +308,16 @@ v6 的 58 个新真实动作图已经在单张 A800 上完成，另有 53 个逻
 当前结果已经整理成可重复生成的论文证据包：方法总图、正文主表、2×2 消融、跨数据集表、
 定性图索引和“主张—证据—不能夸大之处”均直接从冻结 JSON 生成，不手抄数字，也不重新
 运行模型。入口见 [`docs/PAPER_V6_PACKAGE.md`](docs/PAPER_V6_PACKAGE.md)，正式小型材料保存在
-`/root/autodl-fs/DCVC/runs/a800_paper_package_20260920/`。近期继续冻结 DCVC-UF 和 SeedVR2；
-下一项大实验只考虑冻结 v6 的新风格／长时序外部检查。通俗图文入口为
+`/root/autodl-fs/DCVC/runs/a800_paper_package_20260920/`。通俗图文入口为
 [Notion：01 当前论文证据包](https://app.notion.com/p/3e18b22ebd8d81c281e7d6ae63d9a58e)。
+
+连续长视频机制也已完成：33 帧写入同一条 1×I + 4×P8 码流，动作图在中途更新而
+codec 参考状态不断开；独立 fresh decode 逐像素一致。SeedVR2 用 0／8／16 三个重叠
+17 帧窗口恢复，边界融合相对硬切换保持近似画质并略降切换处时序误差。正式码流
+22,707 B，峰值 CUDA allocated 约 19.00 GiB，结果目录约 73.24 MB。它是机制 smoke，
+不是独立论文比较。完整记录见
+[`docs/CLOUD_A800_LONG_VIDEO.md`](docs/CLOUD_A800_LONG_VIDEO.md)，当前下一步是
+spatial-QP-aware DCVC-UF 单卡微调。
 
 ## 主要脚本
 
@@ -363,6 +374,9 @@ v6 的 58 个新真实动作图已经在单张 A800 上完成，另有 53 个逻
   效果、边界指标，并生成四版本输出与动作图的固定对照图；
 - `demo/stage_c_a800_paper_package.py`：从已完成的 v6 JSON 生成方法图、LaTeX 主表／消融表、
   跨数据集图和主张证据矩阵；它只做验证与整理，不运行 codec、SeedVR2 或训练；
+- `demo/stage_c_long_video_plan.py`、`demo/stage_c_long_video_seedvr2.py`：把连续 I／P8
+  route 计划、重叠 SeedVR2 ROI 恢复、时间融合和断点续跑连成一条长视频路径；
+- `demo/run_stage_c_a800_long_video_smoke.sh`：单张 A800 上可恢复的 33 帧连续机制验证；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

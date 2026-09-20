@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exact spatially regularized routing for the 4x4 three-path action map.
+"""Exact spatially regularized routing for a rectangular three-path action map.
 
 The existing low-budget controller predicts an independent utility for Base,
 Generate, and Enhance at every tile.  This module keeps those predictions and
@@ -9,7 +9,7 @@ all byte/Generate budgets frozen, but solves one joint objective:
 
 Only the Generate boundary is regularized because that is where a generative
 ROI is pasted back into a codec reconstruction.  A frontier dynamic program
-finds the exact optimum on the 4x4 grid; no greedy smoothing is used.
+finds the exact optimum on the declared grid; no greedy smoothing is used.
 """
 
 from __future__ import annotations
@@ -162,8 +162,11 @@ def generate_components(
 
 def direct_values(route: dict) -> tuple[list[float], list[float], list[int]]:
     predictions = route["direct_predictions"]
-    if len(predictions) != 16 or any(len(row) != 3 for row in predictions):
-        raise ValueError("expected sixteen three-target direct predictions")
+    rows, columns = map(int, route["configuration"]["tile_grid"])
+    expected = rows * columns
+    if len(predictions) != expected or any(len(row) != 3 for row in predictions):
+        raise ValueError(
+            f"expected {expected} three-target direct predictions")
     generate = [float(row[0]) for row in predictions]
     enhance = [float(row[1]) for row in predictions]
     costs = [max(int(round(float(row[2]))), MIN_ENHANCE_BYTES)
@@ -323,8 +326,6 @@ def solve_spatial_actions(
 def reroute_record(route: dict, spatial_lambda: float) -> tuple[dict, dict]:
     source_name, source = selected_variant(route)
     rows, columns = map(int, route["configuration"]["tile_grid"])
-    if (rows, columns) != (4, 4):
-        raise ValueError("the current protocol requires a 4x4 action grid")
     old_actions = list(map(int, source["actions"]))
     generate_scores, enhance_scores, enhance_costs = direct_values(route)
     budget = source["budget"]

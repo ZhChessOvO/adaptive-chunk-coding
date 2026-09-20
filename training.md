@@ -1,10 +1,11 @@
 # Training DCVC-UF
 
-> **Current-project note (2026-09-15):** This upstream recipe is retained as a reference for
-> full DCVC-UF training.  The active Generate / Base / Enhance work uses pretrained checkpoints;
-> no sustained controller or spatial-quality fine-tuning has been authorized yet.  Do not start
-> the schedules below for the current experiments until the data protocol and compute plan have
-> been approved.
+> **Current-project note (2026-09-20):** This upstream recipe is retained as a reference for
+> full DCVC-UF training, not as the launcher for the current project.  The frozen-model evidence
+> and continuous long-video smoke are complete, and single-A800 spatial-QP-aware fine-tuning is
+> now authorized.  Its narrower data protocol, mixed spatial-quality objective, resume format and
+> launcher are documented separately; do not silently substitute the multi-stage from-scratch
+> schedules below or start multi-GPU training.
 
 This document describes how to train DCVC-UF and DCVC-UF-Intra from scratch, including the dataset format, launcher scripts, and the multi-stage training schedule.
 

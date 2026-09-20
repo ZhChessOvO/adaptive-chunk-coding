@@ -11,12 +11,14 @@ Enhance routing around DCVC-UF. It is not the historical latent-prediction
 line. Preserve all E01-E18 and latent-predictor code as history, but do not
 make it a prerequisite for the current work.
 
-The authorized cloud scope is the single-card A800 80GB pilot described in
-`docs/CLOUD_A800_PILOT.md`: restore the environment, reproduce a small smoke
-test, generate a bounded set of counterfactual teacher labels with frozen
-DCVC-UF and SeedVR2, and train/evaluate a lightweight controller. Do not start
-multi-GPU production label generation, SeedVR2 fine-tuning, or spatial-codec
-fine-tuning without a new user decision.
+The cloud scope remains one A800 80GB.  On 2026-09-20 the user explicitly
+authorized the next single-card sequence: validate continuous long-video
+coding and overlapping restoration, then run spatial-QP-aware DCVC-UF and
+SeedVR2 fine-tuning (including long runs when feasible), regenerate teachers,
+and retrain the router.  The 33-frame long-video mechanism smoke is complete;
+the active next stage is spatial-QP-aware DCVC-UF fine-tuning.  Long runtime
+alone is not a reason to skip a useful single-card experiment.  Do not start
+multi-GPU production work without a new user decision.
 
 Respect the data ledger exactly:
 

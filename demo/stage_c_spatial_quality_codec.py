@@ -719,6 +719,114 @@ def load_actions(
     return actions, variant_name, variant
 
 
+def _expand_actions(
+    values: object,
+    route: dict,
+    height: int,
+    width: int,
+    cell_size: int,
+) -> np.ndarray:
+    """Expand one router-grid action list to the normative syntax grid."""
+    config = route["configuration"]
+    route_height, route_width = map(int, config["tile_grid"])
+    route_tile_size = int(config["tile_size"])
+    flat = np.asarray(values, dtype=np.int64)
+    if flat.size != route_height * route_width:
+        raise ValueError(
+            "route action count differs from its declared tile grid: "
+            f"got {flat.size}, expected {route_height * route_width}")
+    if route_tile_size % cell_size:
+        raise ValueError("route tile size must be divisible by syntax cell size")
+    if route_height * route_tile_size != height:
+        raise ValueError("route tile grid does not cover the coded frame height")
+    if route_width * route_tile_size != width:
+        raise ValueError("route tile grid does not cover the coded frame width")
+    values_2d = flat.reshape(route_height, route_width)
+    repeat = route_tile_size // cell_size
+    actions = np.repeat(
+        np.repeat(values_2d, repeat, axis=0), repeat, axis=1)
+    validate_spatial_actions(width, height, cell_size, actions.reshape(-1))
+    return actions
+
+
+def load_action_units(
+    route: dict,
+    height: int,
+    width: int,
+    cell_size: int,
+    frame_count: int,
+) -> tuple[list[np.ndarray], str, dict, list[dict]]:
+    """Load one action map per I/P8 coding unit.
+
+    Legacy route files contain one selected action map. They remain valid and
+    repeat that map for every coding unit. A long-video route may instead
+    contain ``coding_unit_routes`` with one router-grid map for the leading I
+    unit and every following eight-frame P unit.
+    """
+    expected_units = 1 + (frame_count - 1) // g_frame_delay
+    temporal = route.get("coding_unit_routes")
+    if temporal is None:
+        variant_name, variant = selected_route_variant(route)
+        actions = _expand_actions(
+            variant["actions"], route, height, width, cell_size)
+        maps = [actions.copy() for _ in range(expected_units)]
+        records = []
+        for unit_index in range(expected_units):
+            is_i = unit_index == 0
+            records.append({
+                "unit_index": unit_index,
+                "type": "I" if is_i else "P8",
+                "frame_start": 0 if is_i else 1 + (unit_index - 1) * g_frame_delay,
+                "frame_count": 1 if is_i else g_frame_delay,
+                "source": "legacy-single-route-repeated",
+            })
+        return maps, variant_name, variant, records
+
+    if not isinstance(temporal, list) or len(temporal) != expected_units:
+        count = len(temporal) if isinstance(temporal, list) else "invalid"
+        raise ValueError(
+            "coding_unit_routes must contain exactly one I map plus one map "
+            f"per P8 unit: got {count}, expected {expected_units}")
+    variant_name = route.get("selected_variant", "temporal-coding-unit-route")
+    variant = route.get("variants", {}).get(variant_name, {})
+    maps = []
+    records = []
+    for unit_index, raw in enumerate(temporal):
+        if not isinstance(raw, dict):
+            raise ValueError("each coding_unit_routes entry must be an object")
+        expected_type = "I" if unit_index == 0 else "P8"
+        expected_start = (
+            0 if unit_index == 0
+            else 1 + (unit_index - 1) * g_frame_delay)
+        expected_count = 1 if unit_index == 0 else g_frame_delay
+        if int(raw.get("unit_index", -1)) != unit_index:
+            raise ValueError("coding-unit indexes must be contiguous from zero")
+        if raw.get("type") != expected_type:
+            raise ValueError(
+                f"coding unit {unit_index} must have type {expected_type}")
+        if int(raw.get("frame_start", -1)) != expected_start:
+            raise ValueError(
+                f"coding unit {unit_index} must start at frame {expected_start}")
+        if int(raw.get("frame_count", -1)) != expected_count:
+            raise ValueError(
+                f"coding unit {unit_index} must cover {expected_count} frame(s)")
+        if "actions" not in raw:
+            raise ValueError(f"coding unit {unit_index} has no actions")
+        maps.append(_expand_actions(
+            raw["actions"], route, height, width, cell_size))
+        records.append({
+            key: value for key, value in raw.items() if key != "actions"
+        })
+    return maps, variant_name, variant, records
+
+
+def action_counts(actions: np.ndarray) -> dict[str, int]:
+    return {
+        ACTION_NAMES[action]: int(np.count_nonzero(actions == action))
+        for action in ACTION_NAMES
+    }
+
+
 @torch.inference_mode()
 def encode_main(args: argparse.Namespace, device: torch.device) -> None:
     process_started = time.perf_counter()
@@ -728,31 +836,36 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
     height, width = reference[0].shape[:2]
     if height % 64 or width % 64:
         raise ValueError("current spatial-quality prototype requires dimensions divisible by 64")
-    actions, route_variant_name, route_variant = load_actions(
-        route, height, width, args.cell_size)
+    action_units, route_variant_name, route_variant, route_unit_metadata = (
+        load_action_units(
+            route, height, width, args.cell_size, args.frame_count))
+    actions = action_units[0]
     route_kind = route.get("route_kind", "encoder-side-oracle")
     profile = (args.generate_qp, args.base_qp, args.enhance_qp)
-    action_map, qp_map = quality_maps(actions, profile, device)
     tensors = [tensor_from_rgb(frame, device) for frame in reference]
 
     torch.cuda.reset_peak_memory_stats(device)
     i_net, p_net, model_load_seconds = load_codecs(args, device)
     torch.cuda.synchronize(device)
     codec_started = time.perf_counter()
+    action_map_i, qp_map_i = quality_maps(action_units[0], profile, device)
     payload_i, x_hat_i, stats_i = encode_i(
-        i_net, tensors[0], action_map, qp_map, profile,
+        i_net, tensors[0], action_map_i, qp_map_i, profile,
         args.scale_interpolation)
     reconstructions = [x_hat_i]
-    units = [(True, payload_i, stats_i)]
+    units = [(True, payload_i, stats_i, action_units[0])]
     p_net.clear_dpb()
     p_net.ref_feature = F.pixel_unshuffle(x_hat_i, 8)
-    for start in range(1, args.frame_count, g_frame_delay):
+    for unit_index, start in enumerate(
+            range(1, args.frame_count, g_frame_delay), start=1):
         p_input = torch.cat(tensors[start:start + g_frame_delay], dim=1)
+        unit_actions = action_units[unit_index]
+        action_map, qp_map = quality_maps(unit_actions, profile, device)
         payload_p, x_hat_p, stats_p = encode_p(
             p_net, p_input, action_map, qp_map, profile,
             args.scale_interpolation)
         reconstructions.extend(x_hat_p)
-        units.append((False, payload_p, stats_p))
+        units.append((False, payload_p, stats_p, unit_actions))
     torch.cuda.synchronize(device)
     codec_seconds = time.perf_counter() - codec_started
 
@@ -760,16 +873,17 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
     unit_bytes = []
     with args.output_stream.open("wb") as output:
         sps_bytes = write_sps(output, {"sps_id": 0, "height": height, "width": width})
-        for unit_index, (is_i, payload, stats) in enumerate(units):
+        for unit_index, (is_i, payload, stats, unit_actions) in enumerate(units):
             written = write_spatial_ip(
                 output, is_i, 0, profile, args.cell_size,
-                actions.reshape(-1).tolist(), 0, 0, payload)
+                unit_actions.reshape(-1).tolist(), 0, 0, payload)
             unit_bytes.append({
                 "index": unit_index,
                 "type": "I" if is_i else "P8",
                 "on_disk_bytes": written,
                 "outer_syntax_bytes": written - len(payload),
                 "entropy_payload_bytes": len(payload),
+                "action_counts": action_counts(unit_actions),
                 **stats,
             })
     stream_bytes = args.output_stream.stat().st_size
@@ -788,6 +902,16 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
         "cell_size": args.cell_size,
         "action_map_shape": list(actions.shape),
         "actions": actions.tolist(),
+        "coding_unit_action_maps": [
+            {
+                **route_unit_metadata[index],
+                "actions": unit_actions.tolist(),
+                "action_counts": action_counts(unit_actions),
+            }
+            for index, unit_actions in enumerate(action_units)
+        ],
+        "time_varying_action_maps": any(
+            not np.array_equal(actions, value) for value in action_units[1:]),
         "route": {
             "kind": route_kind,
             "selected_variant": route_variant_name,
@@ -796,10 +920,7 @@ def encode_main(args: argparse.Namespace, device: torch.device) -> None:
                 if key != "actions"
             },
         },
-        "action_counts": {
-            ACTION_NAMES[action]: int(np.count_nonzero(actions == action))
-            for action in ACTION_NAMES
-        },
+        "action_counts": action_counts(actions),
         "quality_profile": {
             "Generate": args.generate_qp,
             "Base": args.base_qp,
@@ -910,7 +1031,12 @@ def decode_main(args: argparse.Namespace, device: torch.device) -> None:
         decoded_unit_stats.append({
             "index": unit_index,
             "type": "I" if unit["is_i"] else "P8",
+            "frame_start": (
+                0 if unit_index == 0
+                else 1 + (unit_index - 1) * g_frame_delay),
             "decoded_frames": frame_count,
+            "actions": actions.tolist(),
+            "action_counts": action_counts(actions),
             "entropy_payload_bytes": len(unit["bit_stream"]),
             "inner_header_bytes": INNER_HEADER.size,
             "substream_bytes": dict(zip(SUBSTREAM_NAMES, map(len, streams))),
@@ -936,6 +1062,24 @@ def decode_main(args: argparse.Namespace, device: torch.device) -> None:
         "cell_size": expected_cell_size,
         "scale_interpolation": expected_interpolation,
         "unit_stats": decoded_unit_stats,
+        "action_map_shape": [
+            height // expected_cell_size, width // expected_cell_size],
+        "actions": decoded_unit_stats[0]["actions"],
+        "action_counts": decoded_unit_stats[0]["action_counts"],
+        "coding_unit_action_maps": [
+            {
+                "unit_index": record["index"],
+                "type": record["type"],
+                "frame_start": record["frame_start"],
+                "frame_count": record["decoded_frames"],
+                "actions": record["actions"],
+                "action_counts": record["action_counts"],
+            }
+            for record in decoded_unit_stats
+        ],
+        "time_varying_action_maps": any(
+            record["actions"] != decoded_unit_stats[0]["actions"]
+            for record in decoded_unit_stats[1:]),
         "model_load_seconds": model_load_seconds,
         "bitstream_decode_seconds": decode_seconds,
         "total_after_argument_parse_seconds": time.perf_counter() - process_started,

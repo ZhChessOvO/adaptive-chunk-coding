@@ -141,7 +141,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_source_frames(args: argparse.Namespace) -> tuple[list[Path], list[np.ndarray]]:
-    paths = sorted(args.source_dir.glob("*.png"))[:args.frame_count]
+    frame_start = int(getattr(args, "frame_start", 0))
+    if frame_start < 0:
+        raise ValueError("frame start must be nonnegative")
+    paths = sorted(args.source_dir.glob("*.png"))[
+        frame_start:frame_start + args.frame_count]
     if len(paths) != args.frame_count:
         raise ValueError(
             f"{args.source_dir} has {len(paths)} of {args.frame_count} requested frames")

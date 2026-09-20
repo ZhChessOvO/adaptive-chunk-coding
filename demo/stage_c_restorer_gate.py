@@ -71,6 +71,9 @@ def parse_args() -> argparse.Namespace:
         "--output-dir", type=Path,
         default=Path("output/e20_restorer_gate_jockey"))
     parser.add_argument("--frame-count", type=int, default=17)
+    parser.add_argument(
+        "--frame-start", type=int, default=0,
+        help="Zero-based source frame offset; defaults to the first frame.")
     parser.add_argument("--width", type=int, default=512)
     parser.add_argument("--height", type=int, default=512)
     parser.add_argument("--crop-x", type=int, default=0)
@@ -107,6 +110,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--qps must contain DCVC-UF indexes in [0, 63]")
     if args.frame_count < 1 or args.decode_repeats < 1:
         parser.error("frame count and decode repeats must be positive")
+    if args.frame_start < 0:
+        parser.error("--frame-start must be nonnegative")
     if not 1 <= args.visual_frame <= args.frame_count:
         parser.error("--visual-frame must be inside the evaluated clip")
     return args
@@ -317,6 +322,7 @@ def main() -> None:
         "experiment": "E20 uniform-quality DCVC-UF restoration gate",
         "status": "deterministic_control_complete_diffusion_pending",
         "sequence": args.sequence_name,
+        "frame_start": args.frame_start,
         "source_role": args.source_role,
         "source_files": [str(path) for path in source_paths],
         "crop": {

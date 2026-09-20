@@ -18,12 +18,16 @@ SeedVR2 fine-tuning (including long runs when feasible), regenerate teachers,
 and retrain the router.  The 33-frame long-video mechanism smoke is complete;
 the 1000-step spatial-QP-aware DCVC-UF fine-tune and its 110-task endpoint
 comparison are complete.  It improves REDS rate-distortion but over-adapts on
-UVG, so the active stage is the fixed 0.25/0.50/0.75 checkpoint interpolation
-protocol in `docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`.  After selecting the
-codec, continue with the frozen-base SeedVR2 LoRA protocol in
-`docs/CLOUD_A800_SEEDVR2_LORA.md`; do not overlap its GPU work with the codec
-evaluation.  Long runtime alone is not a reason to skip a useful single-card
-experiment.  Do not start
+UVG.  The fixed 0.25/0.50/0.75 interpolation protocol is also complete and
+selected alpha=0 (the frozen codec) by the predeclared combined LPIPS BD-rate
+rule; see `docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`.  The SeedVR2 LoRA
+real-cache, backward, adapter-save, and adapter-reload smoke checks pass, so
+the active stage is its resumable 1000-step formal run described in
+`docs/CLOUD_A800_SEEDVR2_LORA.md`.  Long runtime alone is not a reason to skip
+a useful single-card experiment.  The current SeedVR2 LoRA run should be
+completed rather than cancelled pre-emptively.  If its measured adaptation is unsuitable, a later
+experiment may compare another generation/restoration backend while holding
+the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start
 multi-GPU production work without a new user decision.
 
 The current codec adaptation protocol is documented in

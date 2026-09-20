@@ -76,6 +76,49 @@ def install_flash_attention_fallback() -> None:
     sys.modules.setdefault("flash_attn", module)
 
 
+def install_compact_mmrope() -> None:
+    """Build exact multimodal RoPE prefixes at the requested clip shape.
+
+    Upstream allocates a fixed 1024x128x128 frequency grid and then slices a
+    tiny prefix from it.  The language-style axial coordinates are integer
+    aranges, so constructing only the largest requested prefix is numerically
+    identical while avoiding a roughly 4 GiB final grid and much larger
+    broadcast/cat allocation peak.
+    """
+
+    from models.dit_v2.rope import NaMMRotaryEmbedding3d
+
+    if getattr(NaMMRotaryEmbedding3d, "_adaptive_chunk_compact", False):
+        return
+
+    def compact_get_freqs(self, vid_shape, txt_shape):
+        video_shapes = [tuple(map(int, shape)) for shape in vid_shape.tolist()]
+        text_lengths = [int(value) for value in txt_shape[:, 0].tolist()]
+        if not video_shapes or len(video_shapes) != len(text_lengths):
+            raise RuntimeError("SeedVR2 RoPE received inconsistent batch shapes")
+        max_t = max(length + shape[0] for shape, length in zip(
+            video_shapes, text_lengths))
+        max_h = max(shape[1] for shape in video_shapes)
+        max_w = max(shape[2] for shape in video_shapes)
+        max_text = max(text_lengths)
+        vid_freqs = self.get_axial_freqs(max_t, max_h, max_w)
+        txt_freqs = self.get_axial_freqs(max_text)
+        video_values = []
+        text_values = []
+        for (frames, height, width), length in zip(
+                video_shapes, text_lengths):
+            video_values.append(
+                vid_freqs[length:length + frames, :height, :width].reshape(
+                    -1, vid_freqs.size(-1)))
+            text_values.append(
+                txt_freqs[:length].repeat(1, 3).reshape(
+                    -1, vid_freqs.size(-1)))
+        return torch.cat(video_values, dim=0), torch.cat(text_values, dim=0)
+
+    NaMMRotaryEmbedding3d.get_freqs = compact_get_freqs
+    NaMMRotaryEmbedding3d._adaptive_chunk_compact = True
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Lossless PNG bridge from DCVC-UF reconstruction to SeedVR2")
@@ -239,6 +282,8 @@ def configure_runner(args: argparse.Namespace):
     from common.distributed import get_device, init_torch
     from omegaconf import OmegaConf
     from projects.video_diffusion_sr.infer import VideoDiffusionInfer
+
+    install_compact_mmrope()
 
     previous_cwd = Path.cwd()
     try:

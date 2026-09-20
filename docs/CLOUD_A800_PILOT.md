@@ -438,6 +438,21 @@ spatial-QP-aware 微调现采用一个较窄的单卡适配方案：每步 17 �
 512×512 长期训练。协议与恢复命令见
 [`CLOUD_A800_SPATIAL_QP_FINETUNE.md`](CLOUD_A800_SPATIAL_QP_FINETUNE.md)。
 
+## 2026-09-20 codec 插值完成与 SeedVR2 LoRA 烟测
+
+冻结／1000-step codec 之间的 0.25／0.50／0.75 插值已经完成。165 个新任务和 110 个复用
+端点均有真实码流与 fresh decode。按固定的合并 LPIPS BD-rate 规则选择 alpha=0：alpha=0.25
+虽然在 REDS 为 -5.74%，但 UVG 为 +6.36%，合并为 +0.31%；更大的 alpha 跨域退化更明显。
+因此 SeedVR2 适配继续使用冻结 codec，微调 codec 保留为 REDS 域内消融。完整表见
+[`CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`](CLOUD_A800_SPATIAL_QP_INTERPOLATION.md)。
+
+SeedVR2 LoRA 的 REDS／UVG 双样本真实 cache、2-step 反向传播、恢复点、adapter 保存与重新
+加载推理均已通过。峰值训练 CUDA allocated 约 7.00 GiB；adapter 约 11.32 MB。正式方案仍
+冻结 3B DiT／VAE 原权重，只训练最后 8 层与输出投影的 2,822,656 个 LoRA 参数。正式运行
+使用 560 个 cache、1000 steps、每 25 steps 原子保存，并继续限定为一张 A800。若完成后
+SeedVR2 不适合该任务，再保持 codec、route、预算和评价输入不变比较其他恢复后端；当前
+实验不取消。详见 [`CLOUD_A800_SEEDVR2_LORA.md`](CLOUD_A800_SEEDVR2_LORA.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

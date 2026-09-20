@@ -97,6 +97,7 @@ trap fail EXIT INT TERM
 heartbeat_pid=$!
 
 echo "START seedvr2_lora mode=$mode utc=$(date -u +%FT%TZ)"
+rm -f "$run_root/run.failed"
 cd "$repo"
 [[ -f "$interp_root/run.complete" ]]
 [[ -s "$interp_root/summary.json" ]]

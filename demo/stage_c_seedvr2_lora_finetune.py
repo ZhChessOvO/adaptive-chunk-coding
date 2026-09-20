@@ -40,7 +40,7 @@ UPSTREAM_ROOT = REPO_ROOT / "third_party" / "SeedVR2"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from demo.stage_c_a800_teacher import load_source, stream_roundtrip
+from demo.stage_c_a800_teacher import load_source
 from demo.stage_c_seedvr2_bridge import (
     configure_runner,
     install_flash_attention_fallback,
@@ -59,8 +59,23 @@ from demo.stage_c_seedvr2_lora_utils import (
     self_test as lora_self_test,
     trainable_lora_parameters,
 )
-from demo.stage_c_three_path_roi_probe import encode_dcvc_stream, load_codecs
+from demo.stage_c_spatial_quality_codec import (
+    ACTION_GENERATE,
+    decode_i,
+    decode_p,
+    encode_i,
+    encode_p,
+    quality_maps,
+    read_units,
+)
+from demo.stage_c_three_path_roi_probe import (
+    load_codecs,
+    rgb_from_tensor,
+    tensor_from_rgb,
+)
+from src.models.video_model_ht import g_frame_delay
 from src.utils.common import set_torch_env
+from src.utils.stream_helper import write_spatial_ip, write_sps
 
 
 CACHE_FORMAT_VERSION = 1
@@ -183,6 +198,10 @@ def initialize_single_gpu(cuda_idx: int) -> torch.device:
         sys.path.insert(0, upstream)
     from common.distributed import get_device, init_torch
 
+    # SeedVR2's causal VAE calls its sequence-parallel helpers even at world
+    # size one, so it still needs a one-rank process group.  The cache uses the
+    # graph-free Python spatial-QP entropy path below; it does not call the
+    # stock scalar codec proxy whose CUDA graph conflicts with this context.
     if not torch.distributed.is_initialized():
         init_torch(cudnn_benchmark=False)
     return get_device()
@@ -277,6 +296,138 @@ def deterministic_vae_latent(
     latent = latent.permute(0, 2, 3, 4, 1).squeeze(0)
     latent = latent.mul(float(config.vae.scaling_factor))
     return latent.to(device="cpu", dtype=torch.bfloat16).contiguous()
+
+
+@torch.inference_mode()
+def spatial_generate_roundtrip(
+    *,
+    frames: list[np.ndarray],
+    path: Path,
+    generate_qp: int,
+    i_net,
+    p_net,
+    device: torch.device,
+) -> tuple[list[np.ndarray], int, dict]:
+    """Materialize and fresh-decode one all-Generate spatial-QP stream."""
+
+    if generate_qp != 8:
+        raise ValueError("the fixed LoRA cache protocol requires Generate index 8")
+    height, width = frames[0].shape[:2]
+    if height % 64 or width % 64:
+        raise ValueError("spatial-QP cache dimensions must be divisible by 64")
+    if len(frames) != 17:
+        raise ValueError("spatial-QP cache requires 17 frames")
+    profile = (8, 16, 32)
+    cell_size = 64
+    actions = np.full(
+        (height // cell_size, width // cell_size),
+        ACTION_GENERATE,
+        dtype=np.int64,
+    )
+    action_map, qp_map = quality_maps(actions, profile, device)
+    tensors = [tensor_from_rgb(frame, device) for frame in frames]
+
+    torch.cuda.synchronize(device)
+    started = time.perf_counter()
+    payload_i, x_hat_i, _ = encode_i(
+        i_net, tensors[0], action_map, qp_map, profile, "nearest")
+    encoder_reconstructions = [x_hat_i]
+    encoded_units = [(True, payload_i)]
+    p_net.clear_dpb()
+    p_net.ref_feature = F.pixel_unshuffle(x_hat_i, 8)
+    for start in range(1, len(tensors), g_frame_delay):
+        payload_p, x_hat_p, _ = encode_p(
+            p_net,
+            torch.cat(tensors[start:start + g_frame_delay], dim=1),
+            action_map,
+            qp_map,
+            profile,
+            "nearest",
+        )
+        encoder_reconstructions.extend(x_hat_p)
+        encoded_units.append((False, payload_p))
+    torch.cuda.synchronize(device)
+    encode_seconds = time.perf_counter() - started
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("wb") as output:
+        write_sps(output, {"sps_id": 0, "height": height, "width": width})
+        for is_i, payload in encoded_units:
+            write_spatial_ip(
+                output,
+                is_i,
+                0,
+                profile,
+                cell_size,
+                actions.reshape(-1).tolist(),
+                0,
+                0,
+                payload,
+            )
+    os.replace(temporary, path)
+    stream_bytes = path.stat().st_size
+    # read_units() reopens the on-disk file and reconstructs every entropy
+    # payload from its self-describing syntax; source RGB is not consulted.
+    sps, units = read_units(path)
+    if sps["height"] != height or sps["width"] != width:
+        raise RuntimeError("fresh spatial-QP SPS differs from the source shape")
+
+    fresh_reconstructions = []
+    p_net.clear_dpb()
+    for unit in units:
+        stored_profile = (
+            unit["qp_generate"], unit["qp_base"], unit["qp_enhance"])
+        if stored_profile != profile or unit["cell_size"] != cell_size:
+            raise RuntimeError("fresh spatial-QP syntax differs from cache protocol")
+        stored_actions = np.asarray(unit["actions"], dtype=np.int64).reshape(
+            height // cell_size, width // cell_size)
+        stored_action_map, stored_qp_map = quality_maps(
+            stored_actions, stored_profile, device)
+        if unit["is_i"]:
+            x_hat = decode_i(
+                i_net,
+                unit["bit_stream"],
+                stored_action_map,
+                stored_qp_map,
+                stored_profile,
+                height,
+                width,
+                None,
+            )
+            fresh_reconstructions.append(x_hat)
+            p_net.ref_feature = F.pixel_unshuffle(x_hat, 8)
+        else:
+            fresh_reconstructions.extend(decode_p(
+                p_net,
+                unit["bit_stream"],
+                stored_action_map,
+                stored_qp_map,
+                stored_profile,
+                height,
+                width,
+                None,
+            ))
+    torch.cuda.synchronize(device)
+    decoded = [
+        rgb_from_tensor(frame, height, width)
+        for frame in fresh_reconstructions
+    ]
+    encoded = [
+        rgb_from_tensor(frame, height, width)
+        for frame in encoder_reconstructions
+    ]
+    if len(decoded) != 17 or any(
+            not np.array_equal(first, second)
+            for first, second in zip(encoded, decoded)):
+        raise RuntimeError("fresh spatial-QP decode differs from encoder reconstruction")
+    path.unlink()
+    return decoded, stream_bytes, {
+        "seconds": encode_seconds,
+        "format": "DCVC-UF one-shot spatial quality prototype v2",
+        "all_generate": True,
+        "fresh_decode_pixel_exact": True,
+    }
 
 
 def validate_cache_file(path: Path, sample_id: str) -> dict:
@@ -378,13 +529,39 @@ def cache_main(args: argparse.Namespace) -> None:
         for record in records
     ]
     if existing and all(path.is_file() for path in existing):
-        manifest = write_cache_manifest(
-            args, records, codec, vae_sha256, started)
+        for record, path in zip(records, existing):
+            validate_cache_file(path, record["sample_id"])
+        manifest_path = args.output_dir / "manifest.json"
+        manifest = (
+            json.loads(manifest_path.read_text(encoding="utf-8"))
+            if manifest_path.is_file() else None
+        )
+        expected_ids = [record["sample_id"] for record in records]
+        manifest_ids = (
+            [entry["sample_id"] for entry in manifest.get("entries", [])]
+            if manifest is not None else []
+        )
+        reusable = (
+            manifest is not None
+            and manifest.get("status") == "complete"
+            and manifest.get("requested_sample_count") == len(records)
+            and manifest_ids == expected_ids
+            and manifest.get("generate_qp") == args.generate_qp
+            and manifest.get("vae_sha256") == vae_sha256
+            and manifest.get("codec", {}).get("image_sha256")
+            == codec["image_sha256"]
+            and manifest.get("codec", {}).get("video_sha256")
+            == codec["video_sha256"]
+        )
+        if not reusable:
+            manifest = write_cache_manifest(
+                args, records, codec, vae_sha256, started)
         if manifest["status"] != "complete":
             raise RuntimeError("latent cache files exist but manifest is incomplete")
         print(json.dumps({
             "stage": "cache-resume-all-complete",
             "completed": len(existing),
+            "manifest_reused_without_rewrite": reusable,
         }, indent=2))
         return
 
@@ -413,13 +590,10 @@ def cache_main(args: argparse.Namespace) -> None:
                 f"file-store use {used_percent:.2f}% reached stop threshold")
         sample_started = time.perf_counter()
         source = load_source(record)
-        stream, encode = encode_dcvc_stream(
-            source, args.generate_qp, args.generate_qp,
-            i_net, p_net, device, args.reset_interval)
-        degraded, stream_bytes, _ = stream_roundtrip(
-            stream=stream,
-            path=args.scratch_dir / f"{record['sample_id']}.bin",
-            frame_count=17,
+        degraded, stream_bytes, encode = spatial_generate_roundtrip(
+            frames=source,
+            path=args.scratch_dir / f"{record['sample_id']}.dqvc",
+            generate_qp=args.generate_qp,
             i_net=i_net,
             p_net=p_net,
             device=device,
@@ -437,6 +611,8 @@ def cache_main(args: argparse.Namespace) -> None:
             "crop": record["crop"],
             "generate_qp": args.generate_qp,
             "stream_bytes": stream_bytes,
+            "stream_format": encode["format"],
+            "fresh_decode_pixel_exact": encode["fresh_decode_pixel_exact"],
             "codec_role": args.checkpoint_role,
             "codec_image_sha256": codec["image_sha256"],
             "codec_video_sha256": codec["video_sha256"],
@@ -445,7 +621,7 @@ def cache_main(args: argparse.Namespace) -> None:
             "degraded_latent": degraded_latent,
         }
         atomic_torch_save(output, payload)
-        del source, degraded, stream, clean_latent, degraded_latent, payload
+        del source, degraded, clean_latent, degraded_latent, payload
         elapsed = time.perf_counter() - sample_started
         print(json.dumps({
             "stage": "cache-sample", "index": index,
@@ -714,7 +890,10 @@ def train_main(args: argparse.Namespace) -> None:
                 txt_shape=text_shape,
                 timestep=torch.full(
                     (1,), 1000.0, device=device, dtype=torch.float32),
-                disable_cache=True,
+                # Cache carries the patch shape and video/text split through
+                # all blocks and into PatchOut; disabling it is only an
+                # upstream unit-test mode and corrupts those shapes here.
+                disable_cache=False,
             ).vid_sample
             velocity_mse = F.mse_loss(
                 prediction.float(), target_velocity.float())

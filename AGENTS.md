@@ -20,6 +20,13 @@ the active next stage is spatial-QP-aware DCVC-UF fine-tuning.  Long runtime
 alone is not a reason to skip a useful single-card experiment.  Do not start
 multi-GPU production work without a new user decision.
 
+The current codec adaptation protocol is documented in
+`docs/CLOUD_A800_SPATIAL_QP_FINETUNE.md`.  It uses REDS training data plus the
+60 already prepared UVG adaptation windows, region-weighted RD loss, uniform-QP
+rehearsal, atomic step checkpoints, and actual-stream fresh-decode validation.
+Do not substitute the upstream from-scratch schedule without recording a new
+protocol decision.
+
 Respect the data ledger exactly:
 
 - Training may use REDS `train/000..239`.

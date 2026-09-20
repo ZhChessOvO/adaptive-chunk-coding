@@ -432,6 +432,12 @@ REDS／UVG 分数据集表、定性图索引和主张边界已经从正式 JSON 
 可行，不是论文质量结论。当前主线已经转入 spatial-QP-aware DCVC-UF 微调准备，完整
 记录见 [`CLOUD_A800_LONG_VIDEO.md`](CLOUD_A800_LONG_VIDEO.md)。
 
+spatial-QP-aware 微调现采用一个较窄的单卡适配方案：每步 17 帧，I + 2×P8，混合动作图
+使用区域各自的 lambda，并保留 25% 均匀 QP rehearsal；REDS train 与已划为训练侧的 60
+个 UVG adaptation 窗口共同参与。先做两步烟测并用真实码流验证 checkpoint，再安排
+512×512 长期训练。协议与恢复命令见
+[`CLOUD_A800_SPATIAL_QP_FINETUNE.md`](CLOUD_A800_SPATIAL_QP_FINETUNE.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

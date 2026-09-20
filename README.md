@@ -317,7 +317,9 @@ codec 参考状态不断开；独立 fresh decode 逐像素一致。SeedVR2 用 
 22,707 B，峰值 CUDA allocated 约 19.00 GiB，结果目录约 73.24 MB。它是机制 smoke，
 不是独立论文比较。完整记录见
 [`docs/CLOUD_A800_LONG_VIDEO.md`](docs/CLOUD_A800_LONG_VIDEO.md)，当前下一步是
-spatial-QP-aware DCVC-UF 单卡微调。
+spatial-QP-aware DCVC-UF 单卡微调。微调的数据、区域 rate-distortion 损失、断点格式和
+tmux 入口见
+[`docs/CLOUD_A800_SPATIAL_QP_FINETUNE.md`](docs/CLOUD_A800_SPATIAL_QP_FINETUNE.md)。
 
 ## 主要脚本
 
@@ -377,6 +379,10 @@ spatial-QP-aware DCVC-UF 单卡微调。
 - `demo/stage_c_long_video_plan.py`、`demo/stage_c_long_video_seedvr2.py`：把连续 I／P8
   route 计划、重叠 SeedVR2 ROI 恢复、时间融合和断点续跑连成一条长视频路径；
 - `demo/run_stage_c_a800_long_video_smoke.sh`：单张 A800 上可恢复的 33 帧连续机制验证；
+- `demo/stage_c_spatial_qp_finetune.py`、
+  `demo/run_stage_c_a800_spatial_qp_finetune.sh`：从官方 image／HT-S checkpoint 出发，
+  使用区域 lambda、混合动作图和均匀 QP rehearsal 做可恢复的单卡 codec 适配，并以真实
+  spatial-QP 码流和 fresh decode 验证导出物；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

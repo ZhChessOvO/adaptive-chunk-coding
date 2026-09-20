@@ -4,8 +4,8 @@
 > full DCVC-UF training, not as the launcher for the current project.  The frozen-model evidence
 > and continuous long-video smoke are complete, and single-A800 spatial-QP-aware fine-tuning is
 > now authorized.  Its narrower data protocol, mixed spatial-quality objective, resume format and
-> launcher are documented separately; do not silently substitute the multi-stage from-scratch
-> schedules below or start multi-GPU training.
+> launcher are documented in `docs/CLOUD_A800_SPATIAL_QP_FINETUNE.md`; do not silently substitute
+> the multi-stage from-scratch schedules below or start multi-GPU training.
 
 This document describes how to train DCVC-UF and DCVC-UF-Intra from scratch, including the dataset format, launcher scripts, and the multi-stage training schedule.
 

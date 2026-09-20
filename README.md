@@ -288,8 +288,11 @@ LPIPS 相比 8 像素增加 0.001702，明显小于 32 像素的 0.005303 代价
 成本标签和两个轻量残差专家已完成；37 条路由回放中，UVG 的 Generate 块从 24 降到 19，
 其中 HoneyBee 从 4 降到 0，而 REDS 的 Generate 总数保持 108。详情见
 [`docs/CLOUD_A800_UVG_ADAPTATION.md`](docs/CLOUD_A800_UVG_ADAPTATION.md)。下一步把该适配与
-精确 Generate 边界正则组合；方法、λ 的来源和消融设计见
-[`docs/CLOUD_A800_SPATIAL_CONSISTENCY.md`](docs/CLOUD_A800_SPATIAL_CONSISTENCY.md)。
+精确 Generate 边界正则组合。组合路由已把 37 条中的 Generate 边从 237 降到 186，预测
+收益只减少约 0.35%。方法与 λ 来源见
+[`docs/CLOUD_A800_SPATIAL_CONSISTENCY.md`](docs/CLOUD_A800_SPATIAL_CONSISTENCY.md)，真实
+spatial-QP、fresh decode 和 2×2 消融协议见
+[`docs/CLOUD_A800_V6_EVALUATION.md`](docs/CLOUD_A800_V6_EVALUATION.md)。
 
 ## 主要脚本
 
@@ -339,6 +342,11 @@ LPIPS 相比 8 像素增加 0.001702，明显小于 32 像素的 0.005303 代价
   frontier 动态规划联合优化区域收益与 Generate／非 Generate 边界；
 - `demo/run_stage_c_a800_spatial_consistency.sh`：对旧 v5 和 UVG 适配后路由执行 λ 敏感性
   回放、`λ=0` 动作回归和空间项 2×2 消融所需的两组路由；
+- `demo/stage_c_a800_v6_evaluation_plan.py`、
+  `demo/run_stage_c_a800_v6_evaluation.sh`：冻结四版本精确动作去重计划，并在 tmux 中可断点
+  运行适配×空间项的真实 spatial-QP、fresh decode 和 SeedVR2 评估；
+- `demo/stage_c_a800_v6_evaluation_summary.py`：核对真实字节和复用关系，汇总 2×2 因子
+  效果、边界指标，并生成四版本输出与动作图的固定对照图；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

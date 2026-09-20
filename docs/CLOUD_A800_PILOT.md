@@ -388,6 +388,14 @@ REDS 的 Generate 总数保持 108。这个结果支持“内容相关的跨域�
 收益尺度，不设置新的硬门槛；精确动态规划、敏感性回放和 2×2 消融见
 [`CLOUD_A800_SPATIAL_CONSISTENCY.md`](CLOUD_A800_SPATIAL_CONSISTENCY.md)。
 
+空间回放随后完成。旧 v5 单加空间项时，Generate 边从 260 降到 207；UVG 适配与空间项
+组合时从 237 降到 186，连通块从 51 降到 36，预测收益只下降约 0.35%。两套
+`lambda=0` 动作均逐块复现，说明变化来自显式空间目标而非实现漂移。
+
+正式 2×2 画质评估会复用已经验证的 v5 + 16 像素基线，并只在同一样本、同一种子、16 个
+动作完全相同时复用新逻辑版本。111 个逻辑目标中有 58 个唯一新动作图需要真实运行；
+完整协议见 [`CLOUD_A800_V6_EVALUATION.md`](CLOUD_A800_V6_EVALUATION.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

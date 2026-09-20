@@ -17,6 +17,7 @@ import json
 import math
 import os
 import shutil
+import subprocess
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -84,6 +85,15 @@ def sha256_file(path: Path) -> str:
         for block in iter(lambda: handle.read(8 * 1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def git_commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -590,6 +600,11 @@ def summarize_main(args: argparse.Namespace) -> None:
         "experiment": protocol["experiment"],
         "status": "complete",
         "completed_utc": utc_now(),
+        "git_commit_at_summary": git_commit(),
+        "evaluator_sha256": sha256_file(Path(__file__)),
+        "executed_runner": str((
+            args.output_dir / "logs" /
+            "executed_run_stage_c_a800_spatial_qp_finetune_eval.sh").resolve()),
         "protocol": str(args.protocol.resolve()),
         "sample_count": protocol["sample_count"],
         "task_count": len(records),

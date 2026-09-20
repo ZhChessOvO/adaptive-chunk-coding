@@ -97,6 +97,8 @@ tmux new-session -d -s a800_spatial_qp_train \
 - 固定 3 条 REDS + 3 条 UVG，在 QP 8／16／32 做均匀质量回归；
 - 110 个任务全部要求真实码流、独立 fresh decode 和逐像素一致；
 - 汇总 LPIPS、PSNR、时序误差、字节和 Generate 边界，并生成固定对照图；
+- 停止 heartbeat 后对正式目录内所有普通文件逐个读取 `st_size`，保存可复核的最终真实
+  落盘字节快照；
 - 这批数据都已在项目中使用过，因此角色是开发与跨分布候选比较，不重新包装成独立测试；
 - 第一轮不运行 SeedVR2，以便把变化先单独归因给 codec。选定 checkpoint 后再评价完整
   Generate／Base／Enhance 管线。

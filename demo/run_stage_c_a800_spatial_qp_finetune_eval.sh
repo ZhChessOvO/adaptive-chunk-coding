@@ -38,6 +38,7 @@ fi
 experiment_start_epoch=$(<"$started_marker")
 cp "$0" "$log_root/executed_run_stage_c_a800_spatial_qp_finetune_eval.sh"
 exec > >(tee -a "$log_root/spatial_qp_finetune_eval.log") 2>&1
+tee_pid=$!
 
 heartbeat_pid=
 cleanup() {
@@ -48,6 +49,7 @@ fail() {
   status=$?
   cleanup
   if (( status != 0 )); then
+    rm -f "$run_root/run.complete"
     printf '%s\n' "$status" > "$run_root/run.failed.tmp"
     mv "$run_root/run.failed.tmp" "$run_root/run.failed"
     echo "FAILED spatial_qp_finetune_eval status=$status utc=$(date -u +%FT%TZ)"
@@ -132,12 +134,18 @@ done < "$tasks_tsv"
 
 "$python_bin" demo/stage_c_spatial_qp_finetune_eval.py summarize \
   --protocol "$protocol" --output-dir "$run_root"
+cleanup
 printf 'complete\n' > "$run_root/run.complete.tmp"
 mv "$run_root/run.complete.tmp" "$run_root/run.complete"
 rm -f "$run_root/run.failed"
 
-cleanup
-trap - EXIT INT TERM
 du -sb "$run_root"
 df -h /root /root/autodl-tmp /root/autodl-fs
 echo "COMPLETE spatial_qp_finetune_eval utc=$(date -u +%FT%TZ) elapsed_s=$(($(date +%s) - experiment_start_epoch))"
+# Close and drain the tee pipe before counting bytes so the main log cannot
+# grow after the final snapshot has been written.
+exec > "$log_root/finalization.log" 2>&1
+wait "$tee_pid"
+"$python_bin" demo/stage_c_spatial_qp_finetune_eval.py resource-snapshot \
+  --output-dir "$run_root"
+trap - EXIT INT TERM

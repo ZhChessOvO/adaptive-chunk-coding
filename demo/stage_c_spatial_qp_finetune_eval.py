@@ -106,6 +106,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     summarize.add_argument("--protocol", type=Path, required=True)
     summarize.add_argument("--output-dir", type=Path, required=True)
 
+    resource = subparsers.add_parser("resource-snapshot")
+    resource.add_argument("--output-dir", type=Path, required=True)
+    resource.add_argument("--output", type=Path)
+
     subparsers.add_parser("self-test")
     return parser.parse_args(argv)
 
@@ -506,8 +510,11 @@ def summarize_main(args: argparse.Namespace) -> None:
         "comparisons_tuned_minus_frozen": comparisons,
         "records": records,
         "visuals": visual_paths,
-        "ordinary_file_count": len(files),
-        "ordinary_file_bytes": sum(path.stat().st_size for path in files),
+        "ordinary_file_count_before_summary_artifacts": len(files),
+        "ordinary_file_bytes_before_summary_artifacts": sum(
+            path.stat().st_size for path in files),
+        "final_resource_snapshot": str(
+            (args.output_dir / "final_resource_snapshot.json").resolve()),
         "mounts": {
             name: dict(zip(
                 ("total_bytes", "used_bytes", "free_bytes"),
@@ -555,6 +562,52 @@ reading fine-tuned quality; SeedVR2 is excluded.
     }, ensure_ascii=False, indent=2))
 
 
+def resource_snapshot_main(args: argparse.Namespace) -> None:
+    """Write an exact, stable count of regular files after the run is quiet."""
+    root = args.output_dir.resolve()
+    output = (args.output or root / "final_resource_snapshot.json").resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    for _ in range(20):
+        files = [
+            path for path in root.rglob("*")
+            if path.is_file() and path.resolve() != output
+        ]
+        base_bytes = sum(path.stat().st_size for path in files)
+        snapshot = {
+            "captured_utc": utc_now(),
+            "run_root": str(root),
+            "accounting": "sum of st_size for every regular file under run_root",
+            "ordinary_file_count_including_snapshot": len(files) + 1,
+            "ordinary_file_bytes_including_snapshot": 0,
+            "snapshot_file_bytes": 0,
+            "mounts": {
+                name: dict(zip(
+                    ("total_bytes", "used_bytes", "free_bytes"),
+                    shutil.disk_usage(name)))
+                for name in ("/root", "/root/autodl-tmp", "/root/autodl-fs")
+            },
+        }
+        for _ in range(20):
+            payload = json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n"
+            payload_bytes = len(payload.encode("utf-8"))
+            total_bytes = base_bytes + payload_bytes
+            if (snapshot["snapshot_file_bytes"] == payload_bytes
+                    and snapshot["ordinary_file_bytes_including_snapshot"]
+                    == total_bytes):
+                break
+            snapshot["snapshot_file_bytes"] = payload_bytes
+            snapshot["ordinary_file_bytes_including_snapshot"] = total_bytes
+        atomic_text(output, payload)
+        final_files = [path for path in root.rglob("*") if path.is_file()]
+        final_bytes = sum(path.stat().st_size for path in final_files)
+        if (len(final_files) == snapshot["ordinary_file_count_including_snapshot"]
+                and final_bytes
+                == snapshot["ordinary_file_bytes_including_snapshot"]
+                and output.stat().st_size == snapshot["snapshot_file_bytes"]):
+            return
+    raise RuntimeError("run files changed while taking the final resource snapshot")
+
+
 def self_test() -> None:
     source = {
         "sample": {"sample_id": "sample"},
@@ -598,6 +651,8 @@ def main(argv: list[str]) -> None:
         list_tasks_main(args)
     elif args.command == "summarize":
         summarize_main(args)
+    elif args.command == "resource-snapshot":
+        resource_snapshot_main(args)
     else:
         self_test()
 

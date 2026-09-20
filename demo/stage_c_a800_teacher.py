@@ -502,8 +502,14 @@ def main() -> None:
     if any(record["crop"]["width"] != 512 or record["crop"]["height"] != 512
            for record in records):
         raise ValueError("sample manifest contains a non-512x512 crop")
-    if any(record["split"] not in ("train", "development") for record in records):
-        raise ValueError("unknown data role in sample manifest")
+    supported_splits = {"train", "development", "v6_adaptation_train"}
+    unknown_splits = sorted({
+        record["split"] for record in records
+        if record["split"] not in supported_splits
+    })
+    if unknown_splits:
+        raise ValueError(
+            f"unknown sample split(s) in sample manifest: {unknown_splits}")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     args.scratch_dir.mkdir(parents=True, exist_ok=True)

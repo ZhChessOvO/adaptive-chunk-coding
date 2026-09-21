@@ -507,6 +507,19 @@ ROI 与 17 帧重叠长视频，检查区域边界和播放稳定性。详见
 墙钟 146 秒，峰值 `nvidia-smi` 15,543 MiB，目录真实 `du -sb` 72,267,921 B。0.50
 继续作为性能增强候选，下一步重新生成 Generate teacher，再训练 router。
 
+## 2026-09-21 LoRA teacher 重建启动前检查
+
+新的 teacher 保持 500 条 REDS + 60 条 UVG、4×4 区域、旧 v5 保守共识超参数和
+`λ=0.004` 空间项不变，只更新 SeedVR2 LoRA 0.50 会改变的 Generate 质量。第一次两样本
+smoke 尝试复用 LoRA 训练 latent cache，但该 cache 来自全 Generate spatial-QP 语法；它
+不能在强度 0 时复现早期标量 QP8 teacher（首条 REDS 的区域 LPIPS 最大差约 0.0527），
+因此立即停止且没有进入正式结果。
+
+正式实现改为每条只重做标量 QP8 真实写盘与 fresh decode，再运行 LoRA；QP16、QP32、
+Enhance tile 和 ROI 耗时标签全部逐字段复用。正式长任务开始前先要求 REDS、UVG 各一条
+在 LoRA 强度 0 时以 `1e-5` 容差复现旧 teacher。完整协议和恢复入口见
+[`CLOUD_A800_SEEDVR2_LORA_TEACHER.md`](CLOUD_A800_SEEDVR2_LORA_TEACHER.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

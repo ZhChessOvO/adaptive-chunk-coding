@@ -52,8 +52,10 @@ LoRA 将合并 LPIPS 从 0.463127 降到 0.444932、PSNR 提高 0.646 dB，24/37
 Jockey、ShakeNDry、YachtRide 上更保守。0.50 随后已接回同一条 33 帧连续码流和三个
 Generate ROI：LPIPS 再降 0.008922、PSNR 提高 0.142 dB、时序误差降低 0.255；边界带误差
 下降，所有非 Generate 像素逐像素不变，32/32 个相邻帧对的时序误差都改善。因此保留 0.50，
-下一步用它重建 Generate teacher 并重训 router。如果后续仍不合适，再保持 codec、路由、
-预算和评估输入不变，只替换 Generate 恢复后端。
+下一步用它重建 Generate teacher 并重训 router。该阶段只重做旧协议的标量 QP8 fresh
+decode 与 Generate 标签，逐字段复用 Base、Enhance 和 ROI 成本；协议见
+[`docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`](docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md)。
+如果后续仍不合适，再保持 codec、路由、预算和评估输入不变，只替换 Generate 恢复后端。
 
 租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
 
@@ -424,6 +426,11 @@ tmux 入口见
   seed 和羽化，只把选定的 LoRA 0.50 接回局部恢复，检查非 Generate 像素回归、空间接缝与
   时间切换；协议见
   [`docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)；
+- `demo/stage_c_seedvr2_lora_teacher.py`、
+  `demo/run_stage_c_a800_seedvr2_lora_teacher.sh`：只重建受 LoRA 0.50 影响的 Generate
+  teacher 值，复用 Base／Enhance／ROI 标签，随后重训保守共识 router 并重新应用固定的
+  空间一致性项；协议见
+  [`docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`](docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md)；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

@@ -37,7 +37,12 @@ temporal error, and boundary-band error all improve; all non-Generate pixels
 remain exact and all 32 adjacent-frame temporal errors improve.  See
 `docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`.  The active stage is to regenerate
 Generate teacher values with frozen DCVC-UF plus SeedVR2 LoRA 0.50, then
-retrain the router without changing the selected codec or data roles.  Do not infer
+retrain the router without changing the selected codec or data roles.  Rebuild
+only the scalar-QP8 Generate input and Generate-dependent labels; reuse the
+old Base, Enhance, feature, byte, and measured ROI-cost fields exactly.  The
+LoRA latent cache uses all-Generate spatial-QP syntax and failed the required
+frozen-teacher replay, so it must not be substituted for the old scalar-QP8
+teacher input.  See `docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`.  Do not infer
 display-quality improvement from training loss alone.  If measured adaptation
 remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding

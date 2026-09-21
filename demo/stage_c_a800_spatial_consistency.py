@@ -52,6 +52,13 @@ def parse_args() -> argparse.Namespace:
     route.add_argument("--output-dir", type=Path, required=True)
     route.add_argument(
         "--spatial-lambda", type=float, default=DEFAULT_SPATIAL_LAMBDA)
+    route.add_argument(
+        "--enhance-budget-ratio", type=float,
+        help=("Override the selected route's Enhance-byte budget with this "
+              "fraction of the predicted all-Enhance fallback cost."))
+    route.add_argument(
+        "--generate-tile-budget", type=int,
+        help="Override the selected route's maximum number of Generate tiles.")
     route.add_argument("--expected-sample-count", type=int)
 
     sweep = commands.add_parser("sweep")
@@ -68,6 +75,16 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if getattr(args, "spatial_lambda", 0.0) < 0:
         parser.error("spatial lambda must be nonnegative")
+    if (
+        getattr(args, "enhance_budget_ratio", None) is not None
+        and not 0.0 <= args.enhance_budget_ratio <= 1.0
+    ):
+        parser.error("Enhance budget ratio must be between zero and one")
+    if (
+        getattr(args, "generate_tile_budget", None) is not None
+        and not 0 <= args.generate_tile_budget <= 16
+    ):
+        parser.error("Generate tile budget must be between zero and 16")
     if args.command == "sweep":
         if any(value < 0 for value in args.lambdas):
             parser.error("sweep lambdas must be nonnegative")
@@ -323,15 +340,28 @@ def solve_spatial_actions(
     return actions, diagnostics
 
 
-def reroute_record(route: dict, spatial_lambda: float) -> tuple[dict, dict]:
+def reroute_record(
+    route: dict,
+    spatial_lambda: float,
+    enhance_budget_ratio: float | None = None,
+    generate_tile_budget: int | None = None,
+) -> tuple[dict, dict]:
     source_name, source = selected_variant(route)
     rows, columns = map(int, route["configuration"]["tile_grid"])
     old_actions = list(map(int, source["actions"]))
     generate_scores, enhance_scores, enhance_costs = direct_values(route)
     budget = source["budget"]
-    byte_budget = int(budget["enhance_fallback_byte_budget"])
-    generate_budget = int(budget.get(
+    source_byte_budget = int(budget["enhance_fallback_byte_budget"])
+    source_generate_budget = int(budget.get(
         "generate_tile_budget", DEFAULT_GENERATE_BUDGET))
+    byte_budget = (
+        source_byte_budget if enhance_budget_ratio is None
+        else int(round(enhance_budget_ratio * sum(enhance_costs)))
+    )
+    generate_budget = (
+        source_generate_budget if generate_tile_budget is None
+        else int(generate_tile_budget)
+    )
     new_actions, diagnostics = solve_spatial_actions(
         generate_scores, enhance_scores, enhance_costs, byte_budget,
         generate_budget, spatial_lambda, rows, columns)
@@ -339,7 +369,18 @@ def reroute_record(route: dict, spatial_lambda: float) -> tuple[dict, dict]:
     old_unary = unary_utility(old_actions, generate_scores, enhance_scores)
     old_edges = generate_boundary_edges(old_actions, rows, columns)
     old_components = generate_components(old_actions, rows, columns)
-    new_name = f"spatial-consistent-lambda-{spatial_lambda:.4f}-v6"
+    if enhance_budget_ratio is None and generate_tile_budget is None:
+        new_name = f"spatial-consistent-lambda-{spatial_lambda:.4f}-v6"
+    else:
+        ratio_label = (
+            "source" if enhance_budget_ratio is None
+            else f"{enhance_budget_ratio:.3f}")
+        generate_label = (
+            "source" if generate_tile_budget is None
+            else str(generate_tile_budget))
+        new_name = (
+            f"spatial-consistent-lambda-{spatial_lambda:.4f}-"
+            f"enhance-{ratio_label}-generate-{generate_label}-budget-curve")
     diagnostics.update({
         "source_variant": source_name,
         "source_actions": old_actions,
@@ -353,6 +394,10 @@ def reroute_record(route: dict, spatial_lambda: float) -> tuple[dict, dict]:
             diagnostics["predicted_unary_utility"] - old_unary),
         "generate_boundary_edge_delta_vs_source": (
             diagnostics["generate_boundary_edges"] - old_edges),
+        "source_enhance_fallback_byte_budget": source_byte_budget,
+        "source_generate_tile_budget": source_generate_budget,
+        "enhance_budget_ratio_override": enhance_budget_ratio,
+        "generate_tile_budget_override": generate_tile_budget,
     })
 
     output = copy.deepcopy(route)
@@ -366,7 +411,15 @@ def reroute_record(route: dict, spatial_lambda: float) -> tuple[dict, dict]:
         "method": "exact-spatially-regularized-three-path-routing-v6",
         "actions": new_actions,
         "action_counts": action_counts(new_actions),
-        "budget": copy.deepcopy(budget),
+        "budget": {
+            **copy.deepcopy(budget),
+            "enhance_fallback_byte_budget": byte_budget,
+            "generate_tile_budget": generate_budget,
+            "enhance_fallback_byte_ratio": (
+                enhance_budget_ratio
+                if enhance_budget_ratio is not None
+                else budget.get("enhance_fallback_byte_ratio")),
+        },
         "diagnostics": diagnostics,
     }
     output["spatial_consistency"] = {
@@ -374,6 +427,8 @@ def reroute_record(route: dict, spatial_lambda: float) -> tuple[dict, dict]:
             "sum predicted per-tile utility minus spatial_lambda times the "
             "number of Generate/non-Generate four-neighbor edges"),
         "spatial_lambda": spatial_lambda,
+        "enhance_budget_ratio_override": enhance_budget_ratio,
+        "generate_tile_budget_override": generate_tile_budget,
         "solver": "exact frontier dynamic program with safe Pareto pruning",
         "regularized_action": "Generate versus non-Generate only",
     }
@@ -423,7 +478,9 @@ def route_main(args: argparse.Namespace) -> None:
     comparisons = []
     for entry in manifest["entries"]:
         route = read(Path(entry["path"]).resolve())
-        output, comparison = reroute_record(route, args.spatial_lambda)
+        output, comparison = reroute_record(
+            route, args.spatial_lambda, args.enhance_budget_ratio,
+            args.generate_tile_budget)
         sample_id = comparison["sample_id"]
         path = output_dir / f"{sample_id}.json"
         atomic_json(path, output)
@@ -461,6 +518,8 @@ def route_main(args: argparse.Namespace) -> None:
         "input_manifest": str(input_path),
         "input_manifest_sha256": sha256(input_path),
         "spatial_lambda": args.spatial_lambda,
+        "enhance_budget_ratio_override": args.enhance_budget_ratio,
+        "generate_tile_budget_override": args.generate_tile_budget,
         "sample_count": len(entries),
         "entries": entries,
         "comparisons": comparisons,

@@ -35,19 +35,20 @@ average, and is safer on Jockey, ShakeNDry, and YachtRide.  See
 reintegration is also complete on the same 33-frame stream: LPIPS, PSNR,
 temporal error, and boundary-band error all improve; all non-Generate pixels
 remain exact and all 32 adjacent-frame temporal errors improve.  See
-`docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`.  The active stage is to regenerate
-Generate teacher values with frozen DCVC-UF plus SeedVR2 LoRA 0.50, then
-retrain the router without changing the selected codec or data roles.  Rebuild
-only the scalar-QP8 Generate input and Generate-dependent labels; reuse the
-old Base, Enhance, feature, byte, and measured ROI-cost fields exactly.  The
-LoRA latent cache uses all-Generate spatial-QP syntax and failed the required
-frozen-teacher replay, so it must not be substituted for the old scalar-QP8
-teacher input.  See `docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`.  Do not infer
-display-quality improvement from training loss alone.  After the rebuilt
-teacher and routes complete, run the fixed 37-sample old/new router x
-frozen/LoRA-0.50 real-stream 2x2 with
-`demo/run_stage_c_a800_seedvr2_lora_router_eval.sh`; reuse is legal only for exact
-16-action matches or routes with no Generate cell.  If measured adaptation
+`docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`.  The scalar-QP8 Generate teacher
+rebuild, router retraining, and fixed 37-sample old/new-router x
+frozen/LoRA-0.50 real-stream 2x2 are now complete.  LoRA supplies the main
+quality gain.  The retrained router has a small favorable interaction with
+LoRA, but its marginal LPIPS gain is outweighed by more Generate fragments,
+slower execution, and slightly weaker PSNR/temporal diagnostics.  The current
+balanced performance version therefore keeps the old v6 route and uses LoRA
+0.50; the retrained router remains an interaction ablation.  The active stage
+is a four-point real Enhance-budget curve for this selected version.  It keeps
+the controller, Generate budget, spatial lambda, codec, adapter, and fixed 37
+samples unchanged; only the pre-encoding Enhance byte budget varies.  The
+0.25 point must reproduce all 37 existing action maps exactly, and every new
+map must use a real stream and fresh decode.  Use
+`demo/run_stage_c_a800_seedvr2_lora_budget_curve.sh`.  If measured adaptation
 remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding
 the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start

@@ -396,6 +396,9 @@ def make_base_probes(args: argparse.Namespace) -> None:
                 continue
         started = time.perf_counter()
         originals = load_record_frames(record)
+        # DCVC-UF's CUDA Graph proxy must encode and decode on its dedicated
+        # stream, matching the established scalar-gate runner.
+        torch.cuda.set_stream(codec_stream)
         stream_bytes, encode = encode_dcvc_stream(
             originals, 16, 16, i_net, p_net, device, 32)
         root = summary_path.parent

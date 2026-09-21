@@ -46,18 +46,21 @@ balanced performance version therefore keeps the old v6 route and uses LoRA
 real Enhance-budget curve for this selected version is complete.  All 37
 samples respond to every adjacent budget change; bytes and PSNR rise
 monotonically, while LPIPS improves at every 0->0.25 and 0.25->0.50 step and at
-33/37 final steps.  The active stage is a bounded temporal-interface
-sensitivity check on the same completed 33-frame continuous stream: compare
-SeedVR2 LoRA-0.50 with 9/4, 17/8, and 33/16 restoration window/stride settings
-while keeping the codec stream, transmitted actions, ROI geometry, and spatial
-composition fixed.  The completed 17/8 result is reused; only 9/4 and 33/16
-are newly computed.  Use
-`demo/run_stage_c_a800_seedvr2_lora_window_sensitivity.sh`.  This is a
-development sensitivity check, not a hard acceptance gate.  After it, check
-spatial-grid and rectangular-aspect sensitivity before the larger external
-comparison.  If measured adaptation remains unsuitable, a later
-experiment may compare another generation/restoration backend while holding
-the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start
+33/37 final steps.  The 9/4, 17/8, and 33/16 temporal-window sensitivity is
+also complete: 9/4 is slower and slightly weaker, while 17/8 and 33/16 are
+nearly tied.  Keep 17/8 as the general low-latency default and retain 33/16 as
+an optional offline-throughput mode.  The active stage is a bounded spatial
+grid and rectangular-aspect sensitivity check.  It compares 2x2, 4x4, and
+8x8 routing on four representative REDS/UVG samples, plus real 768x512 and
+1024x512 REDS crops.  Generate area and Enhance budget fractions stay fixed;
+regional utilities/costs are normalized to 128x128 area and the boundary
+penalty is scaled by physical edge length.  The already audited 4x4 results
+are reused after an exact generalized-feature/action regression.  Use
+`demo/run_stage_c_a800_grid_aspect_sensitivity.sh`.  This is a development
+sensitivity check, not a hard acceptance gate.  If measured adaptation remains
+unsuitable, a later experiment may compare another generation/restoration
+backend while holding the selected codec, routes, budgets, and evaluation
+inputs fixed.  Do not start
 multi-GPU production work without a new user decision.
 
 The current codec adaptation protocol is documented in

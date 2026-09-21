@@ -42,14 +42,20 @@ quality gain.  The retrained router has a small favorable interaction with
 LoRA, but its marginal LPIPS gain is outweighed by more Generate fragments,
 slower execution, and slightly weaker PSNR/temporal diagnostics.  The current
 balanced performance version therefore keeps the old v6 route and uses LoRA
-0.50; the retrained router remains an interaction ablation.  The active stage
-is a four-point real Enhance-budget curve for this selected version.  It keeps
-the controller, Generate budget, spatial lambda, codec, adapter, and fixed 37
-samples unchanged; only the pre-encoding Enhance byte budget varies.  The
-0.25 point must reproduce all 37 existing action maps exactly, and every new
-map must use a real stream and fresh decode.  Use
-`demo/run_stage_c_a800_seedvr2_lora_budget_curve.sh`.  If measured adaptation
-remains unsuitable, a later
+0.50; the retrained router remains an interaction ablation.  The four-point
+real Enhance-budget curve for this selected version is complete.  All 37
+samples respond to every adjacent budget change; bytes and PSNR rise
+monotonically, while LPIPS improves at every 0->0.25 and 0.25->0.50 step and at
+33/37 final steps.  The active stage is a bounded temporal-interface
+sensitivity check on the same completed 33-frame continuous stream: compare
+SeedVR2 LoRA-0.50 with 9/4, 17/8, and 33/16 restoration window/stride settings
+while keeping the codec stream, transmitted actions, ROI geometry, and spatial
+composition fixed.  The completed 17/8 result is reused; only 9/4 and 33/16
+are newly computed.  Use
+`demo/run_stage_c_a800_seedvr2_lora_window_sensitivity.sh`.  This is a
+development sensitivity check, not a hard acceptance gate.  After it, check
+spatial-grid and rectangular-aspect sensitivity before the larger external
+comparison.  If measured adaptation remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding
 the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start
 multi-GPU production work without a new user decision.

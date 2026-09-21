@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Overlapping-window SeedVR2 restoration for a continuous spatial-QP stream.
 
-DCVC-UF is decoded once as one continuous video.  SeedVR2 still receives the
-17-frame clips it was designed around, but those clips start every eight
-frames.  Overlapping predictions are combined with deterministic triangular
-time weights, then pasted only inside the per-frame Generate action mask.
-Every ROI component has its own atomic completion record, so an interrupted
-long run resumes from the next unfinished component.
+DCVC-UF is decoded once as one continuous video.  SeedVR2 receives configurable
+4k+1-frame clips (17 frames with stride eight by default).  Overlapping
+predictions are combined with deterministic triangular time weights, then
+pasted only inside the per-frame Generate action mask.  Every ROI component
+has its own atomic completion record, so an interrupted long run resumes from
+the next unfinished component.
 """
 
 from __future__ import annotations
@@ -99,6 +99,8 @@ def parse_args() -> argparse.Namespace:
     prepare.add_argument("--output-dir", type=Path, required=True)
     prepare.add_argument("--context-pixels", type=int, default=64)
     prepare.add_argument("--processing-scale", type=float, default=1.5)
+    prepare.add_argument("--window-length", type=int, default=WINDOW_LENGTH)
+    prepare.add_argument("--window-stride", type=int, default=WINDOW_STRIDE)
 
     restore = commands.add_parser("restore")
     restore.add_argument("--manifest", type=Path, required=True)
@@ -119,6 +121,10 @@ def parse_args() -> argparse.Namespace:
     if args.command == "prepare":
         if args.context_pixels < 0 or args.processing_scale <= 0:
             parser.error("context must be nonnegative and scale must be positive")
+        if args.window_length < 1 or (args.window_length - 1) % 4:
+            parser.error("SeedVR2 window length must have the form 4k+1")
+        if not 0 < args.window_stride < args.window_length:
+            parser.error("window stride must be positive and shorter than the window")
     if args.command == "restore":
         if not math.isfinite(args.lora_strength) or args.lora_strength < 0:
             parser.error("--lora-strength must be finite and nonnegative")
@@ -220,14 +226,17 @@ def prepare_main(args: argparse.Namespace) -> None:
     if args.context_pixels % 16:
         raise ValueError("context pixels must be divisible by 16")
     frame_actions = encode_frame_actions
-    starts = restoration_window_starts(frame_count)
-    weights = triangular_weights()
+    window_length = int(args.window_length)
+    window_stride = int(args.window_stride)
+    starts = restoration_window_starts(
+        frame_count, window_length=window_length, stride=window_stride)
+    weights = triangular_weights(window_length)
     windows = []
     total_processing_pixel_frames = 0
     full_processing_height = round_up(height * args.processing_scale, 16)
     full_processing_width = round_up(width * args.processing_scale, 16)
     for window_index, start in enumerate(starts):
-        stop = start + WINDOW_LENGTH
+        stop = start + window_length
         union_generate = np.logical_or.reduce([
             actions == ACTION_GENERATE
             for actions in frame_actions[start:stop]
@@ -252,7 +261,7 @@ def prepare_main(args: argparse.Namespace) -> None:
             processing_width = round_up(
                 crop_width * args.processing_scale, 16)
             total_processing_pixel_frames += (
-                processing_height * processing_width * WINDOW_LENGTH)
+                processing_height * processing_width * window_length)
             records.append({
                 "component_index": component_index,
                 "component_id": f"w{window_index:03d}-c{component_index:02d}",
@@ -265,16 +274,17 @@ def prepare_main(args: argparse.Namespace) -> None:
         windows.append({
             "window_index": window_index,
             "frame_start": start,
-            "frame_count": WINDOW_LENGTH,
+            "frame_count": window_length,
             "temporal_weights": weights,
             "generate_union_cell_count": int(np.count_nonzero(union_generate)),
             "components": records,
         })
     full_pixel_frames = (
-        len(windows) * WINDOW_LENGTH
+        len(windows) * window_length
         * full_processing_height * full_processing_width)
     manifest = {
-        "experiment": "overlapping 17-frame SeedVR2 long-video ROI plan",
+        "experiment": (
+            f"overlapping {window_length}-frame SeedVR2 long-video ROI plan"),
         "codec_dir": str(args.codec_dir.resolve()),
         "encode_summary": str(encode_path.resolve()),
         "decode_summary": str(decode_path.resolve()),
@@ -284,8 +294,8 @@ def prepare_main(args: argparse.Namespace) -> None:
         "cell_size": cell_size,
         "action_map_shape": list(frame_actions[0].shape),
         "frame_actions": [value.tolist() for value in frame_actions],
-        "window_length": WINDOW_LENGTH,
-        "window_stride": WINDOW_STRIDE,
+        "window_length": window_length,
+        "window_stride": window_stride,
         "window_count": len(windows),
         "windows": windows,
         "context_pixels": args.context_pixels,
@@ -296,8 +306,8 @@ def prepare_main(args: argparse.Namespace) -> None:
             total_processing_pixel_frames / full_pixel_frames),
         "scientific_boundary": {
             "codec_was_decoded_once_with_continuous_reference_state": True,
-            "seedvr2_window_length": WINDOW_LENGTH,
-            "seedvr2_window_stride": WINDOW_STRIDE,
+            "seedvr2_window_length": window_length,
+            "seedvr2_window_stride": window_stride,
             "overlap_predictions_use_fixed_triangular_weights": True,
             "roi_geometry_uses_only_transmitted_action_maps": True,
             "source_rgb_used_for_roi_geometry": False,
@@ -815,7 +825,8 @@ def evaluate_main(args: argparse.Namespace) -> None:
             "length": int(manifest["window_length"]),
             "stride": int(manifest["window_stride"]),
             "window_count": int(manifest["window_count"]),
-            "temporal_weights": triangular_weights(),
+            "temporal_weights": list(map(
+                float, manifest["windows"][0]["temporal_weights"])),
             "per_frame_window_coverage": frame_window_coverage.tolist(),
             "overlap_frame_indices": boundary_frames,
             "hard_selected_window_per_frame": primary_windows,
@@ -900,9 +911,17 @@ def self_test() -> None:
     assert restoration_window_starts(17) == [0]
     assert restoration_window_starts(25) == [0, 8]
     assert restoration_window_starts(33) == [0, 8, 16]
+    assert restoration_window_starts(33, 9, 4) == [0, 4, 8, 12, 16, 20, 24]
+    assert restoration_window_starts(33, 17, 8) == [0, 8, 16]
+    assert restoration_window_starts(33, 33, 16) == [0]
     weights = triangular_weights()
     assert len(weights) == 17 and weights[8] == 1.0
     assert weights[0] == weights[-1] == 1 / 9
+    for length in (9, 17, 33):
+        values = triangular_weights(length)
+        assert len(values) == length
+        assert values[length // 2] == 1.0
+        assert values[0] == values[-1]
     summary = {
         "frames": 17,
         "action_map_shape": [2, 3],
@@ -933,6 +952,11 @@ def self_test() -> None:
     print(json.dumps({
         "status": "passed",
         "33_frame_window_starts": restoration_window_starts(33),
+        "33_frame_sensitivity_starts": {
+            "9": restoration_window_starts(33, 9, 4),
+            "17": restoration_window_starts(33, 17, 8),
+            "33": restoration_window_starts(33, 33, 16),
+        },
         "triangular_center_weight": weights[8],
         "triangular_endpoint_weight": weights[0],
         "per_frame_action_mapping": True,

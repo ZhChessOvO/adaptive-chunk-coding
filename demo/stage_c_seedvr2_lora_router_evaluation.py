@@ -16,6 +16,7 @@ import hashlib
 import json
 import math
 import os
+import subprocess
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -269,6 +270,8 @@ def make_plan(args: argparse.Namespace) -> None:
         "experiment": "SeedVR2 LoRA x retrained router 2x2 real evaluation",
         "status": "frozen-before-real-evaluation",
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "git_commit": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True).strip(),
         "sample_count": 37,
         "dataset_counts": dict(Counter(sample["dataset"] for sample in samples)),
         "logical_variants": list(VARIANTS),

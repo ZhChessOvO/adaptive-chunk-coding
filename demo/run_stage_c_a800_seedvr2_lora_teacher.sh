@@ -81,7 +81,12 @@ trap fail EXIT INT TERM
 
 (
   while true; do
-    teacher_count=$(find "$teacher_root/samples" -maxdepth 1 -name '*.json' -type f 2>/dev/null | wc -l)
+    if [[ -d "$teacher_root/samples" ]]; then
+      teacher_count=$(find "$teacher_root/samples" -maxdepth 1 \
+        -name '*.json' -type f | wc -l)
+    else
+      teacher_count=0
+    fi
     router_done=0
     spatial_done=0
     [[ -s "$controller_root/controller_v5.pt" ]] && router_done=1

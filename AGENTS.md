@@ -23,12 +23,15 @@ selected alpha=0 (the frozen codec) by the predeclared combined LPIPS BD-rate
 rule; see `docs/CLOUD_A800_SPATIAL_QP_INTERPOLATION.md`.  The SeedVR2 LoRA
 real-cache, backward, adapter-save, and adapter-reload smoke checks pass.  Its
 formal single-A800 run then completed all 560 cache samples and 1000/1000
-training steps; the active stage is now a fixed-input frozen-vs-LoRA evaluation
-described in `docs/CLOUD_A800_SEEDVR2_LORA.md`.  Do not infer display-quality
-improvement from the lower training loss alone.  If its measured adaptation
-is unsuitable, a later experiment may compare another generation/restoration
-backend while holding the selected codec, routes, budgets, and evaluation
-inputs fixed.  Do not start
+training steps.  The 37-sample fixed-input evaluation is also complete: the
+full-strength adapter improves combined and REDS LPIPS, strongly improves
+PSNR, and has mixed UVG LPIPS because some fine-motion textures are
+over-smoothed.  See `docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md`.  The active stage
+is a 0.25/0.50/0.75 inference-strength sweep on the same inputs before ROI and
+long-video reintegration.  Do not infer display-quality improvement from
+training loss alone.  If measured adaptation remains unsuitable, a later
+experiment may compare another generation/restoration backend while holding
+the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start
 multi-GPU production work without a new user decision.
 
 The current codec adaptation protocol is documented in

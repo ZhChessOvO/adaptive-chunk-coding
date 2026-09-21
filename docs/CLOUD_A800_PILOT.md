@@ -466,6 +466,21 @@ step。实际抽样为 REDS 756 步、UVG 244 步，全部 loss 与梯度有限�
 是否重建 teacher、重训 router，或在其余条件不变时更换恢复后端。完整记录见
 [`CLOUD_A800_SEEDVR2_LORA.md`](CLOUD_A800_SEEDVR2_LORA.md)。
 
+## 2026-09-21 SeedVR2 LoRA 固定输入评价完成
+
+冻结版和满强度 LoRA 已在同一批 30 条 REDS + 7 条 UVG all-Generate QP8 fresh decode、同一
+随机 seed 上完成成对比较。新冻结输出与旧冻结结果 37/37 逐像素一致。LoRA 将合并 LPIPS
+从 0.463127 降到 0.444932，并提高 PSNR 0.646 dB；24/37 条 LPIPS 更低、33/37 条 PSNR
+更高。REDS LPIPS 改善 0.022806；UVG 平均 LPIPS 微差 0.001568，但 PSNR 提高 2.128 dB、
+时序误差降低 0.209。
+
+固定图显示 LoRA 倾向于压掉锐化／幻觉纹理，多数 REDS、Beauty、HoneyBee 和 ReadySetGo
+受益，Jockey、ShakeNDry、YachtRide 出现不同程度的过平滑。因此保留 adapter，但不直接把
+强度 1.0 设为默认；下一步固定所有其他条件，只比较 0.25／0.50／0.75 推理强度，再把最合适
+的折中接回 Generate ROI 与长视频重叠恢复。正式运行耗时 1,055 秒，单卡峰值
+`nvidia-smi` 16,875 MiB，结果目录真实 `du -sb` 为 474,001,928 B。完整记录见
+[`CLOUD_A800_SEEDVR2_LORA_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_EVAL.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

@@ -137,3 +137,17 @@ CUDA allocated 7,514,759,680 B。保存的 11,319,997 B adapter 随后又通过�
 `c154ac1`。下一步先固定 REDS + UVG 输入、codec 和随机噪声，比较冻结 SeedVR2 与 LoRA 的
 LPIPS、PSNR、时序误差和可视化，再决定是否用它重建 teacher；若不合适，再公平更换恢复
 后端。
+
+## 10. 固定输入评价结果（2026-09-21）
+
+正式比较复用了 30 条 REDS + 7 条 UVG 的 all-Generate QP8 真实 fresh decode，并固定每条
+样本的 SeedVR2 seed。新冻结版与旧结果 37/37 逐像素一致。相对冻结版，满强度 LoRA 的合并
+LPIPS 从 0.463127 降到 0.444932（约 -3.93%），PSNR 提高 0.646 dB；24/37 条 LPIPS 更低，
+33/37 条 PSNR 更高，平均时序误差仅微增 0.027。
+
+REDS 的 LPIPS 明确改善 0.022806；UVG 平均 LPIPS 微增 0.001568，但 PSNR 提高 2.128 dB、
+时序误差降低 0.209。固定图表明它主要压低锐化和幻觉纹理：多数 REDS、Beauty、HoneyBee、
+ReadySetGo 受益，Jockey、ShakeNDry、YachtRide 则有过度平滑。这个结果足以保留 LoRA，
+但还不把强度 1.0 设为最终默认。下一步在完全相同输入上比较 0.25／0.50／0.75 强度，再把
+最合适的折中接回 ROI 和长视频。完整表、资源和边界见
+[`CLOUD_A800_SEEDVR2_LORA_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_EVAL.md)。

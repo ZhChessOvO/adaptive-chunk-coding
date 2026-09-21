@@ -34,7 +34,7 @@ export LD_LIBRARY_PATH="$cuda_wheel_root/lib:$env_root/targets/x86_64-linux/lib:
 export PYTHONPATH="$repo:$repo/third_party/SeedVR2:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES=0
 
-mkdir -p "$log_root" "$output_root" "$summary_root"
+mkdir -p "$log_root" "$output_root/frozen" "$output_root/lora" "$summary_root"
 if [[ ! -s "$started_marker" ]]; then
   date +%s > "$started_marker.tmp"
   mv "$started_marker.tmp" "$started_marker"
@@ -177,11 +177,7 @@ run_if_missing "$summary_root/summary.complete" "paired metric summary" \
     --plan "$plan" --output-root "$output_root" \
     --output-dir "$summary_root" --lpips-batch-size 8
 
-printf 'complete\n' > "$run_root/run.complete.tmp"
-mv "$run_root/run.complete.tmp" "$run_root/run.complete"
-rm -f "$run_root/run.failed"
 cleanup
-trap - EXIT
 
 "$python_bin" - "$run_root" "$experiment_start_epoch" <<'PY'
 import json, os, shutil, subprocess, sys, time
@@ -235,3 +231,7 @@ PY
 du -sb "$run_root"
 df -h /root /root/autodl-tmp /root/autodl-fs
 echo "COMPLETE seedvr2_lora_eval utc=$(date -u +%FT%TZ) experiment_elapsed_s=$(($(date +%s) - experiment_start_epoch)) invocation_elapsed_s=$(($(date +%s) - invocation_start_epoch))"
+printf 'complete\n' > "$run_root/run.complete.tmp"
+mv "$run_root/run.complete.tmp" "$run_root/run.complete"
+rm -f "$run_root/run.failed"
+trap - EXIT

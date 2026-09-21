@@ -411,6 +411,10 @@ tmux 入口见
   `demo/run_stage_c_a800_seedvr2_lora_eval.sh`：复用 37 条已验证 QP8 spatial-QP 输入和逐样本
   随机种子，成对比较冻结 SeedVR2 与正式 LoRA，并按 REDS／UVG／UVG 训练角色汇总；协议见
   [`docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md`](docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md)；
+- `demo/stage_c_seedvr2_lora_strength_sweep.py`、
+  `demo/run_stage_c_a800_seedvr2_lora_strength.sh`：复用强度 0／1 的已验证输出，只补跑同一
+  adapter 的 0.25／0.50／0.75 推理强度，比较去伪影与保纹理的折中；协议见
+  [`docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`](docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md)；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

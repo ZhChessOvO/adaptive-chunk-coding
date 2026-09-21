@@ -38,6 +38,7 @@ class LoRALinear(nn.Module):
         self.rank = int(rank)
         self.alpha = float(alpha)
         self.scale = self.alpha / self.rank
+        self.adapter_strength = 1.0
         self.lora_a = nn.Parameter(torch.empty(
             self.rank, base.in_features, device=base.weight.device,
             dtype=torch.float32))
@@ -49,7 +50,8 @@ class LoRALinear(nn.Module):
     def forward(self, value: torch.Tensor) -> torch.Tensor:
         frozen = self.base(value)
         residual = F.linear(F.linear(value.float(), self.lora_a), self.lora_b)
-        return frozen + residual.to(frozen.dtype).mul(self.scale)
+        return frozen + residual.to(frozen.dtype).mul(
+            self.scale * self.adapter_strength)
 
 
 def is_target_linear(
@@ -136,6 +138,19 @@ def trainable_lora_parameters(model: nn.Module) -> list[nn.Parameter]:
     if not parameters:
         raise RuntimeError("model has no injected LoRA modules")
     return parameters
+
+
+def set_lora_strength(model: nn.Module, strength: float) -> None:
+    """Set one inference-time multiplier for every injected LoRA residual."""
+
+    strength = float(strength)
+    if not math.isfinite(strength) or strength < 0:
+        raise ValueError("LoRA strength must be finite and non-negative")
+    modules = lora_modules(model)
+    if not modules:
+        raise RuntimeError("model has no injected LoRA modules")
+    for module in modules.values():
+        module.adapter_strength = strength
 
 
 def lora_state_dict(model: nn.Module) -> dict[str, torch.Tensor]:
@@ -234,6 +249,7 @@ def load_lora_adapter(
     path: Path,
     *,
     trainable: bool = False,
+    strength: float = 1.0,
 ) -> dict:
     payload = torch.load(path, map_location="cpu", weights_only=True)
     if payload.get("format_version") != FORMAT_VERSION:
@@ -247,9 +263,10 @@ def load_lora_adapter(
     if targets != payload["target_modules"]:
         raise RuntimeError("LoRA target list differs from the saved adapter")
     load_lora_state_dict(model, payload["state_dict"])
+    set_lora_strength(model, strength)
     if not trainable:
         model.requires_grad_(False)
-    return {
+    result = {
         key: payload[key]
         for key in (
             "format_version", "adapter_type", "rank", "alpha",
@@ -257,6 +274,8 @@ def load_lora_adapter(
             "metadata",
         )
     }
+    result["inference_strength"] = float(strength)
+    return result
 
 
 def self_test() -> dict:
@@ -269,11 +288,21 @@ def self_test() -> dict:
         raise AssertionError("zero-initialized LoRA changed the base output")
     with torch.no_grad():
         wrapper.lora_b.fill_(0.25)
-    if torch.equal(expected, wrapper(value)):
+    full = wrapper(value)
+    if torch.equal(expected, full):
         raise AssertionError("nonzero LoRA did not change the output")
+    wrapper.adapter_strength = 0.0
+    if not torch.equal(expected, wrapper(value)):
+        raise AssertionError("zero LoRA strength did not recover the base output")
+    wrapper.adapter_strength = 0.5
+    halfway = wrapper(value)
+    if not torch.allclose(halfway, expected + (full - expected) * 0.5):
+        raise AssertionError("LoRA strength interpolation is inconsistent")
     return {
         "status": "passed",
         "zero_initialization_exact": True,
+        "zero_strength_exact": True,
+        "half_strength_linear": True,
         "default_rank": DEFAULT_RANK,
         "default_last_n_blocks": DEFAULT_LAST_N_BLOCKS,
     }

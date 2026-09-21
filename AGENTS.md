@@ -28,7 +28,8 @@ full-strength adapter improves combined and REDS LPIPS, strongly improves
 PSNR, and has mixed UVG LPIPS because some fine-motion textures are
 over-smoothed.  See `docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md`.  The active stage
 is a 0.25/0.50/0.75 inference-strength sweep on the same inputs before ROI and
-long-video reintegration.  Do not infer display-quality improvement from
+long-video reintegration; see
+`docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`.  Do not infer display-quality improvement from
 training loss alone.  If measured adaptation remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding
 the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start

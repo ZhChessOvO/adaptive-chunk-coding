@@ -876,7 +876,10 @@ def infer_route(
 
 def compare_reference_route(candidate: dict, reference_path: Path) -> dict:
     reference = read(reference_path)
-    candidate_raw = np.asarray(candidate["encoder_visible_features"])
+    candidate_raw = np.asarray([
+        [item[name] for name in FEATURE_NAMES]
+        for item in candidate["encoder_visible_features"]
+    ])
     reference_raw = np.asarray([
         [item[name] for name in FEATURE_NAMES]
         for item in reference["encoder_visible_features"]

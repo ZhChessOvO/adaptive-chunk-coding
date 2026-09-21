@@ -26,11 +26,16 @@ formal single-A800 run then completed all 560 cache samples and 1000/1000
 training steps.  The 37-sample fixed-input evaluation is also complete: the
 full-strength adapter improves combined and REDS LPIPS, strongly improves
 PSNR, and has mixed UVG LPIPS because some fine-motion textures are
-over-smoothed.  See `docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md`.  The active stage
-is a 0.25/0.50/0.75 inference-strength sweep on the same inputs before ROI and
-long-video reintegration; see
-`docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`.  Do not infer display-quality improvement from
-training loss alone.  If measured adaptation remains unsuitable, a later
+over-smoothed.  The follow-up 0.25/0.50/0.75 inference-strength sweep selected
+0.50 as the practical default: it is effectively tied with 0.75 on the
+balanced LPIPS diagnostic, but improves 34/37 samples, has the best temporal
+average, and is safer on Jockey, ShakeNDry, and YachtRide.  See
+`docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md` and
+`docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`.  The active stage is to reconnect
+this fixed 0.50 adapter to Generate ROI and overlapping long-video restoration
+without changing the selected frozen codec or v6 routes.  Do not infer
+display-quality improvement from training loss alone.  If measured adaptation
+remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding
 the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start
 multi-GPU production work without a new user decision.

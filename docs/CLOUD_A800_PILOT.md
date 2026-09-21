@@ -481,6 +481,21 @@ step。实际抽样为 REDS 756 步、UVG 244 步，全部 loss 与梯度有限�
 `nvidia-smi` 16,875 MiB，结果目录真实 `du -sb` 为 474,001,928 B。完整记录见
 [`CLOUD_A800_SEEDVR2_LORA_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_EVAL.md)。
 
+## 2026-09-21 SeedVR2 LoRA 强度选择完成
+
+在同一批 37 条输入、同一 seed 和同一个 adapter 上，0.25／0.50／0.75 三档新增输出均已
+完成；0 和 1 复用上一轮已验证结果。0.50 将合并 LPIPS 从 0.463127 降到 0.429974，
+37 条中 34 条改善，同时 PSNR 提高 0.783 dB、时序误差降低 0.608。0.75 的合并 LPIPS
+只再低 0.000454，REDS／UVG 等权诊断与 0.50 仅差 0.002 个百分点，但逐样本 LPIPS 改善
+数降至 31/37，Jockey、ShakeNDry、YachtRide 的过平滑也更重。
+
+因此把 **0.50** 选为后续默认候选，而不是把表中最小的单个均值当成硬门槛。完整扫描耗时
+1,471 秒，只观察到 GPU 0，峰值 `nvidia-smi` 16,875 MiB；新增 111 组输出，正式目录
+`du -sb` 为 683,888,444 B，完成时三块盘约为 13%／17%／32%。`run.complete` 存在且
+`run.failed` 不存在。下一步保持 codec、v6 route 和随机种子不变，把 0.50 接回 Generate
+ROI 与 17 帧重叠长视频，检查区域边界和播放稳定性。详见
+[`CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`](CLOUD_A800_SEEDVR2_LORA_STRENGTH.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

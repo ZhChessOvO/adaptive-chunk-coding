@@ -64,9 +64,10 @@ UVG 不是简单的整体退化。Beauty、HoneyBee 和未参加 LoRA 训练的 
 幻觉纹理，这能改善许多 REDS、Beauty 和 ReadySetGo 画面，但在 Jockey、YachtRide 等
 细纹理／快速运动场景会显得过平。这和训练中的 latent MSE／L1 目标相符。
 
-因此不把结果解释为“LoRA 全面胜出”，也不丢弃它。满强度 adapter 是有价值的候选，下一步
-先在相同 37 条输入和 seed 上补 0.25／0.50／0.75 推理强度，寻找去伪影与保纹理的折中；
-选出一个实用版本后，再接回 Generate ROI 和 17 帧重叠长视频路径检查边界与播放稳定性。
+因此不把结果解释为“LoRA 全面胜出”，也不丢弃它。后续相同 37 条输入和 seed 上的
+0.25／0.50／0.75 扫描已经选择 0.50：它与 0.75 的均值几乎打平，但逐样本和时序更稳。
+下一步把这个固定强度接回 Generate ROI 和 17 帧重叠长视频路径检查边界与播放稳定性；
+详见 [`CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`](CLOUD_A800_SEEDVR2_LORA_STRENGTH.md)。
 
 正式运行墙钟 1,055 秒；`nvidia-smi` 峰值 16,875 MiB，只观察到 GPU 0。完成后目录真实
 `du -sb` 为 474,001,928 B，三块盘约为 13%／17%／32%。`run.complete` 存在，

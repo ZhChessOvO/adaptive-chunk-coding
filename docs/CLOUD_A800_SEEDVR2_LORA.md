@@ -148,6 +148,8 @@ LPIPS 从 0.463127 降到 0.444932（约 -3.93%），PSNR 提高 0.646 dB；24/3
 REDS 的 LPIPS 明确改善 0.022806；UVG 平均 LPIPS 微增 0.001568，但 PSNR 提高 2.128 dB、
 时序误差降低 0.209。固定图表明它主要压低锐化和幻觉纹理：多数 REDS、Beauty、HoneyBee、
 ReadySetGo 受益，Jockey、ShakeNDry、YachtRide 则有过度平滑。这个结果足以保留 LoRA，
-但还不把强度 1.0 设为最终默认。下一步在完全相同输入上比较 0.25／0.50／0.75 强度，再把
-最合适的折中接回 ROI 和长视频。完整表、资源和边界见
-[`CLOUD_A800_SEEDVR2_LORA_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_EVAL.md)。
+但不把强度 1.0 设为最终默认。后续 0.25／0.50／0.75 固定扫描已经完成，并选择 0.50：
+它与 0.75 的平均 LPIPS 几乎相同，但 34/37 条 LPIPS 改善、平均时序最好，且对三个已知
+过平滑 UVG 序列更保守。下一步把 0.50 接回 ROI 和长视频。完整表、资源和边界见
+[`CLOUD_A800_SEEDVR2_LORA_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_EVAL.md) 与
+[`CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`](CLOUD_A800_SEEDVR2_LORA_STRENGTH.md)。

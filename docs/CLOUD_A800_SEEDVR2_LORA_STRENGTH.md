@@ -71,4 +71,6 @@ CUDA allocated 550,817,792 B。结果目录有 2,023 个普通文件，最终 `d
 ```
 
 下一步不重训 router，也不改变 spatial-QP 码流。保持 codec、v6 route、输入和 seed 不变，
-把 0.50 接回 Generate ROI 和 17 帧重叠长视频路径，检查区域拼接边界与播放稳定性。
+把 0.50 接回 Generate ROI 和 17 帧重叠长视频路径，检查区域拼接边界与播放稳定性。固定
+协议与单卡入口见
+[`CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)。

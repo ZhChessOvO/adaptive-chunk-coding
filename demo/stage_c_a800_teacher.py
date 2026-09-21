@@ -336,6 +336,7 @@ class PersistentSeedVR2:
             lora_checkpoint=(
                 resolve(args.lora_checkpoint)
                 if getattr(args, "lora_checkpoint", None) is not None else None),
+            lora_strength=float(getattr(args, "lora_strength", 1.0)),
             vae_checkpoint=resolve(args.vae_checkpoint),
             positive_embedding=resolve(args.positive_embedding),
             negative_embedding=resolve(args.negative_embedding),

@@ -33,7 +33,8 @@ average, and is safer on Jockey, ShakeNDry, and YachtRide.  See
 `docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md` and
 `docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`.  The active stage is to reconnect
 this fixed 0.50 adapter to Generate ROI and overlapping long-video restoration
-without changing the selected frozen codec or v6 routes.  Do not infer
+without changing the selected frozen codec or v6 routes; see
+`docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`.  Do not infer
 display-quality improvement from training loss alone.  If measured adaptation
 remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding

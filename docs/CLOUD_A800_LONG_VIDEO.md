@@ -139,3 +139,11 @@ tmux new-session -d -s a800_long_video_v1 \
 机制验证已经通过。主线顺序因此进入：spatial-QP-aware DCVC-UF 微调、SeedVR2 单卡
 长期微调、重新生成 teacher、再训练带时间一致性的 router。所有阶段仍只使用一张
 A800；本页结果不作为决定微调是否值得做的硬门槛。
+
+## SeedVR2 LoRA 0.50 再接入
+
+codec 微调与 SeedVR2 LoRA 训练、评价现已完成；跨数据集 codec 仍选择冻结权重，LoRA 选择
+0.50。下一项检查直接复用本页同一条 33 帧码流、动作图、ROI manifest 和 seed，只替换
+Generate 恢复器的 LoRA 强度。这样可以单独观察 adapter 对 16 像素空间边界、17 帧重叠
+融合和动作图切换的影响，不重新编码，也不改变 router。协议见
+[`CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)。

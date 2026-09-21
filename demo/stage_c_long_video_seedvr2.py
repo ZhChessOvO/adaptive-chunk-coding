@@ -70,6 +70,9 @@ def common_seedvr2_args(parser: argparse.ArgumentParser) -> None:
         "--lora-checkpoint", type=Path,
         help="Optional SeedVR2 project LoRA adapter")
     parser.add_argument(
+        "--lora-strength", type=float, default=1.0,
+        help="Multiplier for the optional LoRA residual (default: 1.0)")
+    parser.add_argument(
         "--vae-checkpoint", type=Path,
         default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
                  "ema_vae.pth"))
@@ -116,6 +119,11 @@ def parse_args() -> argparse.Namespace:
     if args.command == "prepare":
         if args.context_pixels < 0 or args.processing_scale <= 0:
             parser.error("context must be nonnegative and scale must be positive")
+    if args.command == "restore":
+        if not math.isfinite(args.lora_strength) or args.lora_strength < 0:
+            parser.error("--lora-strength must be finite and nonnegative")
+        if args.lora_checkpoint is None and args.lora_strength != 1.0:
+            parser.error("--lora-strength only has meaning with --lora-checkpoint")
     if args.command == "evaluate" and args.feather_pixels < 0:
         parser.error("feather pixels must be nonnegative")
     return args
@@ -339,6 +347,9 @@ def valid_component(
     record: dict,
     seed: int,
     manifest_hash: str,
+    lora_checkpoint: str | None,
+    lora_checkpoint_sha256: str | None,
+    lora_strength: float | None,
 ) -> dict | None:
     if not metadata_path.is_file():
         return None
@@ -356,6 +367,9 @@ def valid_component(
         "processing_width": record["processing_width"],
         "output_height": crop["height"],
         "output_width": crop["width"],
+        "lora_checkpoint": lora_checkpoint,
+        "lora_checkpoint_sha256": lora_checkpoint_sha256,
+        "lora_strength": lora_strength,
     }
     if any(value.get(key) != expected_value for key, expected_value in expected.items()):
         return None
@@ -370,6 +384,14 @@ def restore_main(args: argparse.Namespace) -> None:
     manifest_path = args.manifest.resolve()
     manifest_hash = file_sha256(manifest_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    lora_path = (
+        args.lora_checkpoint.resolve()
+        if args.lora_checkpoint is not None else None)
+    lora_checkpoint = str(lora_path) if lora_path is not None else None
+    lora_checkpoint_sha256 = (
+        file_sha256(lora_path) if lora_path is not None else None)
+    lora_strength = (
+        float(args.lora_strength) if lora_path is not None else None)
     components = flatten_components(manifest)
     args.output_root.mkdir(parents=True, exist_ok=True)
     complete_records = {}
@@ -379,7 +401,8 @@ def restore_main(args: argparse.Namespace) -> None:
         output_dir = component_output_dir(args.output_root, record)
         metadata = valid_component(
             output_dir / "seedvr2_metadata.json", output_dir, record,
-            seed, manifest_hash)
+            seed, manifest_hash, lora_checkpoint, lora_checkpoint_sha256,
+            lora_strength)
         if metadata is None:
             pending.append(record)
         else:
@@ -399,6 +422,10 @@ def restore_main(args: argparse.Namespace) -> None:
             and existing_batch.get("manifest_sha256") == manifest_hash
             and existing_batch.get("base_seed") == args.seed
             and existing_batch.get("component_count") == len(components)
+            and existing_batch.get("lora_checkpoint") == lora_checkpoint
+            and existing_batch.get("lora_checkpoint_sha256")
+            == lora_checkpoint_sha256
+            and existing_batch.get("lora_strength") == lora_strength
         ):
             print(json.dumps({
                 "stage": "long-video-restoration-resume-skip",
@@ -453,6 +480,10 @@ def restore_main(args: argparse.Namespace) -> None:
             "cfg_scale": args.cfg_scale,
             "dit_dtype": args.dit_dtype,
             "dit_checkpoint": str(args.dit_checkpoint.resolve()),
+            "lora_checkpoint": lora_checkpoint,
+            "lora_checkpoint_sha256": lora_checkpoint_sha256,
+            "lora_strength": lora_strength,
+            "lora_adapter": model.runner.lora_adapter_info,
             "runtime_seconds": runtime["seconds_model_load_excluded"],
             "component_wall_seconds": wall_seconds,
             "peak_cuda_allocated_bytes": runtime[
@@ -490,6 +521,10 @@ def restore_main(args: argparse.Namespace) -> None:
         "manifest": str(manifest_path),
         "manifest_sha256": manifest_hash,
         "base_seed": args.seed,
+        "lora_checkpoint": lora_checkpoint,
+        "lora_checkpoint_sha256": lora_checkpoint_sha256,
+        "lora_strength": lora_strength,
+        "lora_adapter": ordered[0].get("lora_adapter") if ordered else None,
         "component_count": len(components),
         "completed_component_count": len(ordered),
         "resumed_component_count": len(components) - len(pending),
@@ -518,6 +553,8 @@ def restore_main(args: argparse.Namespace) -> None:
             "one_model_load_shared_by_pending_components": True,
             "model_load_may_repeat_after_restart": True,
             "training_or_finetuning": False,
+            "base_seedvr2_weights_frozen": True,
+            "lora_adapter_inference_only": lora_path is not None,
         },
     }
     atomic_json(batch_metadata_path, result)
@@ -843,7 +880,10 @@ def evaluate_main(args: argparse.Namespace) -> None:
         },
         "scientific_boundary": {
             "development_mechanism_smoke_not_independent_test": True,
-            "router_and_backbones_frozen": True,
+            "router_and_backbones_frozen": batch.get("lora_checkpoint") is None,
+            "router_and_base_backbones_frozen": True,
+            "seedvr2_lora_adapter_applied": batch.get("lora_checkpoint") is not None,
+            "seedvr2_lora_strength": batch.get("lora_strength"),
             "source_rgb_read_by_decoder": False,
             "generate_geometry_available_from_bitstream": True,
             "seedvr2_predictions_temporally_blended_before_spatial_paste": True,

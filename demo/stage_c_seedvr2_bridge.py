@@ -16,6 +16,7 @@ import argparse
 import gc
 import importlib.machinery
 import json
+import math
 import os
 import sys
 import time
@@ -132,6 +133,9 @@ def parse_args() -> argparse.Namespace:
         "--lora-checkpoint", type=Path,
         help="Optional project LoRA adapter applied on top of the frozen DiT")
     parser.add_argument(
+        "--lora-strength", type=float, default=1.0,
+        help="Multiplier for the optional LoRA residual (default: 1.0)")
+    parser.add_argument(
         "--vae-checkpoint", type=Path,
         default=UPSTREAM_ROOT / "ckpts" / "ema_vae.pth")
     parser.add_argument(
@@ -164,6 +168,10 @@ def parse_args() -> argparse.Namespace:
         parser.error("--sample-steps must be positive")
     if args.max_frames is not None and args.max_frames < 1:
         parser.error("--max-frames must be positive")
+    if not math.isfinite(args.lora_strength) or args.lora_strength < 0:
+        parser.error("--lora-strength must be finite and nonnegative")
+    if args.lora_checkpoint is None and args.lora_strength != 1.0:
+        parser.error("--lora-strength only has meaning with --lora-checkpoint")
     for name in ("height", "width", "output_height", "output_width"):
         value = getattr(args, name)
         if value is not None and value < 1:
@@ -325,7 +333,8 @@ def configure_runner(args: argparse.Namespace):
         if not lora_checkpoint.is_file():
             raise FileNotFoundError(lora_checkpoint)
         runner.lora_adapter_info = load_lora_adapter(
-            runner.dit, lora_checkpoint, trainable=False)
+            runner.dit, lora_checkpoint, trainable=False,
+            strength=float(getattr(args, "lora_strength", 1.0)))
     return runner, get_device()
 
 
@@ -440,6 +449,9 @@ def main() -> None:
         "dit_checkpoint": str(args.dit_checkpoint),
         "lora_checkpoint": (
             str(args.lora_checkpoint) if args.lora_checkpoint is not None else None),
+        "lora_strength": (
+            float(args.lora_strength)
+            if args.lora_checkpoint is not None else None),
         "lora_adapter": runner.lora_adapter_info,
         "input_dir": str(args.input_dir),
         "input_frames": [str(path) for path in input_paths],
@@ -469,7 +481,8 @@ def main() -> None:
             "exact per-sequence PyTorch scaled_dot_product_attention"),
         "normalization_substitution": (
             "parameter-compatible PyTorch LayerNorm/RMSNorm; no Apex"),
-        "training_or_finetuning": args.lora_checkpoint is not None,
+        "training_or_finetuning": False,
+        "inference_uses_finetuned_adapter": args.lora_checkpoint is not None,
         "color_fix": False,
     }
     metadata_path = args.output_dir / "seedvr2_metadata.json"

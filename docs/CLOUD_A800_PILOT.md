@@ -496,6 +496,11 @@ step。实际抽样为 REDS 756 步、UVG 244 步，全部 loss 与梯度有限�
 ROI 与 17 帧重叠长视频，检查区域边界和播放稳定性。详见
 [`CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`](CLOUD_A800_SEEDVR2_LORA_STRENGTH.md)。
 
+接入检查固定复用既有 33 帧连续码流、v6 动作图、三个重叠窗口和 seed，只把 LoRA 从 0
+改成 0.50；不会重新编码或调整 router。除整体画质外，还会强制核对非 Generate 像素逐像素
+不变，并单独报告空间边界与时间切换。协议和 tmux 入口见
+[`CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

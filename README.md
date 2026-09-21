@@ -417,6 +417,11 @@ tmux 入口见
   `demo/run_stage_c_a800_seedvr2_lora_strength.sh`：复用强度 0／1 的已验证输出，只补跑同一
   adapter 的 0.25／0.50／0.75 推理强度，比较去伪影与保纹理的折中；协议见
   [`docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`](docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md)；
+- `demo/stage_c_seedvr2_lora_roi_long_eval.py`、
+  `demo/run_stage_c_a800_seedvr2_lora_roi_long.sh`：固定既有 33 帧连续码流、v6 动作图、ROI、
+  seed 和羽化，只把选定的 LoRA 0.50 接回局部恢复，检查非 Generate 像素回归、空间接缝与
+  时间切换；协议见
+  [`docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

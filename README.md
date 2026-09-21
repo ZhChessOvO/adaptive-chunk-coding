@@ -431,6 +431,11 @@ tmux 入口见
   teacher 值，复用 Base／Enhance／ROI 标签，随后重训保守共识 router 并重新应用固定的
   空间一致性项；协议见
   [`docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`](docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md)；
+- `demo/stage_c_seedvr2_lora_router_evaluation.py`、
+  `demo/run_stage_c_a800_seedvr2_lora_router_eval.sh`：在固定 37 条 REDS／UVG 上做旧／新 router
+  × 冻结／LoRA 0.50 的 2×2 真实码流评估，只按精确动作图复用，并核对 adapter 强度、
+  fresh decode、非 Generate 像素和固定可视化；协议见
+  [`docs/CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md`](docs/CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md)；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -68,6 +69,9 @@ def parse_args() -> argparse.Namespace:
     restore.add_argument(
         "--lora-checkpoint", type=Path,
         help="Optional SeedVR2 project LoRA adapter")
+    restore.add_argument(
+        "--lora-strength", type=float, default=1.0,
+        help="Inference multiplier for the optional SeedVR2 LoRA adapter")
     restore.add_argument(
         "--vae-checkpoint", type=Path,
         default=(REPO_ROOT / "third_party" / "SeedVR2" / "ckpts" /
@@ -206,8 +210,17 @@ def save_frames(path: Path, frames: list[np.ndarray]) -> None:
         Image.fromarray(frame).save(path / f"im{index:05d}.png")
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while block := handle.read(1024 * 1024):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def valid_component_metadata(
     path: Path, record: dict, seed: int, frame_count: int,
+    lora_checkpoint: Path | None = None, lora_strength: float = 1.0,
 ) -> bool:
     if not path.is_file():
         return False
@@ -216,7 +229,7 @@ def valid_component_metadata(
     except (OSError, json.JSONDecodeError):
         return False
     crop = record["crop"]
-    return (
+    valid = (
         value.get("persistent_roi_session") is True
         and value.get("seed") == seed
         and value.get("frame_count") == frame_count
@@ -225,11 +238,21 @@ def valid_component_metadata(
         and value.get("output_height") == crop["height"]
         and value.get("output_width") == crop["width"]
     )
+    if not valid or lora_checkpoint is None:
+        return valid
+    return (
+        value.get("lora_checkpoint") == str(lora_checkpoint.resolve())
+        and value.get("lora_checkpoint_sha256") == sha256_file(lora_checkpoint)
+        and math.isclose(
+            float(value.get("lora_strength", -1.0)), float(lora_strength),
+            rel_tol=0.0, abs_tol=1e-12)
+    )
 
 
 def valid_batch_metadata(
     path: Path, manifest_path: Path, output_root: Path,
     components: list[dict], seed: int, frame_count: int,
+    lora_checkpoint: Path | None = None, lora_strength: float = 1.0,
 ) -> dict | None:
     if not path.is_file():
         return None
@@ -252,13 +275,35 @@ def valid_batch_metadata(
             output_root / f"component_{index:02d}" / "restored" /
             "seedvr2_metadata.json")
         if not valid_component_metadata(
-                metadata_path, record, component_seed, frame_count):
+                metadata_path, record, component_seed, frame_count,
+                lora_checkpoint, lora_strength):
+            return None
+    if lora_checkpoint is not None:
+        if (
+            value.get("lora_checkpoint") != str(lora_checkpoint.resolve())
+            or value.get("lora_checkpoint_sha256")
+            != sha256_file(lora_checkpoint)
+            or not math.isclose(
+                float(value.get("lora_strength", -1.0)),
+                float(lora_strength), rel_tol=0.0, abs_tol=1e-12)
+        ):
             return None
     return value
 
 
 def restore(args: argparse.Namespace) -> None:
     process_started = time.perf_counter()
+    if not math.isfinite(args.lora_strength) or args.lora_strength < 0:
+        raise ValueError("--lora-strength must be finite and nonnegative")
+    if args.lora_checkpoint is None and args.lora_strength != 1.0:
+        raise ValueError("--lora-strength only has meaning with --lora-checkpoint")
+    lora_checkpoint = (
+        args.lora_checkpoint.resolve()
+        if args.lora_checkpoint is not None else None)
+    if lora_checkpoint is not None and not lora_checkpoint.is_file():
+        raise FileNotFoundError(lora_checkpoint)
+    lora_sha256 = (
+        sha256_file(lora_checkpoint) if lora_checkpoint is not None else None)
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     components = manifest["components"]
     frame_count = int(manifest["frame_count"])
@@ -266,7 +311,7 @@ def restore(args: argparse.Namespace) -> None:
     batch_metadata_path = args.output_root / "roi_batch_metadata.json"
     existing = valid_batch_metadata(
         batch_metadata_path, args.manifest, args.output_root, components,
-        args.seed, frame_count)
+        args.seed, frame_count, lora_checkpoint, args.lora_strength)
     if existing is not None:
         print(json.dumps({
             "stage": "persistent-roi-batch-resume-skip",
@@ -328,6 +373,12 @@ def restore(args: argparse.Namespace) -> None:
             "sample_steps": args.sample_steps,
             "cfg_scale": args.cfg_scale,
             "dit_dtype": args.dit_dtype,
+            "lora_checkpoint": (
+                str(lora_checkpoint) if lora_checkpoint is not None else None),
+            "lora_checkpoint_sha256": lora_sha256,
+            "lora_strength": (
+                float(args.lora_strength)
+                if lora_checkpoint is not None else None),
             "runtime_seconds": runtime["seconds_model_load_excluded"],
             "component_wall_seconds": wall_seconds,
             "total_after_argument_parse_seconds": wall_seconds,
@@ -365,6 +416,11 @@ def restore(args: argparse.Namespace) -> None:
         "experiment": "persistent single-process SeedVR2 ROI restoration",
         "manifest": str(args.manifest),
         "base_seed": args.seed,
+        "lora_checkpoint": (
+            str(lora_checkpoint) if lora_checkpoint is not None else None),
+        "lora_checkpoint_sha256": lora_sha256,
+        "lora_strength": (
+            float(args.lora_strength) if lora_checkpoint is not None else None),
         "component_count": len(components),
         "completed_component_count": len(completed),
         "complete": len(completed) == len(components),
@@ -380,6 +436,7 @@ def restore(args: argparse.Namespace) -> None:
             "components_processed_sequentially_in_one_process": True,
             "component_seeds_match_legacy_runner": True,
             "training_or_finetuning": False,
+            "adapter_identity_and_strength_recorded": True,
         },
     }
     atomic_json(batch_metadata_path, result)

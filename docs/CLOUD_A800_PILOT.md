@@ -520,6 +520,17 @@ Enhance tile 和 ROI 耗时标签全部逐字段复用。正式长任务开始�
 在 LoRA 强度 0 时以 `1e-5` 容差复现旧 teacher。完整协议和恢复入口见
 [`CLOUD_A800_SEEDVR2_LORA_TEACHER.md`](CLOUD_A800_SEEDVR2_LORA_TEACHER.md)。
 
+正式 tmux 已于 2026-09-21 启动。REDS／UVG 各一条 smoke 的旧 teacher 四项区域指标最大差
+均为 0，QP8 码流分别为 5,047 B／1,088 B，均与旧记录逐字节一致；两条合计约 54.1 秒，
+峰值 CUDA allocated 约 11.38 GiB。通过后已自动进入 560 条重建，完成后会继续重训 router
+并重新应用 `λ=0.004` 空间项。正式目录为
+`/root/autodl-fs/DCVC/runs/a800_seedvr2_lora_teacher_20260921`。
+
+紧接着使用同一批 37 条做旧／新 router × 冻结／LoRA 0.50 的 2×2 真实码流评估。该设计
+分别测量恢复器收益、router 重训收益和完整新版收益；只在 16 个动作完全一致或没有
+Generate 区域时复用。协议与可恢复入口见
+[`CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md)。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

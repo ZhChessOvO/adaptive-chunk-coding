@@ -43,7 +43,11 @@ old Base, Enhance, feature, byte, and measured ROI-cost fields exactly.  The
 LoRA latent cache uses all-Generate spatial-QP syntax and failed the required
 frozen-teacher replay, so it must not be substituted for the old scalar-QP8
 teacher input.  See `docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`.  Do not infer
-display-quality improvement from training loss alone.  If measured adaptation
+display-quality improvement from training loss alone.  After the rebuilt
+teacher and routes complete, run the fixed 37-sample old/new router x
+frozen/LoRA-0.50 real-stream 2x2 in
+`docs/CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md`; reuse is legal only for exact
+16-action matches or routes with no Generate cell.  If measured adaptation
 remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding
 the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start

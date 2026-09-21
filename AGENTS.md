@@ -31,10 +31,13 @@ over-smoothed.  The follow-up 0.25/0.50/0.75 inference-strength sweep selected
 balanced LPIPS diagnostic, but improves 34/37 samples, has the best temporal
 average, and is safer on Jockey, ShakeNDry, and YachtRide.  See
 `docs/CLOUD_A800_SEEDVR2_LORA_EVAL.md` and
-`docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`.  The active stage is to reconnect
-this fixed 0.50 adapter to Generate ROI and overlapping long-video restoration
-without changing the selected frozen codec or v6 routes; see
-`docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`.  Do not infer
+`docs/CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`.  The fixed 0.50 ROI/long-video
+reintegration is also complete on the same 33-frame stream: LPIPS, PSNR,
+temporal error, and boundary-band error all improve; all non-Generate pixels
+remain exact and all 32 adjacent-frame temporal errors improve.  See
+`docs/CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`.  The active stage is to regenerate
+Generate teacher values with frozen DCVC-UF plus SeedVR2 LoRA 0.50, then
+retrain the router without changing the selected codec or data roles.  Do not infer
 display-quality improvement from training loss alone.  If measured adaptation
 remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding

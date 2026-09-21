@@ -501,6 +501,12 @@ ROI 与 17 帧重叠长视频，检查区域边界和播放稳定性。详见
 不变，并单独报告空间边界与时间切换。协议和 tmux 入口见
 [`CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)。
 
+该检查现已完成：LPIPS 0.556755 → 0.547832，PSNR +0.1415 dB，时序误差 -0.2554；空间
+边界带 RGB MAE -0.3801，动作图切换处时序误差 -0.2760。所有非 Generate 像素逐像素
+一致，32/32 个相邻帧对的时序误差改善。3 个 ROI 组件推理合计 33.43 秒，正式 runner
+墙钟 146 秒，峰值 `nvidia-smi` 15,543 MiB，目录真实 `du -sb` 72,267,921 B。0.50
+继续作为性能增强候选，下一步重新生成 Generate teacher，再训练 router。
+
 ## 背景文档
 
 - [Notion：项目总览](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)

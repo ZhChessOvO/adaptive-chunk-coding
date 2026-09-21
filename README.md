@@ -49,9 +49,11 @@ LoRA 将合并 LPIPS 从 0.463127 降到 0.444932、PSNR 提高 0.646 dB，24/37
 但 UVG 平均 LPIPS 微差 0.001568，固定图显示部分运动纹理会被过度平滑。随后完成的固定强度
 扫描表明 0.50 是更实用的折中：合并 LPIPS 为 0.429974（较冻结版降低 0.033152），34/37
 条更好，PSNR 提高 0.783 dB、时序误差降低 0.608；它与 0.75 的平均 LPIPS 基本打平，但在
-Jockey、ShakeNDry、YachtRide 上更保守。因此后续固定使用 0.50 接回 Generate ROI 与
-长视频。如果仍不合适，再保持 codec、路由、预算和评估输入不变，只替换 Generate 恢复
-后端。
+Jockey、ShakeNDry、YachtRide 上更保守。0.50 随后已接回同一条 33 帧连续码流和三个
+Generate ROI：LPIPS 再降 0.008922、PSNR 提高 0.142 dB、时序误差降低 0.255；边界带误差
+下降，所有非 Generate 像素逐像素不变，32/32 个相邻帧对的时序误差都改善。因此保留 0.50，
+下一步用它重建 Generate teacher 并重训 router。如果后续仍不合适，再保持 codec、路由、
+预算和评估输入不变，只替换 Generate 恢复后端。
 
 租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
 

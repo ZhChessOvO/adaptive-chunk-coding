@@ -144,6 +144,7 @@ A800；本页结果不作为决定微调是否值得做的硬门槛。
 
 codec 微调与 SeedVR2 LoRA 训练、评价现已完成；跨数据集 codec 仍选择冻结权重，LoRA 选择
 0.50。下一项检查直接复用本页同一条 33 帧码流、动作图、ROI manifest 和 seed，只替换
-Generate 恢复器的 LoRA 强度。这样可以单独观察 adapter 对 16 像素空间边界、17 帧重叠
-融合和动作图切换的影响，不重新编码，也不改变 router。协议见
+Generate 恢复器的 LoRA 强度。正式结果中 LPIPS 降低 0.008922、PSNR 提高 0.1415 dB、
+时序误差降低 0.2554；空间边界带误差和窗口／动作切换误差也都下降，所有非 Generate 像素
+逐像素不变。0.50 因此通过接入回归，不重新编码，也不改变 router。协议与产物见
 [`CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)。

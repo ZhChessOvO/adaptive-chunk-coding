@@ -153,3 +153,12 @@ ReadySetGo 受益，Jockey、ShakeNDry、YachtRide 则有过度平滑。这个�
 过平滑 UVG 序列更保守。下一步把 0.50 接回 ROI 和长视频。完整表、资源和边界见
 [`CLOUD_A800_SEEDVR2_LORA_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_EVAL.md) 与
 [`CLOUD_A800_SEEDVR2_LORA_STRENGTH.md`](CLOUD_A800_SEEDVR2_LORA_STRENGTH.md)。
+
+## 11. ROI 与长视频接入结果（2026-09-21）
+
+选定的 0.50 已放回既有 33 帧连续码流、三个重叠 ROI 组件和 16 像素羽化路径。相对冻结
+SeedVR2 ROI，LPIPS 降低 0.008922、PSNR 提高 0.1415 dB、时序误差降低 0.2554；空间
+边界带和窗口／动作切换指标也改善。所有非 Generate 像素逐像素不变，说明 adapter 没有
+越过动作图修改 Base／Enhance。完整结果和比较视频见
+[`CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md`](CLOUD_A800_SEEDVR2_LORA_ROI_LONG.md)。下一步用
+0.50 重新计算 Generate teacher，再重训轻量 router；冻结版继续作为不微调基线。

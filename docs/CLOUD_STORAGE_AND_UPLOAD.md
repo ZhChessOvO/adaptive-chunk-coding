@@ -5,10 +5,11 @@
 ## 三块存储的固定用途
 
 - 系统盘：`/root`，30GB。只保留系统和平台自带工具，不在这里创建大环境、下载权重或保存实验结果。
-- 数据盘：`/root/autodl-tmp`，50GB。用于 Git 仓库、conda 环境、第三方源码、编译产物和少量临时缓存。
-- 文件存储：`/root/autodl-fs`，200GB，读写较慢。用于数据集、模型权重、正式码流、日志、checkpoint、指标和可视化。
+- 数据盘：`/root/autodl-tmp`，50GB。用于 Git 仓库、conda 环境、第三方源码、编译产物、常用只读模型和少量临时缓存。
+- 文件存储：`/root/autodl-fs`，200GB，读写较慢且按使用量收费。用于数据集、正式码流、实验 checkpoint、日志、指标和可视化。
 
-慢盘可以直接承载数据与正式输出。若它的随机 I/O 明显拖慢 GPU，只允许把当前样本缓存到数据盘，
+常用且不可变的公开模型放在数据盘，既减少慢盘用量，也避免每轮从慢盘读取。训练产生的 checkpoint
+仍属于正式结果，保留在文件存储。若慢盘随机 I/O 明显拖慢 GPU，只允许把当前样本缓存到数据盘，
 缓存上限 8GB；样本结束后立即写回并清理。不要把整个数据集或整轮输出复制到数据盘。
 
 ## 最初上传的文件与当前状态
@@ -24,8 +25,8 @@
 └── val_sharp.zip
 ```
 
-这些是最初的上传位置，不代表当前根目录仍保留原文件。权重可能已经移到持久目录或通过
-符号链接接入；两个 ZIP 已按用户要求在验证解压后删除。恢复时先盘点现有链接、权重和
+这些是最初的上传位置，不代表当前根目录仍保留原文件。权重已经在校验后移到
+`/root/autodl-tmp/DCVC/models/` 并通过符号链接接入；两个 ZIP 已按用户要求在验证解压后删除。恢复时先盘点现有链接、权重和
 已解压目录，不重复下载已经存在的数据。
 
 最初上传的 `val_sharp.zip` 只解压了开发集 `000..005`。一次性独立测试获得授权后，
@@ -43,9 +44,9 @@
 | --- | --- | --- |
 | SeedVR2 源码 | 仓库的 `third_party/SeedVR2` | 从官方 GitHub 克隆，源码和编译工作放数据盘 |
 | CUTLASS 4.4.1 | 仓库的 `third_party/cutlass` | 从官方 GitHub 克隆，在 A800 上重新编译扩展 |
-| `ema_vae.pth` | `/root/autodl-fs/DCVC/assets/seedvr2/` | 从官方 SeedVR2-3B 下载 |
-| `pos_emb.pt`、`neg_emb.pt` | `/root/autodl-fs/DCVC/assets/seedvr2/` | 从官方 SeedVR2-3B 下载 |
-| BasicVSR++ 权重 | `/root/autodl-fs/DCVC/assets/basicvsrpp/` | 确定性恢复对照需要 |
+| `ema_vae.pth` | `/root/autodl-tmp/DCVC/models/seedvr2/` | 从官方 SeedVR2-3B 下载 |
+| `pos_emb.pt`、`neg_emb.pt` | `/root/autodl-tmp/DCVC/models/seedvr2/` | 从官方 SeedVR2-3B 下载 |
+| BasicVSR++ 权重 | `/root/autodl-tmp/DCVC/models/basicvsrpp/` | 确定性恢复对照需要 |
 | UVG、QST 等论文评估视频 | `/root/autodl-fs/DCVC/assets/evaluation/` | 从数据集官方来源恢复；与 REDS validation 一起报告跨分布结果 |
 
 当前基线使用已经上传的 BF16 DiT。不要再下载约 13.6GB 的
@@ -69,7 +70,7 @@ export DCVC_UPLOAD=/root/autodl-fs
 export DCVC_PERSIST=/root/autodl-fs/DCVC
 export DCVC_FAST=/root/autodl-tmp/DCVC
 
-mkdir -p "$DCVC_FAST"/{envs,cache,tmp,torch_extensions}
+mkdir -p "$DCVC_FAST"/{envs,cache,tmp,torch_extensions,models/{dcvcuf,seedvr2,basicvsrpp}}
 mkdir -p "$DCVC_PERSIST"/{assets/seedvr2,assets/basicvsrpp,assets/regression,data/REDS,runs}
 
 export TMPDIR="$DCVC_FAST/tmp"
@@ -115,22 +116,22 @@ conda activate "$DCVC_FAST/envs/dcvcuf"
 
 ## 接入仓库
 
-第三方源码直接克隆到数据盘上的仓库中。模型、数据和正式输出留在文件存储，通过符号链接接入：
+第三方源码和常用只读模型放在数据盘；数据与正式输出留在文件存储。仓库通过符号链接接入：
 
 ```bash
 mkdir -p checkpoints third_party/SeedVR2/ckpts third_party/mmagic/checkpoints data
 
-ln -s "$DCVC_UPLOAD/cvpr2026_image.pth.tar" \
+ln -s "$DCVC_FAST/models/dcvcuf/cvpr2026_image.pth.tar" \
   checkpoints/cvpr2026_image.pth.tar
-ln -s "$DCVC_UPLOAD/cvpr2026_video_hts.pth.tar" \
+ln -s "$DCVC_FAST/models/dcvcuf/cvpr2026_video_hts.pth.tar" \
   checkpoints/cvpr2026_video_hts.pth.tar
-ln -s "$DCVC_UPLOAD/seedvr2_ema_3b_bf16.safetensors" \
+ln -s "$DCVC_FAST/models/seedvr2/seedvr2_ema_3b_bf16.safetensors" \
   third_party/SeedVR2/ckpts/seedvr2_ema_3b_bf16.safetensors
-ln -s "$DCVC_PERSIST/assets/seedvr2/ema_vae.pth" \
+ln -s "$DCVC_FAST/models/seedvr2/ema_vae.pth" \
   third_party/SeedVR2/ckpts/ema_vae.pth
-ln -s "$DCVC_PERSIST/assets/seedvr2/pos_emb.pt" third_party/SeedVR2/pos_emb.pt
-ln -s "$DCVC_PERSIST/assets/seedvr2/neg_emb.pt" third_party/SeedVR2/neg_emb.pt
-ln -s "$DCVC_PERSIST/assets/basicvsrpp/basicvsr_plusplus_c128n25_ntire_decompress_track1_20210223-7b2eba02.pth" \
+ln -s "$DCVC_FAST/models/seedvr2/pos_emb.pt" third_party/SeedVR2/pos_emb.pt
+ln -s "$DCVC_FAST/models/seedvr2/neg_emb.pt" third_party/SeedVR2/neg_emb.pt
+ln -s "$DCVC_FAST/models/basicvsrpp/basicvsr_plusplus_c128n25_ntire_decompress_track1_20210223-7b2eba02.pth" \
   third_party/mmagic/checkpoints/basicvsr_plusplus_c128n25_ntire_decompress_track1_20210223-7b2eba02.pth
 ln -s "$DCVC_PERSIST/data/REDS" data/REDS
 ln -s "$DCVC_PERSIST/runs" output

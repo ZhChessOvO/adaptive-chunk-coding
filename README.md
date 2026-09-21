@@ -57,7 +57,7 @@ decode 与 Generate 标签，逐字段复用 Base、Enhance 和 ROI 成本；协
 [`docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`](docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md)。
 如果后续仍不合适，再保持 codec、路由、预算和评估输入不变，只替换 Generate 恢复后端。
 
-租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境和编译放数据盘；数据、模型和正式输出放文件存储。用户上传的五个文件直接平铺在文件存储根目录，具体清单、缺失下载、解压边界和链接方式见云端存储文档。
+租用 A800 时先用 `nvidia-smi -L` 和 `nvidia-smi --query-gpu=name,memory.total --format=csv` 核对实际可见的是完整 80GB 设备，而不是 MIG 切片。当前服务器的系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），较慢的 200GB 文件存储是 `/root/autodl-fs`。环境、编译和常用只读模型放数据盘；数据集和正式输出放文件存储。用户上传的五个文件最初直接平铺在文件存储根目录，当前真实位置、缺失下载、解压边界和链接方式见云端存储文档。
 
 ### 1. 克隆代码并检查下载源
 
@@ -181,7 +181,7 @@ hf download ByteDance-Seed/SeedVR2-3B \
 
 四个文件合计约 14.6 GB。`demo/stage_c_seedvr2_bridge.py` 保留官方结构和权重，但用 PyTorch SDPA 与参数兼容的 norm 替代 Apex／FlashAttention，因此当前路径**不需要编译 Apex 或 FlashAttention**。
 
-当前 AutoDL 服务器已经在 `/root/autodl-fs/` 上传 BF16 DiT，不要再执行上面的整组下载。只从官方仓库补下 `ema_vae.pth`、`pos_emb.pt` 和 `neg_emb.pt`，保存位置按 `docs/CLOUD_STORAGE_AND_UPLOAD.md` 执行。实际推理必须用单进程 `torchrun` 启动：
+当前 AutoDL 服务器最初在 `/root/autodl-fs/` 上传了 BF16 DiT，校验后已移到数据盘的常用模型目录；不要再执行上面的整组下载。只在确实缺失时从官方仓库补下 `ema_vae.pth`、`pos_emb.pt` 和 `neg_emb.pt`，保存位置按 `docs/CLOUD_STORAGE_AND_UPLOAD.md` 执行。实际推理必须用单进程 `torchrun` 启动：
 
 ```bash
 torchrun --standalone --nproc-per-node=1 demo/stage_c_seedvr2_bridge.py \
@@ -434,8 +434,7 @@ tmux 入口见
 - `demo/stage_c_seedvr2_lora_router_evaluation.py`、
   `demo/run_stage_c_a800_seedvr2_lora_router_eval.sh`：在固定 37 条 REDS／UVG 上做旧／新 router
   × 冻结／LoRA 0.50 的 2×2 真实码流评估，只按精确动作图复用，并核对 adapter 强度、
-  fresh decode、非 Generate 像素和固定可视化；协议见
-  [`docs/CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md`](docs/CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md)；
+  fresh decode、非 Generate 像素和固定可视化；实验叙述与结果只在 Notion 主线页面维护；
 - `demo/stage_c_a800_feather_verify.py`：独立复核 37 条羽化诊断、8 像素逐像素回归、保存
   帧与 SHA-256，并汇总不同羽化下 Generate 的真实贡献；
 - `demo/run_stage_c_a800_joint_evaluation.sh`、

@@ -43,12 +43,18 @@ export PYTHONPATH="$repo:$repo/third_party/SeedVR2:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES=0
 
 mkdir -p "$log_root" "$formal_root" "$run_root/formal"
+if [[ "${1:-}" != "--run-snapshot" ]]; then
+  snapshot="$log_root/executed_run_stage_c_a800_seedvr2_lora_router_eval_$(date -u +%Y%m%dT%H%M%SZ)_$$.sh"
+  cp "$0" "$snapshot.tmp"
+  mv "$snapshot.tmp" "$snapshot"
+  exec bash "$snapshot" --run-snapshot
+fi
+shift
 if [[ ! -s "$started_marker" ]]; then
   date +%s > "$started_marker.tmp"
   mv "$started_marker.tmp" "$started_marker"
 fi
 experiment_start_epoch=$(<"$started_marker")
-cp "$0" "$log_root/executed_run_stage_c_a800_seedvr2_lora_router_eval.sh"
 exec > >(tee -a "$log_root/lora_router_eval.log") 2>&1
 
 heartbeat_pid=

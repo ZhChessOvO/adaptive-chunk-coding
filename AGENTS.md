@@ -45,8 +45,8 @@ frozen-teacher replay, so it must not be substituted for the old scalar-QP8
 teacher input.  See `docs/CLOUD_A800_SEEDVR2_LORA_TEACHER.md`.  Do not infer
 display-quality improvement from training loss alone.  After the rebuilt
 teacher and routes complete, run the fixed 37-sample old/new router x
-frozen/LoRA-0.50 real-stream 2x2 in
-`docs/CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md`; reuse is legal only for exact
+frozen/LoRA-0.50 real-stream 2x2 with
+`demo/run_stage_c_a800_seedvr2_lora_router_eval.sh`; reuse is legal only for exact
 16-action matches or routes with no Generate cell.  If measured adaptation
 remains unsuitable, a later
 experiment may compare another generation/restoration backend while holding
@@ -100,5 +100,6 @@ linked, extracted, or deleted after verification. Always inventory current
 files first, reuse existing extracted data, and download only genuinely
 missing material from the official source. Extract datasets and keep formal
 outputs on the file store; keep the repository, conda environment, source
-builds, and at most 8GB of per-sample scratch on the data disk. The detailed
+builds, frequently reused immutable model weights, and at most 8GB of
+per-sample scratch on the data disk. The detailed
 layout and recovery commands live in `docs/CLOUD_STORAGE_AND_UPLOAD.md`.

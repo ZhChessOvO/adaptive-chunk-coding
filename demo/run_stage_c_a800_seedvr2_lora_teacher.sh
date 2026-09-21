@@ -50,12 +50,18 @@ export PYTHONPATH="$repo:$repo/third_party/SeedVR2:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES=0
 
 mkdir -p "$log_root" "$teacher_root" "$formal_root" "$controller_root"
+if [[ "${1:-}" != "--run-snapshot" ]]; then
+  snapshot="$log_root/executed_run_stage_c_a800_seedvr2_lora_teacher_$(date -u +%Y%m%dT%H%M%SZ)_$$.sh"
+  cp "$0" "$snapshot.tmp"
+  mv "$snapshot.tmp" "$snapshot"
+  exec bash "$snapshot" --run-snapshot
+fi
+shift
 if [[ ! -s "$started_marker" ]]; then
   date +%s > "$started_marker.tmp"
   mv "$started_marker.tmp" "$started_marker"
 fi
 experiment_start_epoch=$(<"$started_marker")
-cp "$0" "$log_root/executed_run_stage_c_a800_seedvr2_lora_teacher.sh"
 exec > >(tee -a "$log_root/seedvr2_lora_teacher.log") 2>&1
 
 heartbeat_pid=
@@ -166,12 +172,26 @@ if [[ ! -s "$plan" ]]; then
     --output "$plan"
 fi
 
-warm_seedvr2_file_cache
-
-# First write one REDS and one UVG item into the formal output tree.  Both are
-# also frozen-strength cache replays, so any condition mismatch stops here.
-smoke_complete=$(
+teacher_complete=$(
   "$python_bin" - "$teacher_root/manifest.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+try:
+    d = json.loads(p.read_text())
+    print(int(d.get("complete") is True and d.get("completed_sample_count") == 560))
+except Exception:
+    print(0)
+PY
+)
+
+if [[ "$teacher_complete" -ne 1 ]]; then
+  warm_seedvr2_file_cache
+
+  # First write one REDS and one UVG item into the formal output tree.  Both are
+  # also frozen-strength cache replays, so any condition mismatch stops here.
+  smoke_complete=$(
+    "$python_bin" - "$teacher_root/manifest.json" <<'PY'
 import json, sys
 from pathlib import Path
 p = Path(sys.argv[1])
@@ -181,20 +201,21 @@ try:
 except Exception:
     print(0)
 PY
-)
-if [[ "$smoke_complete" -ne 1 ]]; then
+  )
+  if [[ "$smoke_complete" -ne 1 ]]; then
+    "$torchrun_bin" --standalone --nproc-per-node=1 \
+      demo/stage_c_seedvr2_lora_teacher.py relabel \
+      --plan "$plan" --output-dir "$teacher_root" \
+      --limit-per-dataset 1 --frozen-metric-tolerance 0.00001
+  fi
+
+  # Resume the same output tree to all 560 samples.  Per-sample JSON is atomic,
+  # so a host restart only repeats the current unfinished item.
   "$torchrun_bin" --standalone --nproc-per-node=1 \
     demo/stage_c_seedvr2_lora_teacher.py relabel \
     --plan "$plan" --output-dir "$teacher_root" \
-    --limit-per-dataset 1 --frozen-metric-tolerance 0.00001
+    --frozen-metric-tolerance 0.00001 --max-wall-seconds 43000
 fi
-
-# Resume the same output tree to all 560 samples.  Per-sample JSON is atomic,
-# so a host restart only repeats the current unfinished item.
-"$torchrun_bin" --standalone --nproc-per-node=1 \
-  demo/stage_c_seedvr2_lora_teacher.py relabel \
-  --plan "$plan" --output-dir "$teacher_root" \
-  --frozen-metric-tolerance 0.00001 --max-wall-seconds 43000
 
 "$python_bin" - "$teacher_root/manifest.json" <<'PY'
 import json, sys

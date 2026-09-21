@@ -51,7 +51,7 @@ nvcc --version
 - `nvidia-smi` 应显示一张约 80GB 的完整 A800，而不是 10／20／40GB MIG 切片；
 - 使用带编译工具链的 CUDA devel 镜像；
 - 建议至少 64GB 主机内存；
-- 当前系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），文件存储是 `/root/autodl-fs`（200GB）；文件存储保存数据、模型和正式输出，数据盘保存仓库、环境、编译产物和不超过 8GB 的单样本临时缓存；
+- 当前系统盘是 `/root`（30GB），数据盘是 `/root/autodl-tmp`（50GB），文件存储是 `/root/autodl-fs`（200GB）；文件存储保存数据、训练产生的 checkpoint 和正式输出，数据盘保存仓库、环境、编译产物、常用只读模型和不超过 8GB 的单样本临时缓存；
 - 文件存储或 50GB 数据盘达到容量的 80% 时停止新样本、保存断点并汇报，不以删除已有正式结果掩盖空间问题。
 
 上传资产和磁盘布局按 `docs/CLOUD_STORAGE_AND_UPLOAD.md` 执行，环境、扩展和 checkpoint 安装按 `README.md` 执行。五个文件最初直接放在 `/root/autodl-fs/`，但 ZIP 在验证解压后可以删除，权重也可能已经移入持久目录。每次恢复先盘点现状；已有内容不重复下载，真正缺少的数据或依赖从官方来源直接补齐。下载前检查并移除镜像覆盖，不编译当前 bridge 不需要的 Apex 或 FlashAttention。
@@ -519,17 +519,6 @@ smoke 尝试复用 LoRA 训练 latent cache，但该 cache 来自全 Generate sp
 Enhance tile 和 ROI 耗时标签全部逐字段复用。正式长任务开始前先要求 REDS、UVG 各一条
 在 LoRA 强度 0 时以 `1e-5` 容差复现旧 teacher。完整协议和恢复入口见
 [`CLOUD_A800_SEEDVR2_LORA_TEACHER.md`](CLOUD_A800_SEEDVR2_LORA_TEACHER.md)。
-
-正式 tmux 已于 2026-09-21 启动。REDS／UVG 各一条 smoke 的旧 teacher 四项区域指标最大差
-均为 0，QP8 码流分别为 5,047 B／1,088 B，均与旧记录逐字节一致；两条合计约 54.1 秒，
-峰值 CUDA allocated 约 11.38 GiB。通过后已自动进入 560 条重建，完成后会继续重训 router
-并重新应用 `λ=0.004` 空间项。正式目录为
-`/root/autodl-fs/DCVC/runs/a800_seedvr2_lora_teacher_20260921`。
-
-紧接着使用同一批 37 条做旧／新 router × 冻结／LoRA 0.50 的 2×2 真实码流评估。该设计
-分别测量恢复器收益、router 重训收益和完整新版收益；只在 16 个动作完全一致或没有
-Generate 区域时复用。协议与可恢复入口见
-[`CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md`](CLOUD_A800_SEEDVR2_LORA_ROUTER_EVAL.md)。
 
 ## 背景文档
 

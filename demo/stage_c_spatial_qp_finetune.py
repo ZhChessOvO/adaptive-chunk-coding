@@ -24,6 +24,7 @@ import signal
 import subprocess
 import sys
 import time
+from collections import Counter, defaultdict, deque
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -136,6 +137,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     train.add_argument("--max-grad-norm", type=float, default=0.2)
     train.add_argument("--uvg-probability", type=float, default=0.107)
     train.add_argument("--uniform-probability", type=float, default=0.25)
+    train.add_argument(
+        "--sampling-mode", choices=("random", "balanced"), default="random",
+        help=(
+            "random preserves the v1 Bernoulli sampler; balanced fixes the "
+            "domain counts, balances the five UVG source sequences, and "
+            "allocates uniform-QP rehearsal separately inside each domain"))
     train.add_argument("--seed", type=int, default=21260920)
     train.add_argument("--save-every", type=int, default=25)
     train.add_argument("--log-every", type=int, default=1)
@@ -223,20 +230,172 @@ def frame_paths(record: dict) -> list[Path]:
     return sorted(Path(record["directory"]).glob("*.png"))
 
 
+def uvg_source_sequence(name: str) -> str:
+    parts = name.split("-")
+    if len(parts) < 3 or parts[0] != "uvg":
+        raise ValueError(f"cannot identify UVG source sequence from {name!r}")
+    return parts[1]
+
+
+def balanced_values(
+    values: list[object], count: int, rng: np.random.Generator,
+) -> list[object]:
+    """Return a shuffled cycle whose value counts differ by at most one."""
+    if not values:
+        raise ValueError("balanced_values requires at least one value")
+    output = []
+    while len(output) < count:
+        cycle = list(values)
+        rng.shuffle(cycle)
+        output.extend(cycle)
+    return output[:count]
+
+
+def balanced_sampling_schedule(
+    inventory: dict,
+    max_steps: int,
+    seed: int,
+    uvg_probability: float,
+    uniform_probability: float,
+) -> dict:
+    """Build the deterministic domain-balanced v2 sampling schedule."""
+    records = inventory["records"]
+    reds = sorted(
+        (item for item in records if item["dataset"] == "REDS-train"),
+        key=lambda item: item["sequence"],
+    )
+    uvg = sorted(
+        (item for item in records if item["dataset"] == "UVG-adaptation"),
+        key=lambda item: item["sequence"],
+    )
+    if not reds or not uvg:
+        raise RuntimeError("balanced schedule requires both REDS and UVG records")
+
+    uvg_by_source: dict[str, list[dict]] = defaultdict(list)
+    for record in uvg:
+        uvg_by_source[uvg_source_sequence(record["sequence"])].append(record)
+    if len(uvg_by_source) != 5:
+        raise RuntimeError(
+            f"balanced v2 expects five UVG source sequences, found "
+            f"{sorted(uvg_by_source)}")
+
+    domain_rng = np.random.default_rng(np.random.SeedSequence([seed, 101]))
+    record_rng = np.random.default_rng(np.random.SeedSequence([seed, 202]))
+    route_rng = np.random.default_rng(np.random.SeedSequence([seed, 303]))
+    uvg_steps = int(round(max_steps * uvg_probability))
+    reds_steps = max_steps - uvg_steps
+    domains = ["UVG-adaptation"] * uvg_steps + ["REDS-train"] * reds_steps
+    domain_rng.shuffle(domains)
+
+    reds_records = balanced_values(reds, reds_steps, record_rng)
+    source_names = sorted(uvg_by_source)
+    uvg_sources = balanced_values(source_names, uvg_steps, record_rng)
+    source_occurrences = Counter(uvg_sources)
+    uvg_record_queues = {
+        source: deque(balanced_values(
+            uvg_by_source[source], count, record_rng))
+        for source, count in source_occurrences.items()
+    }
+    uvg_records = [uvg_record_queues[source].popleft() for source in uvg_sources]
+
+    route_plan = {}
+    for domain, domain_steps in (
+            ("REDS-train", reds_steps), ("UVG-adaptation", uvg_steps)):
+        uniform_steps = int(round(domain_steps * uniform_probability))
+        kinds = ["uniform"] * uniform_steps + [
+            "mixed"] * (domain_steps - uniform_steps)
+        route_rng.shuffle(kinds)
+        uniform_actions = deque(balanced_values(
+            [ACTION_BASE, ACTION_GENERATE, ACTION_ENHANCE],
+            uniform_steps, route_rng))
+        route_plan[domain] = deque({
+            "route_kind": kind,
+            "uniform_action": (
+                int(uniform_actions.popleft()) if kind == "uniform" else None),
+        } for kind in kinds)
+
+    record_plan = {
+        "REDS-train": deque(reds_records),
+        "UVG-adaptation": deque(uvg_records),
+    }
+    entries = []
+    for step, domain in enumerate(domains):
+        record = record_plan[domain].popleft()
+        route = route_plan[domain].popleft()
+        entries.append({
+            "step": step,
+            "dataset": domain,
+            "record_sequence": record["sequence"],
+            "uvg_source_sequence": (
+                uvg_source_sequence(record["sequence"])
+                if domain == "UVG-adaptation" else None),
+            **route,
+        })
+
+    dataset_counts = Counter(entry["dataset"] for entry in entries)
+    uniform_counts = Counter(
+        entry["dataset"] for entry in entries
+        if entry["route_kind"] == "uniform")
+    uvg_source_counts = Counter(
+        entry["uvg_source_sequence"] for entry in entries
+        if entry["dataset"] == "UVG-adaptation")
+    uvg_window_counts = Counter(
+        entry["record_sequence"] for entry in entries
+        if entry["dataset"] == "UVG-adaptation")
+    reds_sequence_counts = Counter(
+        entry["record_sequence"] for entry in entries
+        if entry["dataset"] == "REDS-train")
+    return {
+        "schema_version": 1,
+        "mode": "balanced",
+        "seed": seed,
+        "max_steps": max_steps,
+        "requested_uvg_probability": uvg_probability,
+        "requested_uniform_probability_per_domain": uniform_probability,
+        "dataset_step_counts": dict(sorted(dataset_counts.items())),
+        "uniform_step_counts": dict(sorted(uniform_counts.items())),
+        "actual_uniform_probability_per_domain": {
+            domain: uniform_counts[domain] / count
+            for domain, count in sorted(dataset_counts.items())
+        },
+        "uvg_source_step_counts": dict(sorted(uvg_source_counts.items())),
+        "uvg_window_step_counts": dict(sorted(uvg_window_counts.items())),
+        "reds_sequence_step_count_range": [
+            min(reds_sequence_counts.values()) if reds_sequence_counts else 0,
+            max(reds_sequence_counts.values()) if reds_sequence_counts else 0,
+        ],
+        "entries": entries,
+    }
+
+
 def load_training_clip(
     inventory: dict,
     step: int,
     seed: int,
     patch_size: int,
     uvg_probability: float,
+    scheduled_entry: dict | None = None,
 ) -> tuple[torch.Tensor, dict, np.random.Generator]:
     rng = np.random.default_rng(np.random.SeedSequence([seed, step]))
     records = inventory["records"]
     reds = [item for item in records if item["dataset"] == "REDS-train"]
     uvg = [item for item in records if item["dataset"] == "UVG-adaptation"]
-    use_uvg = bool(rng.random() < uvg_probability)
-    pool = uvg if use_uvg else reds
-    record = pool[int(rng.integers(0, len(pool)))]
+    if scheduled_entry is None:
+        use_uvg = bool(rng.random() < uvg_probability)
+        pool = uvg if use_uvg else reds
+        record = pool[int(rng.integers(0, len(pool)))]
+    else:
+        if int(scheduled_entry["step"]) != step:
+            raise RuntimeError("balanced schedule step mismatch")
+        matches = [
+            item for item in records
+            if item["dataset"] == scheduled_entry["dataset"]
+            and item["sequence"] == scheduled_entry["record_sequence"]
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"scheduled source is not unique: {scheduled_entry}")
+        record = matches[0]
     paths = frame_paths(record)
     start = int(rng.integers(0, len(paths) - 17 + 1))
     selected = paths[start:start + 17]
@@ -272,7 +431,10 @@ def load_training_clip(
             "height": patch_size,
         },
         "horizontal_flip": flip,
+        "sampling_mode": "balanced" if scheduled_entry is not None else "random",
     }
+    if scheduled_entry is not None:
+        sample["uvg_source_sequence"] = scheduled_entry["uvg_source_sequence"]
     return clip, sample, rng
 
 
@@ -310,9 +472,20 @@ def connected_cells(
 def route_action_map(
     rng: np.random.Generator,
     uniform_probability: float,
+    forced_kind: str | None = None,
+    forced_uniform_action: int | None = None,
 ) -> tuple[np.ndarray, str]:
-    if rng.random() < uniform_probability:
-        action = int(rng.integers(0, 3))
+    if forced_kind not in (None, "uniform", "mixed"):
+        raise ValueError(f"unknown forced route kind: {forced_kind}")
+    use_uniform = (
+        forced_kind == "uniform"
+        if forced_kind is not None else rng.random() < uniform_probability)
+    if use_uniform:
+        action = (
+            int(forced_uniform_action)
+            if forced_uniform_action is not None else int(rng.integers(0, 3)))
+        if action not in ACTION_NAMES:
+            raise ValueError(f"invalid uniform action: {action}")
         return np.full((4, 4), action, dtype=np.int64), (
             f"uniform-{ACTION_NAMES[action].lower()}")
 
@@ -531,7 +704,7 @@ def optimizer_to(optimizer: torch.optim.Optimizer, device: torch.device) -> None
 
 
 def immutable_config(args: argparse.Namespace) -> dict:
-    return {
+    config = {
         "schema_version": 1,
         "model_path_i": str(args.model_path_i.resolve()),
         "model_path_p": str(args.model_path_p.resolve()),
@@ -555,6 +728,13 @@ def immutable_config(args: argparse.Namespace) -> dict:
         "full_model_finetuning": True,
         "single_gpu": True,
     }
+    if args.sampling_mode == "balanced":
+        config.update({
+            "sampling_mode": "balanced",
+            "sampling_schedule_schema_version": 1,
+            "sampling_schedule_steps": args.max_steps,
+        })
+    return config
 
 
 def save_resume(
@@ -634,6 +814,20 @@ def train_main(args: argparse.Namespace) -> None:
         inventory = source_inventory(args.reds_root, args.uvg_root)
         atomic_json(inventory_path, inventory)
 
+    sampling_schedule = None
+    if args.sampling_mode == "balanced":
+        sampling_schedule = balanced_sampling_schedule(
+            inventory, args.max_steps, args.seed,
+            args.uvg_probability, args.uniform_probability)
+        schedule_path = args.output_dir / "sampling_schedule.json"
+        if schedule_path.exists():
+            existing_schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+            if existing_schedule != sampling_schedule:
+                raise RuntimeError(
+                    "balanced sampling schedule differs from the existing run")
+        else:
+            atomic_json(schedule_path, sampling_schedule)
+
     i_net = DMCI()
     i_net.load_state_dict(get_state_dict(str(args.model_path_i)))
     p_net = DMC(ModelStructure.HTS)
@@ -692,9 +886,21 @@ def train_main(args: argparse.Namespace) -> None:
         if STOP_REQUESTED:
             break
         step_started = time.perf_counter()
+        scheduled_entry = (
+            sampling_schedule["entries"][step]
+            if sampling_schedule is not None else None)
         clip, sample, rng = load_training_clip(
-            inventory, step, args.seed, args.patch_size, args.uvg_probability)
-        first_actions, map_kind = route_action_map(rng, args.uniform_probability)
+            inventory, step, args.seed, args.patch_size, args.uvg_probability,
+            scheduled_entry=scheduled_entry)
+        first_actions, map_kind = route_action_map(
+            rng, args.uniform_probability,
+            forced_kind=(
+                scheduled_entry["route_kind"]
+                if scheduled_entry is not None else None),
+            forced_uniform_action=(
+                scheduled_entry["uniform_action"]
+                if scheduled_entry is not None else None),
+        )
         second_actions, changed_tiles = mutate_route(first_actions, rng)
         qp_first = qp_map_from_route(first_actions, args.patch_size).to(device)
         qp_second = qp_map_from_route(second_actions, args.patch_size).to(device)
@@ -748,6 +954,7 @@ def train_main(args: argparse.Namespace) -> None:
             "completed_step": completed_steps,
             "utc": utc_now(),
             "sample": sample,
+            "sampling_schedule": scheduled_entry,
             "map_kind": map_kind,
             "first_action_counts": action_counts(first_actions),
             "second_action_counts": action_counts(second_actions),
@@ -824,6 +1031,12 @@ def train_main(args: argparse.Namespace) -> None:
             "reds_sequence_count": inventory["reds_sequence_count"],
             "uvg_window_count": inventory["uvg_window_count"],
             "uvg_sampling_probability": args.uvg_probability,
+            "sampling_mode": args.sampling_mode,
+            "balanced_schedule_summary": (
+                {
+                    key: value for key, value in sampling_schedule.items()
+                    if key != "entries"
+                } if sampling_schedule is not None else None),
         },
         "exports": exports,
         "resume_checkpoint": str(resume_path.resolve()),
@@ -907,6 +1120,31 @@ def self_test() -> None:
     assert qp_map_from_route(actions_a, 256).shape == (1, 4, 4)
     assert qp_map_from_route(actions_a, 512).shape == (1, 8, 8)
 
+    synthetic_inventory = {
+        "records": [
+            {"dataset": "REDS-train", "sequence": f"{index:03d}"}
+            for index in range(240)
+        ] + [
+            {
+                "dataset": "UVG-adaptation",
+                "sequence": f"uvg-{source}-f{window:03d}-center",
+            }
+            for source in ("beauty", "bosphorus", "honeybee", "jockey", "shakendry")
+            for window in range(12)
+        ],
+    }
+    schedule_a = balanced_sampling_schedule(
+        synthetic_inventory, 1000, 4321, 0.25, 0.25)
+    schedule_b = balanced_sampling_schedule(
+        synthetic_inventory, 1000, 4321, 0.25, 0.25)
+    assert schedule_a == schedule_b
+    assert schedule_a["dataset_step_counts"] == {
+        "REDS-train": 750, "UVG-adaptation": 250}
+    assert set(schedule_a["uvg_source_step_counts"].values()) == {50}
+    assert schedule_a["uniform_step_counts"] == {
+        "REDS-train": 188, "UVG-adaptation": 62}
+    assert sum(schedule_a["uniform_step_counts"].values()) == 250
+
     torch.manual_seed(3)
     source = torch.randn(1, 3, 16, 16) * 0.1
     reconstruction = source + torch.randn_like(source) * 0.02
@@ -922,6 +1160,10 @@ def self_test() -> None:
     print(json.dumps({
         "status": "passed",
         "deterministic_step_sampler": True,
+        "deterministic_balanced_schedule": True,
+        "balanced_schedule_uvg_steps": 250,
+        "balanced_schedule_uvg_steps_per_source": 50,
+        "balanced_schedule_uniform_steps": 250,
         "route_grid": [4, 4],
         "syntax_grids": {"256_patch": [4, 4], "512_patch": [8, 8]},
         "uniform_spatial_loss_matches_upstream": True,

@@ -25,6 +25,8 @@ run_root=${RUN_ROOT:-$default_run_root}
 max_steps=${MAX_STEPS:-$default_steps}
 patch_size=${PATCH_SIZE:-$default_patch}
 save_every=${SAVE_EVERY:-$default_save_every}
+uvg_probability=${UVG_PROBABILITY:-0.107}
+sampling_mode=${SAMPLING_MODE:-random}
 training_root="$run_root/training"
 validation_root="$run_root/validation_step_${max_steps}"
 codec_root="$validation_root/codec"
@@ -90,7 +92,7 @@ trap fail EXIT INT TERM
 ) >> "$log_root/heartbeat.log" 2>&1 &
 heartbeat_pid=$!
 
-echo "START spatial_qp_finetune mode=$mode utc=$(date -u +%FT%TZ) steps=$max_steps patch=$patch_size"
+echo "START spatial_qp_finetune mode=$mode utc=$(date -u +%FT%TZ) steps=$max_steps patch=$patch_size uvg_probability=$uvg_probability sampling_mode=$sampling_mode"
 cd "$repo"
 [[ -x "$python_bin" ]]
 [[ -s "$model_i" ]]
@@ -113,7 +115,8 @@ fi
   --uvg-root "$persist/data/UVG_adaptation/samples" \
   --max-steps "$max_steps" --patch-size "$patch_size" \
   --learning-rate 2e-6 --weight-decay 1e-4 --max-grad-norm 0.2 \
-  --uvg-probability 0.107 --uniform-probability 0.25 \
+  --uvg-probability "$uvg_probability" --uniform-probability 0.25 \
+  --sampling-mode "$sampling_mode" \
   --seed 21260920 --save-every "$save_every" --log-every 1 \
   --amp-dtype bfloat16
 [[ -f "$training_root/training.complete" ]]

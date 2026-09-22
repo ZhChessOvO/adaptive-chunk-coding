@@ -49,18 +49,17 @@ monotonically, while LPIPS improves at every 0->0.25 and 0.25->0.50 step and at
 33/37 final steps.  The 9/4, 17/8, and 33/16 temporal-window sensitivity is
 also complete: 9/4 is slower and slightly weaker, while 17/8 and 33/16 are
 nearly tied.  Keep 17/8 as the general low-latency default and retain 33/16 as
-an optional offline-throughput mode.  The active stage is a bounded spatial
-grid and rectangular-aspect sensitivity check.  It compares 2x2, 4x4, and
-8x8 routing on four representative REDS/UVG samples, plus real 768x512 and
-1024x512 REDS crops.  Generate area and Enhance budget fractions stay fixed;
-regional utilities/costs are normalized to 128x128 area and the boundary
-penalty is scaled by physical edge length.  The already audited 4x4 results
-are reused after an exact generalized-feature/action regression.  Use
-`demo/run_stage_c_a800_grid_aspect_sensitivity.sh`.  This is a development
-sensitivity check, not a hard acceptance gate.  If measured adaptation remains
-unsuitable, a later experiment may compare another generation/restoration
-backend while holding the selected codec, routes, budgets, and evaluation
-inputs fixed.  Do not start
+an optional offline-throughput mode.  The bounded spatial-grid and rectangular-
+aspect sensitivity check is complete and keeps 4x4 as the general default.
+The active stage is domain-balanced spatial-QP codec v2: train fresh 1000-step
+candidates with exactly 25% and 50% UVG steps, balance those steps across the
+five UVG training sequences, and allocate uniform-QP rehearsal separately in
+each domain.  Use `demo/run_stage_c_a800_spatial_qp_balanced_v2.sh`; it runs
+both candidates sequentially on one GPU with atomic checkpoints.  Candidate
+quality must still be decided by the fixed actual-stream REDS/UVG curves, not
+by training loss.  If measured adaptation remains unsuitable, a later
+experiment may compare another generation/restoration backend while holding
+the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start
 multi-GPU production work without a new user decision.
 
 The current codec adaptation protocol is documented in

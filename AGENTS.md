@@ -51,16 +51,27 @@ also complete: 9/4 is slower and slightly weaker, while 17/8 and 33/16 are
 nearly tied.  Keep 17/8 as the general low-latency default and retain 33/16 as
 an optional offline-throughput mode.  The bounded spatial-grid and rectangular-
 aspect sensitivity check is complete and keeps 4x4 as the general default.
-The active stage is domain-balanced spatial-QP codec v2: train fresh 1000-step
-candidates with exactly 25% and 50% UVG steps, balance those steps across the
-five UVG training sequences, and allocate uniform-QP rehearsal separately in
-each domain.  Use `demo/run_stage_c_a800_spatial_qp_balanced_v2.sh`; it runs
-both candidates sequentially on one GPU with atomic checkpoints.  Candidate
-quality must still be decided by the fixed actual-stream REDS/UVG curves, not
-by training loss.  If measured adaptation remains unsuitable, a later
-experiment may compare another generation/restoration backend while holding
-the selected codec, routes, budgets, and evaluation inputs fixed.  Do not start
-multi-GPU production work without a new user decision.
+The domain-balanced spatial-QP codec v2 stage is complete.  Fresh 1000-step
+25%-UVG and 50%-UVG candidates were compared with the frozen codec and the
+REDS-dominant v1 on fixed actual-stream REDS/UVG curves; all 72 logical points
+passed stream-size and fresh-decode checks.  Increasing the UVG share only
+partly reduced the UVG penalty and also weakened the REDS gain, so the selected
+codec is the frozen DCVC-UF.  Keep the three adapted variants as training-recipe
+ablations; do not spend time running their rejected mixed-route candidates.
+The current performance configuration is frozen DCVC-UF + spatial-QP + the old
+v6 route + SeedVR2 LoRA 0.50.  The active stage is external-baseline comparison:
+first inventory checkpoints and implementations already present locally, then
+define a common multi-rate, actual-stream protocol and clearly separate locally
+measured curves from paper-reported numbers.  Per the user's 2026-09-22 scope
+decision, compare only DCVC-UF within the DCVC family for now; defer DCVC,
+DCVC-DC, DCVC-HEM, DCVC-TCM, DCVC-FM, and DCVC-RT until the paper-table stage.
+Prioritize genuinely different generative-video baselines instead.  Check
+existing files before any download and coordinate large missing downloads with
+the user because server network throughput is slow.  If external curves reveal
+a specific restoration bottleneck, a later experiment may compare another
+backend while holding the selected codec, routes, budgets, and evaluation
+inputs fixed.  Do not start multi-GPU production work without a new user
+decision.
 
 The current codec adaptation protocol is documented in
 `docs/CLOUD_A800_SPATIAL_QP_FINETUNE.md`.  It uses REDS training data plus the

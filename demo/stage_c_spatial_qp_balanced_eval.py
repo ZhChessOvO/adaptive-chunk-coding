@@ -179,11 +179,11 @@ def prepare_main(args: argparse.Namespace) -> None:
         },
         "balanced_25": checkpoint_record(
             args.balanced_25_image, args.balanced_25_video,
-            "spatial-qp-balanced-v2-uvg025",
+            "spatial-qp-finetuned",
         ),
         "balanced_50": checkpoint_record(
             args.balanced_50_image, args.balanced_50_video,
-            "spatial-qp-balanced-v2-uvg050",
+            "spatial-qp-finetuned",
         ),
     }
     tasks = []

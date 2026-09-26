@@ -1,4 +1,7 @@
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
+import time
 import numpy as np
 import torch
 
@@ -90,6 +93,32 @@ class PaddingTests(unittest.TestCase):
         (value["reconstruction"].mean()+value["bits"]*1e-6).backward()
         self.assertGreater(model.feature_synthesis[-1].weight.grad.abs().sum().item(), 0)
         self.assertTrue(all(p.grad is None for p in model.head.parameters()))
+
+
+class EvaluationQueueTests(unittest.TestCase):
+    def test_waits_for_training_without_cancelling_it(self):
+        from demo.chunk_enhancement_evaluate import exclusive_native_evaluation
+        updates = []
+        run = SimpleNamespace(started=time.monotonic(), check=lambda:None,
+                              update=lambda **kw:updates.append(kw))
+        with patch("demo.chunk_enhancement_evaluate.subprocess.check_output", side_effect=["12345\n", ""]), \
+             patch("demo.chunk_enhancement_evaluate.Path.read_bytes",
+                   return_value=b"python\0/demo/chunk_enhancement_experiment.py\0train\0"), \
+             patch("demo.chunk_enhancement_evaluate.time.sleep") as sleep:
+            with exclusive_native_evaluation(run):
+                self.assertEqual(updates[-1]["training_pids"], [12345])
+                self.assertGreaterEqual(run.gpu_wait_seconds, 0)
+            sleep.assert_called_once_with(2)
+
+    def test_exited_process_does_not_block_evaluation(self):
+        from demo.chunk_enhancement_evaluate import exclusive_native_evaluation
+        run = SimpleNamespace(started=time.monotonic(), check=lambda:None, update=lambda **kw:None)
+        with patch("demo.chunk_enhancement_evaluate.subprocess.check_output", return_value="12345\n"), \
+             patch("demo.chunk_enhancement_evaluate.Path.read_bytes", side_effect=FileNotFoundError), \
+             patch("demo.chunk_enhancement_evaluate.time.sleep") as sleep:
+            with exclusive_native_evaluation(run):
+                pass
+            sleep.assert_not_called()
 
 
 if __name__ == "__main__":

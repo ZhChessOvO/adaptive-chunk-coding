@@ -34,6 +34,13 @@ is retained. Use demo/run_patch_efficiency.sh in tmux (diagnostic, then train);
 the paired adaptation recipes share GPU 0 and have separate resume states.
 Progress and results: https://app.notion.com/p/3e78b22ebd8d81cda7eefa104f8debd7.
 Do not treat same-q byte savings with changed pixels as equal-quality savings.
+Native UF replay failed base-pixel hashes under concurrent GPU training and
+passed again when training was briefly paused. Keep native UF coding/decoding
+and timings exclusive from other GPU workloads; do not relax pixel validation.
+The evaluator queues until cached-feature training exits and serializes complete
+evaluations (including child decoders) with a parent-held lock. The exact native
+CUDA root cause is not yet established. Cached-feature training itself does not
+run the native base decoder.
 Do not make a second enhancement layer a prerequisite; preserve the two-level
 transform prototype as historical mechanism evidence. Retrain the router only
 after its new actions have real measured labels.

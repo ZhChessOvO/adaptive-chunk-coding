@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Fixed development comparison; not an independent test or a BD-rate claim."""
 import argparse
+from contextlib import contextmanager
+import fcntl
 import json
 import math
 from pathlib import Path
 import sys
+import subprocess
 import time
 
 import numpy as np
@@ -24,6 +27,49 @@ from demo.scalable_codec import atomic_bytes, atomic_json, file_hash
 from demo.scalable_experiment import quality, load_source, now
 from demo.scalable_format import parse
 from demo.stage_c_three_path_roi_probe import LPIPSAlex
+
+
+@contextmanager
+def exclusive_native_evaluation(run):
+    """Native FP16 UF replay was not pixel-stable under concurrent training.
+
+    Serialize top-level evaluations (children decode under this parent's lock),
+    and wait for the paired cached-feature training jobs to release GPU 0.
+    The heartbeat remains active while queued; no training is cancelled.
+    """
+    lock_path = Path("/root/autodl-tmp/DCVC/tmp/native_uf_evaluation.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a") as lock:
+        while True:
+            run.check()
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                run.update(phase="waiting_for_other_native_evaluation")
+                time.sleep(2)
+        while True:
+            run.check()
+            pids = subprocess.check_output(["nvidia-smi", "--query-compute-apps=pid",
+                                             "--format=csv,noheader,nounits"], text=True).splitlines()
+            training = []
+            for pid in pids:
+                if not pid.strip().isdigit():
+                    continue
+                try:
+                    command = Path(f"/proc/{pid.strip()}/cmdline").read_bytes().decode().split("\0")
+                except (FileNotFoundError, ProcessLookupError):
+                    continue
+                if any(c.endswith("chunk_enhancement_experiment.py") and i+1 < len(command)
+                       and command[i+1] == "train" for i,c in enumerate(command)):
+                    training.append(int(pid))
+            if not training:
+                break
+            run.update(phase="waiting_for_cached_feature_training", training_pids=training)
+            time.sleep(2)
+        run.gpu_wait_seconds = time.monotonic()-run.started
+        run.evaluation_started = time.monotonic()
+        yield
 
 
 def roi_psnr(source, output, rois, count=17):
@@ -198,7 +244,10 @@ def evaluate(args, run):
     fig.tight_layout()
     fig.savefig(args.output / "rd_diagnostic.png", dpi=160)
     atomic_json(args.output / "summary.json", {"protocol": protocol, "results": rows,
-                "seconds": time.monotonic()-run.started, "utc": now()})
+                "seconds": time.monotonic()-run.started,
+                "gpu_wait_seconds": getattr(run, "gpu_wait_seconds", 0),
+                "active_seconds": time.monotonic()-getattr(run, "evaluation_started", run.started),
+                "utc": now()})
 
 
 def main():
@@ -212,7 +261,8 @@ def main():
     run = Run(args)
     run.thread.start()
     try:
-        evaluate(args, run)
+        with exclusive_native_evaluation(run):
+            evaluate(args, run)
         run.log_resources()
         atomic_json(args.output / "evaluate.complete", {"utc": now()})
     finally:

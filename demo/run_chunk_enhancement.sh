@@ -39,6 +39,19 @@ if [[ ${1:-} == prefix-probe ]]; then
   shift
   exec python demo/patch_prefix_probe.py "$@"
 fi
+if [[ ${1:-} == generate-test ]]; then
+  exec python -m unittest demo.test_scalable_generation demo.test_chunk_enhancement demo.test_scalable_format demo.test_patch_efficiency demo.test_patch_prefix_probe -v
+fi
+if [[ ${1:-} == generate-probe ]]; then
+  shift
+  # All model files are already local. Prevent accidental network lookups.
+  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+  exec python demo/scalable_generation_experiment.py "$@"
+fi
+if [[ ${1:-} == generate-audit ]]; then
+  shift
+  exec python demo/audit_scalable_generation.py "$@"
+fi
 if [[ ${1:-} == evaluate ]]; then
   shift
   exec python demo/chunk_enhancement_evaluate.py "$@"

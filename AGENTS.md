@@ -45,6 +45,23 @@ prefix-probe in tmux; it validates per-prefix artifacts on resume and keeps GT
 only in the evaluator. These four previously used clips and their packet-benefit
 labels are development diagnostics, not a trained router or independent evidence.
 Prefix progress: https://app.notion.com/p/3e78b22ebd8d81e6bde2d5d32be18a8e.
+The prefix and bounded generation integration probes are complete. The latter is
+`bash demo/run_chunk_enhancement.sh generate-probe` in tmux; atomic per-point
+resume, checksummed protocol and native-GPU exclusion are built in. It compares
+Base/Enhance/Generate/combined/full-frame Generate on the same four development
+clips with fixed geometric actions, not a trained or semantic router. ACSG v1
+adds charged, versioned generation controls around unchanged ACSE v2 bytes;
+the base and enhanced pixels remain independent of generation. Use the existing
+local SeedVR2 BF16 and LoRA-0.50 assets, no new downloads or training. Run
+`generate-test` for the 33-test CPU regression suite. Implementation/results:
+https://app.notion.com/p/3e78b22ebd8d81379f43cb1a34f44792.
+All 28 fresh decodes (including repeats and generation-disabled fallback) and
+the artifact audit passed. Use `generate-audit` to recheck completed outputs;
+do not restart this pilot as new training. The next stage is mixed REDS/UVG
+labels for the new Base/Enhance/Generate actions, followed by transparent
+allocation and a lightweight router. Whole-frame LPIPS improves with the fixed
+combination, but not every metric improves; do not claim whole-system UF RD
+dominance or semantic reliability from four fixed geometric masks.
 Do not treat same-q byte savings with changed pixels as equal-quality savings.
 Native UF replay failed base-pixel hashes under concurrent GPU training and
 passed again when training was briefly paused. Keep native UF coding/decoding

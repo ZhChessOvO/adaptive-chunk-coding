@@ -165,7 +165,8 @@ def encode_enhancement(model, model_path, original_container, source, base, chun
 
 
 @torch.no_grad()
-def decode_enhancement(model, model_path, codec, data, *, allow_incomplete_tail=False):
+def decode_enhancement(model, model_path, codec, data, *, allow_incomplete_tail=False,
+                       return_base=False):
     parsed = parse(data, allow_incomplete_tail=allow_incomplete_tail)
     if (parsed.meta.get("enhancement_codec") != model.FORMAT
             or parsed.meta.get("enhancement_model_sha256") != file_hash(model_path)
@@ -209,4 +210,4 @@ def decode_enhancement(model, model_path, codec, data, *, allow_incomplete_tail=
               "non_enhanced_exact": True}
     if sum(report[k] for k in ("base_bytes", "container_header_bytes", "packet_bytes", "incomplete_tail_bytes")) != len(data):
         raise RuntimeError("byte accounting mismatch")
-    return output, report
+    return (output, report, base) if return_base else (output, report)

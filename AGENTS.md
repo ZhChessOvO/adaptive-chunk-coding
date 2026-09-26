@@ -6,7 +6,33 @@ Before changing code or starting an experiment, read these files in order:
 2. `docs/CLOUD_STORAGE_AND_UPLOAD.md`
 3. `docs/CLOUD_A800_PILOT.md`
 
-The current research line is budget-conditioned regional Generate / Base /
+## Current direction override (2026-09-26)
+
+The user approved the scalable pivot and implementation plan. This section
+supersedes every historical "current", "next", or authorization statement below.
+Use one immutable full-frame DCVC-UF QP8 base stream, append regional residual
+enhancement packets, and keep optional generation outside the base reference
+loop. Do not resume spatial-QP sweeps or external-baseline queues automatically.
+First implement and fresh-decode a simple transform-residual mechanism baseline;
+then prepare mixed REDS/UVG base caches and train a base-conditioned enhancement
+codec. Retrain the router only after its new actions have real measured labels.
+The transform baseline is not the proposed learned model or an efficiency claim.
+
+Method and research records live in Notion, not duplicate Git experiment docs:
+- Method: https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca
+- Technical design: https://app.notion.com/p/3e78b22ebd8d8181b12fec5580d401a6
+- Implementation: https://app.notion.com/p/3e78b22ebd8d81fabb93d6849dd03415
+- Old version: https://app.notion.com/p/3e78b22ebd8d817596eef1b4179a6bb4
+
+Keep one A800, tmux/resume, honest data roles, real on-disk byte accounting,
+fresh decode, fixed visualizations, and the storage rules below. Once a long
+job is stable, update Notion and hand off; do not keep watching it. Long training
+and later codec/generator adaptation are allowed, not mandatory for each stage.
+Coordinate new large downloads with the user. Preserve historical code/results.
+
+## Historical regional-routing handoff (superseded)
+
+The historical research line is budget-conditioned regional Generate / Base /
 Enhance routing around DCVC-UF. It is not the historical latent-prediction
 line. Preserve all E01-E18 and latent-predictor code as history, but do not
 make it a prerequisite for the current work.

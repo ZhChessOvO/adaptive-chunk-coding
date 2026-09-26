@@ -491,6 +491,7 @@ DMCHTSProxy::~DMCHTSProxy()
 
 void DMCHTSProxy::add_ref_feature_from_frame(const at::Tensor& frame, const bool apply_adaptor)
 {
+    m_decoded_features_valid = false;
     pre_allocate_tensors(frame);
     // must NOT use cuda graph becase frame.data_ptr() is non-const
     m_feature_i = pixel_unshuffle_cuda(frame, 8, m_feature_i);
@@ -504,6 +505,7 @@ void DMCHTSProxy::add_ref_feature_from_frame(const at::Tensor& frame, const bool
 py::tuple DMCHTSProxy::compress(const at::Tensor& x, const int qp, const bool reset_feature_memory,
                                 const int padding_b, const int padding_r)
 {
+    m_decoded_features_valid = false;
     m_result_ready = false;
     m_qp = qp;
 
@@ -706,7 +708,14 @@ std::vector<at::Tensor> DMCHTSProxy::decompress(const py::array_t<uint8_t>& bit_
 
     m_memory_has_value = !reset_feature_memory;  // host operation. must be outside of cuda graph
 
+    m_decoded_features_valid = true;
     return m_x_hat;
+}
+
+std::vector<at::Tensor> DMCHTSProxy::get_decoded_features() const
+{
+    TORCH_CHECK(m_decoded_features_valid, "decode a P8 chunk before reading its features");
+    return { m_feature_p.clone(), m_ctx.clone() };
 }
 
 void DMCHTSProxy::set_param(const std::map<std::string, at::Tensor>& state_dict,

@@ -28,6 +28,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
         .def("set_param", &DMCHTSProxy::set_param)
         .def("add_ref_feature_from_frame", &DMCHTSProxy::add_ref_feature_from_frame)
         .def("compress", &DMCHTSProxy::compress)
+        .def("get_decoded_features", &DMCHTSProxy::get_decoded_features)
         .def("decompress", &DMCHTSProxy::decompress);
 
     py::class_<DMCLDProxy>(m, "DMCLDProxy")

@@ -235,6 +235,9 @@ public:
                                        const bool reset_feature_memory);
     void set_param(const std::map<std::string, at::Tensor>& state_dict, const float skip_threshold);
 
+    // Detached copies: callers cannot mutate the base reference or CUDA graph buffers.
+    std::vector<at::Tensor> get_decoded_features() const;
+
 private:
     void worker();
 
@@ -312,6 +315,7 @@ private:
     cudaGraphExec_t m_gexec_dec_2{ nullptr };
     cudaGraphExec_t m_gexec_dec_3[g_qp_num]{ nullptr };
     bool m_memory_has_value{ true };
+    bool m_decoded_features_valid{ false };
     at::Tensor m_mask_0;
     at::Tensor m_mask_1;
     at::Tensor m_mask_2;

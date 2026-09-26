@@ -65,7 +65,9 @@ setup(
     ext_modules=[
         CUDAExtension(
             name='inference_extensions_cuda',
-            include_dirs=[
+            # Match the runtime's complete headers when nvcc is installed separately.
+            include_dirs=([os.environ['DCVC_CUDA_INCLUDE']]
+                          if os.environ.get('DCVC_CUDA_INCLUDE') else []) + [
                 os.path.join(cutlass_path, 'include'),
                 os.path.join(cutlass_path, 'tools', 'util', 'include'),
                 py_rans_path

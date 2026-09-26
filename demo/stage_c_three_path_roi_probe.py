@@ -299,6 +299,7 @@ def decode_dcvc_stream(
     i_net: DMCI,
     p_net: DMC,
     device: torch.device,
+    chunk_observer=None,
 ) -> list[np.ndarray]:
     stream = io.BytesIO(data)
     sps_helper = SPSHelper()
@@ -325,6 +326,8 @@ def decode_dcvc_stream(
             outputs = decoded["x_hat"]
         else:
             raise ValueError(f"unexpected NAL type {header['nal_type']}")
+        if chunk_observer is not None:
+            chunk_observer(len(frames), sps, outputs)
         for output in outputs[:frame_count - len(frames)]:
             frames.append(rgb_from_tensor(output, sps["height"], sps["width"]))
     if stream.tell() != len(data):

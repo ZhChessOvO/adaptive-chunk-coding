@@ -15,7 +15,12 @@ enhancement packets, and keep optional generation outside the base reference
 loop. Do not resume spatial-QP sweeps or external-baseline queues automatically.
 First implement and fresh-decode a simple transform-residual mechanism baseline;
 then prepare mixed REDS/UVG base caches and train a base-conditioned enhancement
-codec. Retrain the router only after its new actions have real measured labels.
+codec. The approved learned candidate now uses one optional enhancement layer
+per region and UF-aligned 8-frame chunk, conditioned on actual decoded UF
+features and base temporal context in analysis, entropy modeling and synthesis.
+Do not make a second enhancement layer a prerequisite; preserve the two-level
+transform prototype as historical mechanism evidence. Retrain the router only
+after its new actions have real measured labels.
 The transform baseline is not the proposed learned model or an efficiency claim.
 
 Method and research records live in Notion, not duplicate Git experiment docs:
@@ -26,7 +31,10 @@ Method and research records live in Notion, not duplicate Git experiment docs:
 
 Keep one A800, tmux/resume, honest data roles, real on-disk byte accounting,
 fresh decode, fixed visualizations, and the storage rules below. Once a long
-job is stable, update Notion and hand off; do not keep watching it. Long training
+job is stable, keep working on useful next steps and update Notion. The latest
+user instruction supersedes the former automatic handoff: do not end a session
+merely because a tmux job started; hand off when requested or discussion is needed.
+Long training
 and later codec/generator adaptation are allowed, not mandatory for each stage.
 Coordinate new large downloads with the user. Preserve historical code/results.
 

@@ -44,6 +44,23 @@ def main():
     fig.savefig(args.root / "comparison_rd.png", dpi=160)
     plt.close(fig)
 
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for ax, a, b in zip(axes.ravel(), first["results"], second["results"]):
+        uf_keys = [k for k in ("base", "uf16", "uf24", "uf32") if k in a["points"]]
+        for label, row, keys, marker in (("Native UF (whole frame)", a, uf_keys, "o"),
+                                        ("Single layer (2 regions)", b, ["q2", "q1", "q0.5"], "^")):
+            values = sorted([row["points"][k] for k in keys], key=lambda v: v["bytes"])
+            ax.plot([v["bytes"]/1000 for v in values], [v["roi_psnr"] for v in values], marker=marker, label=label)
+        ax.set_title(b["sample"]["sample_id"])
+        ax.set_xlabel("Total on-disk kB")
+        ax.set_ylabel("Selected-region PSNR (dB)")
+        ax.grid(alpha=.25)
+        ax.legend(fontsize=8)
+    fig.suptitle("Local-fidelity diagnostic, NOT matched whole-frame quality or BD-rate")
+    fig.tight_layout()
+    fig.savefig(args.root / "comparison_rd_focus.png", dpi=160)
+    plt.close(fig)
+
     # Magnified fixed frame: source / base / proposed q=1 / native UF32.
     # Reading the already rendered contact sheet avoids fresh metrics or new data.
     for row in second["results"]:

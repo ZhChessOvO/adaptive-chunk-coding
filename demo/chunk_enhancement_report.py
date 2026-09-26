@@ -15,11 +15,19 @@ def main():
     args = p.parse_args()
     first = json.loads((args.root / "evaluation/summary.json").read_text())
     second = json.loads((args.root / "evaluation_warmup/summary.json").read_text())
+    extra_path = args.root / "uf_intermediate/summary.json"
+    extras = json.loads(extra_path.read_text())["results"] if extra_path.exists() else []
+    extra_by_id = {r["sample"]["sample_id"]: r for r in extras}
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     for ax, a, b in zip(axes.ravel(), first["results"], second["results"]):
         assert a["sample"] == b["sample"] and a["rois"] == b["rois"]
+        extra = extra_by_id.get(a["sample"]["sample_id"])
+        uf_keys = ["base", "uf32"]
+        if extra:
+            a["points"].update(extra["points"])
+            uf_keys = ["base", "uf16", "uf24", "uf32"]
         for label, data, keys, style in (
-                ("UF (full-frame reference)", a, ["base", "uf32"], "o-"),
+                ("UF (full-frame reference)", a, uf_keys, "o-"),
                 ("Haar (1 / 2 level prefixes)", a, ["a1_b1", "two_levels"], "s-"),
                 ("Neural: collapsed first recipe", a, ["q2", "q1", "q0.5"], "x:"),
                 ("Neural: revised training", b, ["q2", "q1", "q0.5"], "^-")):

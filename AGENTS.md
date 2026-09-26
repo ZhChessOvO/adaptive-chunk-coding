@@ -18,6 +18,14 @@ then prepare mixed REDS/UVG base caches and train a base-conditioned enhancement
 codec. The approved learned candidate now uses one optional enhancement layer
 per region and UF-aligned 8-frame chunk, conditioned on actual decoded UF
 features and base temporal context in analysis, entropy modeling and synthesis.
+The user has selected the feature-correction candidate as the default next-stage
+Enhance implementation: keep UF frozen, predict a display-only feature delta,
+and anchor the correction as H(F+delta)-H(F) using the frozen UF reconstruction
+head. Retain the RGB-output candidate as a comparison, not the default. This
+is a research choice despite mixed metrics, not a claim of universal dominance.
+q0.5/q1/q2 denote quantization steps, not model versions or additional layers.
+Use demo/run_feature_head_pilot.sh for its reproducible completed pilot; results
+and next-stage decisions live at https://app.notion.com/p/3e78b22ebd8d819a86cae48b4fc3d689.
 Do not make a second enhancement layer a prerequisite; preserve the two-level
 transform prototype as historical mechanism evidence. Retrain the router only
 after its new actions have real measured labels.

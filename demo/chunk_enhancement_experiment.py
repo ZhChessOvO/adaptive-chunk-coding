@@ -240,7 +240,11 @@ def train_main(args, run):
               "lambdas": [256.0, 128.0, 64.0], "temporal_weight": 8.0,
               "learning_rate": 1e-4, "base_frozen": True, "single_enhancement_layer": True,
               "uvg_sampling_probability": 0.25,
+              "warmup_steps": args.warmup_steps, "rate_ramp_steps": args.rate_ramp_steps,
+              "initial_gain": args.initial_gain, "lambda_scale": args.lambda_scale,
               "code_hashes": {p: file_hash(REPO / p) for p in CODE_FILES}}
+    if min(args.warmup_steps, args.rate_ramp_steps) < 0 or min(args.initial_gain, args.lambda_scale) <= 0:
+        raise ValueError("invalid warmup, rate ramp or initialization")
     config_path = args.output / "config.json"
     if config_path.exists() and read(config_path) != config:
         raise RuntimeError("training code/config changed; use a new run directory")
@@ -249,6 +253,9 @@ def train_main(args, run):
     np.random.seed(config["seed"])
     torch.manual_seed(config["seed"])
     model = ChunkEnhancement().cuda().train()
+    with torch.no_grad():
+        model.analysis[-1].weight.mul_(args.initial_gain)
+        model.synthesis[-1].weight.mul_(args.initial_gain)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     rng = random.Random(config["seed"])
     step = 0
@@ -308,7 +315,10 @@ def train_main(args, run):
             mse = (pred-truth).square().mean()
             temporal = ((pred[1:]-pred[:-1])-(truth[1:]-truth[:-1])).square().mean() if count > 1 else mse*0
             bpp = prediction["bits"] / (count*size*size)
-            loss = bpp + weight*mse + config["temporal_weight"]*temporal
+            rate_weight = min(1.0, max(0.0, (step-config["warmup_steps"])/max(1, config["rate_ramp_steps"])))
+            if config["warmup_steps"] == 0 and config["rate_ramp_steps"] == 0:
+                rate_weight = 1.0
+            loss = rate_weight*bpp + weight*config["lambda_scale"]*mse + config["temporal_weight"]*temporal
             loss.backward()
             grad = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0, error_if_nonfinite=True)
             if not torch.isfinite(loss) or prediction["saturated"].item():
@@ -319,6 +329,9 @@ def train_main(args, run):
             event = {"step": step, "dataset": dataset, "sample_id": sid, "roi": roi,
                      "start": start, "count": count, "qstep": qstep, "loss": loss.item(),
                      "bpp_estimate": bpp.item(), "psnr": -10*math.log10(max(mse.item(), 1e-12)),
+                     "rate_weight": rate_weight,
+                     "y_nonzero_fraction": (prediction["y_symbols"] != 0).float().mean().item(),
+                     "z_nonzero_fraction": (prediction["z_symbols"] != 0).float().mean().item(),
                      "base_psnr": -10*math.log10(max((bottom.reshape(8,3,size,size)[:count]-truth).square().mean().item(), 1e-12)),
                      "temporal_mse": temporal.item(), "grad_norm": grad.item(),
                      "seconds": time.monotonic()-t0, "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated()}
@@ -347,6 +360,10 @@ def main():
     parser.add_argument("--limit", type=int)
     parser.add_argument("--steps", type=int, default=10000)
     parser.add_argument("--save-every", type=int, default=250)
+    parser.add_argument("--warmup-steps", type=int, default=0)
+    parser.add_argument("--rate-ramp-steps", type=int, default=0)
+    parser.add_argument("--initial-gain", type=float, default=1.0)
+    parser.add_argument("--lambda-scale", type=float, default=1.0)
     parser.add_argument("--feature-manifest", type=Path)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--stream", type=Path)

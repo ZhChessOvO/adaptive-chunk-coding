@@ -12,10 +12,24 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from demo.scalable_codec import atomic_json, file_hash
+from demo.scalable_experiment import load_source
 
 
 def read(path):
     return json.loads(path.read_text())
+
+
+def temporal_parts(source, decoded, rois):
+    """Separate the retained I-frame branch from the new P8 feature branch."""
+    out = {}
+    for name, frames in (("I", slice(0, 1)), ("P8x2", slice(1, 17))):
+        errors = []
+        for x, y, w, h in rois:
+            a, b = source[frames, y:y+h, x:x+w], decoded[frames, y:y+h, x:x+w]
+            errors.append((a.astype(np.float64)-b.astype(np.float64)).reshape(-1))
+        mse = np.mean(np.concatenate(errors)**2)
+        out[name] = -10*np.log10(max(mse, 1e-12)/255**2)
+    return out
 
 
 def main():
@@ -39,14 +53,25 @@ def main():
             assert n["points"][key]["fresh_decode"]["base_hash"] == o["points"][key]["fresh_decode"]["base_hash"]
         uf = {k: n["points"][k] for k in ("base", "uf32")}
         uf.update(extra["points"])
+        source = load_source(n["sample"])
+        parts = {}
+        for name, root, result in (("rgb", args.reference / "evaluation_warmup", o),
+                                   ("head", args.root / "evaluation", n)):
+            with np.load(root / sid / "q1/reconstruction.npz") as cache:
+                parts[name] = {"roi_psnr": temporal_parts(source, cache["reconstruction"], n["rois"])}
+            packets = result["points"]["q1"]["packet_details"]
+            parts[name]["packet_bytes_excluding_global_header"] = {
+                label: sum(v["packet_bytes"] for v in packets if (v["start"] == 0) == is_i)
+                for label, is_i in (("I", True), ("P8x2", False))}
         rows.append({"sample": n["sample"], "rois": n["rois"], "uf": uf,
+                     "q1_temporal_parts": parts,
                      "rgb": {k: o["points"][k] for k in qkeys},
                      "head": {k: n["points"][k] for k in qkeys},
                      "head_information_diagnostic": n["information_diagnostic"],
                      "rgb_information_diagnostic": o["information_diagnostic"]})
     for metric, ylabel, filename in (
             (lambda v: v["roi_psnr"], "Selected-region PSNR (dB), higher is better", "comparison_roi_rd.png"),
-            (lambda v: v["quality"]["lpips"], "Whole-frame LPIPS, lower is better", "comparison_lpips_rd.png")):
+            (lambda v: v["quality"]["lpips_alex"], "Whole-frame LPIPS, lower is better", "comparison_lpips_rd.png")):
         fig, axes = plt.subplots(2, 2, figsize=(12, 8))
         for ax, row in zip(axes.ravel(), rows):
             for key, label, marker in (("uf", "UF (whole frame)", "o"),
@@ -95,7 +120,7 @@ def main():
     for row in rows:
         print(json.dumps({"sample": row["sample"]["sample_id"], "q1": {
             k: {"bytes": row[k]["q1"]["bytes"], "roi_psnr": row[k]["q1"]["roi_psnr"],
-                "lpips": row[k]["q1"]["quality"]["lpips"]} for k in ("rgb", "head")}}))
+                "lpips": row[k]["q1"]["quality"]["lpips_alex"]} for k in ("rgb", "head")}}))
 
 
 if __name__ == "__main__":

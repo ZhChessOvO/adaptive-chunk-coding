@@ -16,3 +16,9 @@ bash demo/run_chunk_enhancement.sh train --architecture uf_head \
 bash demo/run_chunk_enhancement.sh evaluate --checkpoint "$pilot/train/final.pt" \
   --output "$pilot/evaluation" >> "$pilot/evaluation.log" 2>&1
 "$python" demo/feature_head_report.py --root "$pilot" > "$pilot/report.log" 2>&1
+# The same environment as the coding wrapper; no package installation.
+env_root=/root/autodl-tmp/DCVC/envs/dcvcuf
+export LD_LIBRARY_PATH="$env_root/lib/python3.12/site-packages/nvidia/cu13/lib:$env_root/targets/x86_64-linux/lib:$env_root/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}"
+export PYTHONPATH="$repo:${PYTHONPATH:-}"
+export CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4
+"$python" demo/feature_head_timing.py --root "$pilot" > "$pilot/timing.log" 2>&1

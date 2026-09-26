@@ -33,6 +33,18 @@ The pad16 feature-head model has a distinct format ID; old model/stream behavior
 is retained. Use demo/run_patch_efficiency.sh in tmux (diagnostic, then train);
 the paired adaptation recipes share GPU 0 and have separate resume states.
 Progress and results: https://app.notion.com/p/3e78b22ebd8d81cda7eefa104f8debd7.
+The paired 20,000-step continuation, real-stream evaluations and timing are now
+complete. Use train_l4/final.pt (A) under a800_patch_efficiency_20260926 as the
+next-stage fidelity-oriented Enhance default; retain train_l2 (B) as the
+rate-focused comparison. This is a development choice, not universal RD dominance.
+Do not restart the completed training pipeline. Its recorded code is fd4e381;
+reproducing its strict resume config requires that version, not a modified wrapper.
+The next bounded probe measures every complete prefix of the same q=1 encoding,
+not a sweep of separately encoded q values. Run demo/run_chunk_enhancement.sh
+prefix-probe in tmux; it validates per-prefix artifacts on resume and keeps GT
+only in the evaluator. These four previously used clips and their packet-benefit
+labels are development diagnostics, not a trained router or independent evidence.
+Prefix progress: https://app.notion.com/p/3e78b22ebd8d81e6bde2d5d32be18a8e.
 Do not treat same-q byte savings with changed pixels as equal-quality savings.
 Native UF replay failed base-pixel hashes under concurrent GPU training and
 passed again when training was briefly paused. Keep native UF coding/decoding

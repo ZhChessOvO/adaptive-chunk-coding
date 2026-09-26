@@ -35,6 +35,10 @@ if [[ ${1:-} == efficiency-timing ]]; then
   shift
   exec python demo/patch_efficiency_timing.py "$@"
 fi
+if [[ ${1:-} == prefix-probe ]]; then
+  shift
+  exec python demo/patch_prefix_probe.py "$@"
+fi
 if [[ ${1:-} == evaluate ]]; then
   shift
   exec python demo/chunk_enhancement_evaluate.py "$@"

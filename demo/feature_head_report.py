@@ -32,6 +32,25 @@ def temporal_parts(source, decoded, rois):
     return out
 
 
+def boundary_panel(path, frames, roi):
+    """Include unmodified neighbors; do not draw over the actual patch seam."""
+    x, y, w, h = roi
+    margin, zoom = 16, 3
+    height, width = next(iter(frames.values())).shape[:2]
+    box = max(0, x-margin), max(0, y-margin), min(width, x+w+margin), min(height, y+h+margin)
+    tile_w = max((box[2]-box[0])*zoom, 280)
+    tile_h = (box[3]-box[1])*zoom
+    canvas = Image.new("RGB", (tile_w*len(frames), tile_h+52), "white")
+    draw = ImageDraw.Draw(canvas)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+    for i, (name, frame) in enumerate(frames.items()):
+        crop = Image.fromarray(frame).crop(box)
+        canvas.paste(crop.resize((crop.width*zoom, crop.height*zoom), Image.Resampling.NEAREST), (i*tile_w, 52))
+        draw.text((i*tile_w+5, 5), name, fill="black", font=font)
+        draw.text((i*tile_w+5, 27), "Frame 8; +16px context; no overlay", fill="black", font=font)
+    canvas.save(path)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root", type=Path, required=True)
@@ -67,14 +86,22 @@ def main():
         uf.update(extra["points"])
         source = load_source(n["sample"])
         parts = {}
+        frames = {"Source": source[8]}
+        historical = Path("/root/autodl-fs/DCVC/runs/a800_scalable_mechanism_20260926/samples") / sid
+        with np.load(historical / "base.npz") as cache:
+            frames["UF8 base"] = cache["base"][8]
         for name, root, result in (("rgb", args.reference / "evaluation_warmup", o),
                                    ("head", args.root / "evaluation", n)):
             with np.load(root / sid / "q1/reconstruction.npz") as cache:
-                parts[name] = {"roi_psnr": temporal_parts(source, cache["reconstruction"], n["rois"])}
+                decoded = cache["reconstruction"]
+                parts[name] = {"roi_psnr": temporal_parts(source, decoded, n["rois"])}
+                frames[{"rgb": "RGB patch q=1", "head": "Feature patch q=1"}[name]] = decoded[8].copy()
             packets = result["points"]["q1"]["packet_details"]
             parts[name]["packet_bytes_excluding_global_header"] = {
                 label: sum(v["packet_bytes"] for v in packets if (v["start"] == 0) == is_i)
                 for label, is_i in (("I", True), ("P8x2", False))}
+        frames["UF32 reference"] = np.asarray(Image.open(sorted((historical / "uf32_fresh").glob("*.png"))[8]).convert("RGB"))
+        boundary_panel(args.root / f"boundary_{sid}.png", frames, n["rois"][0])
         rows.append({"sample": n["sample"], "rois": n["rois"], "uf": uf,
                      "q1_temporal_parts": parts,
                      "rgb": {k: o["points"][k] for k in qkeys},

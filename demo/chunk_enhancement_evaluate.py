@@ -15,7 +15,10 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from demo.chunk_enhancement_codec import configure_torch, decode_features, encode_enhancement, load_model
+from demo.chunk_enhancement_codec import (
+    configure_torch, decode_features, encode_enhancement, load_model,
+    pack_region, region_features, unpack_region,
+)
 from demo.chunk_enhancement_experiment import Run, MECHANISM, codec, fresh_decode, read
 from demo.scalable_codec import atomic_bytes, atomic_json, file_hash
 from demo.scalable_experiment import quality, load_source, now
@@ -31,6 +34,36 @@ def roi_psnr(source, output, rois, count=17):
         squared += np.square(diff).sum()
         n += diff.size
     return 10 * math.log10(255**2 / max(squared/n, 1e-12))
+
+
+@torch.no_grad()
+def information_diagnostic(model, source, base, chunks, rois):
+    """No-source restoration diagnostic, NOT a separately trained RD baseline.
+
+    Zero discrete y/z symbols, retain the same learned conditional mean/synthesis.
+    This exposes improvements already predictable from the base. The real packet
+    reconstruction is measured separately. No zero-byte claim is made for control.
+    """
+    output = base.copy()
+    counts = {"y_symbols": 0, "nonzero_y": 0, "z_symbols": 0, "nonzero_z": 0}
+    for chunk in chunks:
+        start, count = chunk["start"], chunk["count"]
+        for roi in rois:
+            bottom = pack_region(base, start, count, roi, "cuda")
+            target = pack_region(source, start, count, roi, "cuda")
+            features = region_features(chunk, roi, "cuda")
+            result = model(target, bottom, features, 1.0, count)
+            for kind in ("y", "z"):
+                symbols = result[f"{kind}_symbols"]
+                counts[f"{kind}_symbols"] += symbols.numel()
+                counts[f"nonzero_{kind}"] += torch.count_nonzero(symbols).item()
+            c = model.condition(bottom, features, 1.0, count)
+            z = torch.zeros_like(model.scales_z(c))
+            mean, _ = model.prior_y(c, z)
+            reconstructed = model.reconstruct(bottom, c, mean, 1.0)
+            x, y, w, h = roi
+            output[start:start+count, y:y+h, x:x+w] = unpack_region(reconstructed, count, roi)
+    return output, counts
 
 
 def visualize(path, source, images, points, rois):
@@ -128,8 +161,16 @@ def evaluate(args, run):
                     raise RuntimeError("not a true byte prefix")
             print(json.dumps({"sample": sid, "quality": name, "bytes": points[name]["bytes"],
                               "roi_psnr": points[name]["roi_psnr"]}), flush=True)
+        prior_only, symbols = information_diagnostic(model, source, base, chunks, rois)
+        diagnostic = {"kind": "zero_discrete_symbols_same_trained_decoder",
+                      "not_separately_trained_ablation": True, "not_an_rd_point": True,
+                      "roi_psnr": roi_psnr(source, prior_only, rois),
+                      "quality": quality(source, prior_only, metric), "symbols": symbols,
+                      "q1_vs_prior_roi_psnr": points["q1"]["roi_psnr"]-roi_psnr(source, prior_only, rois),
+                      "q1_pixels_different_from_prior": int(np.count_nonzero(images["q1"] != prior_only))}
         visualize(root / "fixed_frame.png", source, images, points, rois)
         result = {"sample": sample, "rois": rois, "points": points,
+                  "information_diagnostic": diagnostic,
                   "checkpoint_sha256": protocol["checkpoint_sha256"], "fresh_decode_exact": True,
                   "artifacts": {str(p.relative_to(root)): file_hash(p) for p in root.rglob("*") if p.is_file()}}
         atomic_json(root / "result.json", result)

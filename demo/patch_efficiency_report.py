@@ -55,7 +55,8 @@ def main():
     keys = ["q2", "q1", "q0.5"]
     labels = {"uf":"Native UF (whole frame)", "original":"Feature patch: original",
               "compact":"Same pixels, compact header", "pad16":"Compact + pad16, no training",
-              "train_l4":"Pad16 adapted, loss weight 4", "train_l2":"Pad16 adapted, loss weight 2"}
+              "train_l4":"Continuation A (same RD weight)",
+              "train_l2":"Continuation B (rate-focused)"}
     rows = []
     for i, original in enumerate(data["original"]):
         sid = original["sample"]["sample_id"]

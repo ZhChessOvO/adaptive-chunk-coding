@@ -25,7 +25,15 @@ if [[ ${1:-} == build ]]; then
   exec python -m pip install --no-deps --no-index --no-build-isolation .
 fi
 if [[ ${1:-} == test ]]; then
-  exec python -m unittest demo.test_chunk_enhancement demo.test_scalable_format -v
+  exec python -m unittest demo.test_chunk_enhancement demo.test_scalable_format demo.test_patch_efficiency -v
+fi
+if [[ ${1:-} == efficiency ]]; then
+  shift
+  exec python demo/patch_efficiency_experiment.py "$@"
+fi
+if [[ ${1:-} == efficiency-timing ]]; then
+  shift
+  exec python demo/patch_efficiency_timing.py "$@"
 fi
 if [[ ${1:-} == evaluate ]]; then
   shift

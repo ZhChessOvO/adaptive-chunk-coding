@@ -49,9 +49,9 @@ def information_diagnostic(model, source, base, chunks, rois):
     for chunk in chunks:
         start, count = chunk["start"], chunk["count"]
         for roi in rois:
-            bottom = pack_region(base, start, count, roi, "cuda")
-            target = pack_region(source, start, count, roi, "cuda")
-            features = region_features(chunk, roi, "cuda", getattr(model, "feature_halo", 0))
+            bottom = pack_region(base, start, count, roi, "cuda", model.spatial_alignment)
+            target = pack_region(source, start, count, roi, "cuda", model.spatial_alignment)
+            features = region_features(chunk, roi, "cuda", getattr(model, "feature_halo", 0), model.spatial_alignment)
             result = model(target, bottom, features, 1.0, count)
             for kind in ("y", "z"):
                 symbols = result[f"{kind}_symbols"]
@@ -96,7 +96,8 @@ def evaluate(args, run):
                 "evaluation_code_sha256": file_hash(Path(__file__)), "qsteps": [0.5, 1.0, 2.0],
                 "samples": [r["sample"] for r in previous], "data_role": "previously used mechanism development",
                 "enhance_first_frames": 17, "generate": False, "router": False,
-                "same_rois_as_haar": True, "separate_q_encodings_are_not_prefixes": True}
+                "same_rois_as_haar": True, "separate_q_encodings_are_not_prefixes": True,
+                "compact_framing": args.compact}
     if (args.output / "protocol.json").exists() and read(args.output / "protocol.json") != protocol:
         raise RuntimeError("evaluation protocol changed; use another output directory")
     atomic_json(args.output / "protocol.json", protocol)
@@ -138,7 +139,7 @@ def evaluate(args, run):
             name = f"q{q:g}"
             start = time.monotonic()
             prefix, wires, expected, details = encode_enhancement(
-                model, args.checkpoint, original, source, base, chunks, rois, q)
+                model, args.checkpoint, original, source, base, chunks, rois, q, compact=args.compact)
             torch.cuda.synchronize()
             encode_seconds = time.monotonic()-start
             stream = root / f"{name}.acse"
@@ -205,6 +206,7 @@ def main():
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--max-hours", type=float, default=4)
+    parser.add_argument("--compact", action="store_true")
     args = parser.parse_args()
     args.command = "evaluate"
     run = Run(args)

@@ -102,6 +102,9 @@ def packet_bytes(meta: dict, payload: bytes) -> bytes:
 
 
 def parse(data: bytes, *, allow_incomplete_tail: bool = False) -> Container:
+    if len(data) >= 5 and data[:4] == MAGIC and data[4] == 2:
+        from demo.compact_enhancement_format import parse as parse_compact
+        return parse_compact(data, allow_incomplete_tail=allow_incomplete_tail)
     if len(data) < HEADER.size:
         raise ValueError("truncated global header")
     magic, version, nmeta, nbase = HEADER.unpack_from(data)

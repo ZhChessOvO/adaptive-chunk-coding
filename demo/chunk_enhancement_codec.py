@@ -64,7 +64,9 @@ def decode_features(codec: BaseCodec, container: bytes, *, mutate_copies=False):
     return base, chunks
 
 
-def pack_region(frames, start, count, roi, device):
+def pack_region(frames, start, count, roi, device, alignment=64):
+    if alignment not in (16, 64) or not 1 <= count <= 8:
+        raise ValueError("invalid spatial alignment or chunk length")
     x, y, w, h = roi
     data = np.ascontiguousarray(frames[start:start+count, y:y+h, x:x+w])
     if data.shape != (count, h, w, 3):
@@ -73,10 +75,10 @@ def pack_region(frames, start, count, roi, device):
     if count < 8:
         t = torch.cat((t, t[-1:].expand(8-count, -1, -1, -1)), 0)
     t = t.reshape(1, 24, h, w)
-    return F.pad(t, (0, -w % 64, 0, -h % 64), mode="replicate")
+    return F.pad(t, (0, -w % alignment, 0, -h % alignment), mode="replicate")
 
 
-def region_features(chunk, roi, device, halo=0):
+def region_features(chunk, roi, device, halo=0, alignment=64):
     x, y, w, h = roi
     if x % 8 or y % 8:
         raise ValueError("feature-conditioned region origin must align to 8 pixels")
@@ -87,7 +89,8 @@ def region_features(chunk, roi, device, halo=0):
         # At full-frame boundaries the external feature halo is zero-filled.
         grid = chunk["features"]
         left, top = x//8-halo, y//8-halo
-        right, bottom = x//8+(w+63)//64*8+halo, y//8+(h+63)//64*8+halo
+        right = x//8+(w+alignment-1)//alignment*(alignment//8)+halo
+        bottom = y//8+(h+alignment-1)//alignment*(alignment//8)+halo
         gh, gw = grid.shape[-2:]
         f = grid[..., max(top, 0):min(bottom, gh), max(left, 0):min(right, gw)]
         return F.pad(f.to(device, torch.float32),
@@ -96,7 +99,7 @@ def region_features(chunk, roi, device, halo=0):
     f = chunk["features"][:, :, y//8:y//8+h8, x//8:x//8+w8].to(device, torch.float32)
     if f.shape[-2:] != (h8, w8):
         raise ValueError("region outside decoded feature grid")
-    return F.pad(f, (0, (-w % 64 + w)//8 - w8, 0, (-h % 64 + h)//8 - h8), mode="replicate")
+    return F.pad(f, (0, (-w % alignment + w)//8 - w8, 0, (-h % alignment + h)//8 - h8), mode="replicate")
 
 
 def unpack_region(tensor, count, roi):
@@ -107,9 +110,10 @@ def unpack_region(tensor, count, roi):
 
 def load_model(path, device="cuda:0"):
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    from demo.feature_head_enhancement import FeatureHeadEnhancement
+    from demo.feature_head_enhancement import FeatureHeadEnhancement, Pad16FeatureHeadEnhancement
     architectures = {ChunkEnhancement.FORMAT: ChunkEnhancement,
-                     FeatureHeadEnhancement.FORMAT: FeatureHeadEnhancement}
+                     FeatureHeadEnhancement.FORMAT: FeatureHeadEnhancement,
+                     Pad16FeatureHeadEnhancement.FORMAT: Pad16FeatureHeadEnhancement}
     if checkpoint.get("format") not in architectures:
         raise ValueError("not a chunk enhancement checkpoint")
     model = architectures[checkpoint["format"]](**checkpoint["model_config"]).to(device)
@@ -122,13 +126,19 @@ def load_model(path, device="cuda:0"):
 
 
 @torch.no_grad()
-def encode_enhancement(model, model_path, original_container, source, base, chunks, rois, qstep):
+def encode_enhancement(model, model_path, original_container, source, base, chunks, rois, qstep,
+                       *, compact=False):
     parsed = parse(original_container)
     if parsed.packets:
         raise ValueError("expected base-only input")
     meta = dict(parsed.meta, enhancement_codec=model.FORMAT,
                 enhancement_model_sha256=file_hash(model_path), feature_format="uf_hts_F_ctx_v1")
-    prefix = base_container(parsed.base, meta)
+    if compact:
+        from demo.compact_enhancement_format import base_container as compact_base, packet_bytes as compact_packet
+        prefix = compact_base(parsed.base, meta)
+    else:
+        prefix = base_container(parsed.base, meta)
+    alignment = model.spatial_alignment
     wires, details = [], []
     result = base.copy()
     device = next(model.parameters()).device
@@ -140,13 +150,13 @@ def encode_enhancement(model, model_path, original_container, source, base, chun
                 ox, oy, ow, oh = previous["roi"]
                 if previous["start"] == start and max(x, ox) < min(x+w, ox+ow) and max(y, oy) < min(y+h, oy+oh):
                     raise ValueError("overlapping single-layer enhancement regions")
-            bottom = pack_region(base, start, count, roi, device)
-            target = pack_region(source, start, count, roi, device)
-            feature = region_features(chunk, roi, device, getattr(model, "feature_halo", 0))
+            bottom = pack_region(base, start, count, roi, device, alignment)
+            target = pack_region(source, start, count, roi, device, alignment)
+            feature = region_features(chunk, roi, device, getattr(model, "feature_halo", 0), alignment)
             payload, recon, stats = model.compress(target, bottom, feature, qstep, count)
             pm = {"packet_id": len(wires)+1, "codec": model.FORMAT,
                   "start": start, "count": count, "roi": list(roi), "qstep": qstep}
-            wire = packet_bytes(pm, payload)
+            wire = compact_packet(pm, payload, codec=model.FORMAT) if compact else packet_bytes(pm, payload)
             wires.append(wire)
             result[start:start+count, y:y+h, x:x+w] = unpack_region(recon, count, roi)
             details.append(dict(pm, **stats, packet_bytes=len(wire),
@@ -183,8 +193,8 @@ def decode_enhancement(model, model_path, codec, data, *, allow_incomplete_tail=
         region = np.s_[start:start+count, y:y+h, x:x+w]
         if occupied[region].any():
             raise ValueError("duplicate/overlapping single-layer region")
-        bottom = pack_region(base, start, count, roi, device)
-        feature = region_features(by_start[start], roi, device, getattr(model, "feature_halo", 0))
+        bottom = pack_region(base, start, count, roi, device, model.spatial_alignment)
+        feature = region_features(by_start[start], roi, device, getattr(model, "feature_halo", 0), model.spatial_alignment)
         result = model.decompress(packet.payload, bottom, feature, q, count)
         output[region] = unpack_region(result, count, roi)
         occupied[region] = True

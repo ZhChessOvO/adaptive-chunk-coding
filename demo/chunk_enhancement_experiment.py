@@ -38,6 +38,7 @@ CACHE = RUNS / "a800_scalable_cache_20260926"
 MECHANISM = RUNS / "a800_scalable_mechanism_20260926"
 DEFAULT_ROOT = RUNS / "a800_chunk_enhancement_20260926"
 CODE_FILES = ["demo/chunk_enhancement_model.py", "demo/chunk_enhancement_codec.py",
+              "demo/scalable_format.py", "demo/compact_enhancement_format.py",
               "demo/feature_head_enhancement.py", "src/models/video_model_ht.py",
               "src/layers/layers.py", "src/utils/transforms.py",
               "demo/chunk_enhancement_experiment.py", "demo/run_chunk_enhancement.sh",
@@ -140,6 +141,9 @@ def checkpoint(model, step, **extra):
 
 
 def new_model(architecture):
+    if architecture == "uf_head_pad16":
+        from demo.feature_head_enhancement import Pad16FeatureHeadEnhancement
+        return Pad16FeatureHeadEnhancement().cuda().train()
     if architecture == "uf_head":
         from demo.feature_head_enhancement import FeatureHeadEnhancement
         return FeatureHeadEnhancement().cuda().train()
@@ -275,13 +279,15 @@ def train_main(args, run):
               "limit_per_domain": args.limit,
               "crop_sizes": [128, 192, 256], "qsteps": [0.5, 1.0, 2.0],
               "lambdas": [256.0, 128.0, 64.0], "temporal_weight": 8.0,
-              "learning_rate": 1e-4, "base_frozen": True, "single_enhancement_layer": True,
+              "learning_rate": args.learning_rate, "base_frozen": True, "single_enhancement_layer": True,
+              "mixed_rectangles": args.mixed_rectangles,
+              "initialize_sha256": file_hash(args.initialize) if args.initialize else None,
               "uvg_sampling_probability": 0.25,
               "warmup_steps": args.warmup_steps, "rate_ramp_steps": args.rate_ramp_steps,
               "initial_gain": args.initial_gain, "lambda_scale": args.lambda_scale,
               "architecture": args.architecture,
               "code_hashes": {p: file_hash(REPO / p) for p in CODE_FILES}}
-    if min(args.warmup_steps, args.rate_ramp_steps) < 0 or min(args.initial_gain, args.lambda_scale) <= 0:
+    if min(args.warmup_steps, args.rate_ramp_steps) < 0 or min(args.initial_gain, args.lambda_scale, args.learning_rate) <= 0:
         raise ValueError("invalid warmup, rate ramp or initialization")
     config_path = args.output / "config.json"
     if config_path.exists() and read(config_path) != config:
@@ -291,6 +297,14 @@ def train_main(args, run):
     np.random.seed(config["seed"])
     torch.manual_seed(config["seed"])
     model = new_model(args.architecture)
+    if args.initialize:
+        if args.initial_gain != 1.0:
+            raise ValueError("warm-start must not rescale pretrained parameters")
+        initial = load_model(args.initialize, "cpu")
+        if initial.config != model.config:
+            raise ValueError("warm-start parameter architecture/head mismatch")
+        model.load_export_state(initial.export_state())
+        del initial
     with torch.no_grad():
         model.analysis[-1].weight.mul_(args.initial_gain)
         model.synthesis[-1].weight.mul_(args.initial_gain)
@@ -348,20 +362,27 @@ def train_main(args, run):
             height, width = base.shape[1:3]
             size = min(size, height//64*64, width//64*64)
             x, y = rng.randrange((width-size)//8+1)*8, rng.randrange((height-size)//8+1)*8
-            roi = [x, y, size, size]
+            rw, rh = size, size
+            if config["mixed_rectangles"]:
+                rw, rh = rng.choice([(128, 128), (192, 192), (256, 256),
+                                      (96, 64), (64, 96), (160, 96), (96, 160)])
+                rw, rh = min(rw, width//16*16), min(rh, height//16*16)
+                x, y = rng.randrange((width-rw)//8+1)*8, rng.randrange((height-rh)//8+1)*8
+            roi = [x, y, rw, rh]
             start, count = chunk["start"], chunk["count"]
-            target = pack_region(source, start, count, roi, "cuda")
-            bottom = pack_region(base, start, count, roi, "cuda")
-            feat = region_features(chunk, roi, "cuda", getattr(model, "feature_halo", 0))
+            target = pack_region(source, start, count, roi, "cuda", model.spatial_alignment)
+            bottom = pack_region(base, start, count, roi, "cuda", model.spatial_alignment)
+            feat = region_features(chunk, roi, "cuda", getattr(model, "feature_halo", 0), model.spatial_alignment)
             quality = rng.randrange(3)
             qstep, weight = config["qsteps"][quality], config["lambdas"][quality]
             optimizer.zero_grad(set_to_none=True)
             prediction = model(target, bottom, feat, qstep, count)
-            pred = prediction["reconstruction"].reshape(8, 3, size, size)[:count]
-            truth = target.reshape(8, 3, size, size)[:count]
+            ph, pw = bottom.shape[-2:]
+            pred = prediction["reconstruction"].reshape(8, 3, ph, pw)[:count, :, :rh, :rw]
+            truth = target.reshape(8, 3, ph, pw)[:count, :, :rh, :rw]
             mse = (pred-truth).square().mean()
             temporal = ((pred[1:]-pred[:-1])-(truth[1:]-truth[:-1])).square().mean() if count > 1 else mse*0
-            bpp = prediction["bits"] / (count*size*size)
+            bpp = prediction["bits"] / (count*rh*rw)
             rate_weight = min(1.0, max(0.0, (step-config["warmup_steps"])/max(1, config["rate_ramp_steps"])))
             if config["warmup_steps"] == 0 and config["rate_ramp_steps"] == 0:
                 rate_weight = 1.0
@@ -379,7 +400,7 @@ def train_main(args, run):
                      "rate_weight": rate_weight,
                      "y_nonzero_fraction": (prediction["y_symbols"] != 0).float().mean().item(),
                      "z_nonzero_fraction": (prediction["z_symbols"] != 0).float().mean().item(),
-                     "base_psnr": -10*math.log10(max((bottom.reshape(8,3,size,size)[:count]-truth).square().mean().item(), 1e-12)),
+                     "base_psnr": -10*math.log10(max((bottom.reshape(8,3,ph,pw)[:count,:,:rh,:rw]-truth).square().mean().item(), 1e-12)),
                      "temporal_mse": temporal.item(), "grad_norm": grad.item(),
                      "seconds": time.monotonic()-t0, "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated()}
             with (args.output / "metrics.jsonl").open("a") as f:
@@ -411,7 +432,10 @@ def main():
     parser.add_argument("--rate-ramp-steps", type=int, default=0)
     parser.add_argument("--initial-gain", type=float, default=1.0)
     parser.add_argument("--lambda-scale", type=float, default=1.0)
-    parser.add_argument("--architecture", choices=("rgb", "uf_head"), default="rgb")
+    parser.add_argument("--architecture", choices=("rgb", "uf_head", "uf_head_pad16"), default="rgb")
+    parser.add_argument("--initialize", type=Path)
+    parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--mixed-rectangles", action="store_true")
     parser.add_argument("--feature-manifest", type=Path)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--stream", type=Path)

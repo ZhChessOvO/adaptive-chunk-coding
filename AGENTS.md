@@ -26,6 +26,14 @@ is a research choice despite mixed metrics, not a claim of universal dominance.
 q0.5/q1/q2 denote quantization steps, not model versions or additional layers.
 Use demo/run_feature_head_pilot.sh for its reproducible completed pilot; results
 and next-stage decisions live at https://app.notion.com/p/3e78b22ebd8d819a86cae48b4fc3d689.
+The user has approved improving patch efficiency before router integration:
+compact framing, less spatial padding, then measured payload/RD improvements.
+ACSE v2 is a lossless binary framing variant, not a second enhancement layer.
+The pad16 feature-head model has a distinct format ID; old model/stream behavior
+is retained. Use demo/run_patch_efficiency.sh in tmux (diagnostic, then train);
+the paired adaptation recipes share GPU 0 and have separate resume states.
+Progress and results: https://app.notion.com/p/3e78b22ebd8d81cda7eefa104f8debd7.
+Do not treat same-q byte savings with changed pixels as equal-quality savings.
 Do not make a second enhancement layer a prerequisite; preserve the two-level
 transform prototype as historical mechanism evidence. Retrain the router only
 after its new actions have real measured labels.

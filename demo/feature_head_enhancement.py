@@ -94,3 +94,17 @@ class FeatureHeadEnhancement(ChunkEnhancement):
         y = F.interpolate(y*qstep, size=c.shape[-2:], mode="nearest")
         delta = self.feature_synthesis(torch.cat((y, c), dim=1))
         return self.apply_feature_delta(base, features, delta)
+
+
+class Pad16FeatureHeadEnhancement(FeatureHeadEnhancement):
+    """Same parameters, less spatial padding; a distinct bitstream model ID.
+
+    The analysis needs multiples of 16, not 64. Hyperanalysis uses ceil-strided
+    convolutions, so its base-conditioned z prior must use matching ceil pooling.
+    For multiples of 64 this is exactly the original model's computation.
+    """
+    FORMAT = "uf_feature_head_pad16_v2"
+    spatial_alignment = 16
+
+    def scales_z(self, c):
+        return F.softplus(self.z_prior(F.avg_pool2d(c, 8, ceil_mode=True))) + 0.11

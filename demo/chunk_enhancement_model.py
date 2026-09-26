@@ -74,6 +74,7 @@ class ChunkEnhancement(nn.Module):
     I frames and short tails repeat the final frame; valid_count is signaled.
     """
     FORMAT = "uf_chunk_single_v1"
+    spatial_alignment = 64
 
     def __init__(self, width=96, latent=64, hyper=24):
         super().__init__()
@@ -97,8 +98,8 @@ class ChunkEnhancement(nn.Module):
         self.entropy = None
 
     def condition(self, base, features, qstep, valid_count):
-        if base.ndim != 4 or base.shape[1] != 24 or any(v % 64 for v in base.shape[-2:]):
-            raise ValueError("expected 8-frame RGB padded to 64 pixels")
+        if base.ndim != 4 or base.shape[1] != 24 or any(v % self.spatial_alignment for v in base.shape[-2:]):
+            raise ValueError(f"expected RGB padded to {self.spatial_alignment} pixels")
         expected = (base.shape[0], 1024, base.shape[2] // 8, base.shape[3] // 8)
         if tuple(features.shape) != expected or not 1 <= valid_count <= 8 or qstep <= 0:
             raise ValueError("invalid decoded feature shape, valid_count or qstep")

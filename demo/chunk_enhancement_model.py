@@ -119,7 +119,7 @@ class ChunkEnhancement(nn.Module):
         means, raw_scale = params.chunk(2, 1)
         return means, F.softplus(raw_scale) + 0.11
 
-    def reconstruct(self, base, c, y, qstep):
+    def reconstruct(self, base, c, y, qstep, features=None, valid_count=8):
         y = F.interpolate(y * qstep, size=c.shape[-2:], mode="nearest")
         delta = F.pixel_shuffle(self.synthesis(torch.cat((y, c), 1)), 8)
         return (base + delta).clamp(0, 1)
@@ -141,7 +141,7 @@ class ChunkEnhancement(nn.Module):
             z_rate, y_rate = z_hat, symbols
         bits = (-torch.log2(GaussianEncoder.get_prob_train(z_rate, self.scales_z(c))).sum()
                 -torch.log2(GaussianEncoder.get_prob_train(y_rate, scale)).sum())
-        return {"reconstruction": self.reconstruct(base, c, y_hat, qstep), "bits": bits,
+        return {"reconstruction": self.reconstruct(base, c, y_hat, qstep, features, valid_count), "bits": bits,
                 "y_symbols": symbols, "z_symbols": z_hat,
                 "saturated": ((residual.abs() > 127).sum() + (z.abs() > 127).sum()).detach()}
 
@@ -164,7 +164,7 @@ class ChunkEnhancement(nn.Module):
         symbols = (y - mean).round()
         y_stream = self._entropy().encode(symbols, scale)
         payload = struct.pack("<I", len(z_stream)) + z_stream + y_stream
-        return payload, self.reconstruct(base, c, symbols + mean, qstep), {
+        return payload, self.reconstruct(base, c, symbols + mean, qstep, features, valid_count), {
             "z_bytes": len(z_stream), "y_bytes": len(y_stream), "payload_header_bytes": 4}
 
     @torch.no_grad()
@@ -178,4 +178,4 @@ class ChunkEnhancement(nn.Module):
         z = self._entropy().decode(payload[4:4+nz], self.scales_z(c))
         mean, scale = self.prior_y(c, z)
         y = self._entropy().decode(payload[4+nz:], scale) + mean
-        return self.reconstruct(base, c, y, qstep)
+        return self.reconstruct(base, c, y, qstep, features, valid_count)

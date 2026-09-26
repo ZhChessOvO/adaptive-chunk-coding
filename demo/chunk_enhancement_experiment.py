@@ -38,6 +38,8 @@ CACHE = RUNS / "a800_scalable_cache_20260926"
 MECHANISM = RUNS / "a800_scalable_mechanism_20260926"
 DEFAULT_ROOT = RUNS / "a800_chunk_enhancement_20260926"
 CODE_FILES = ["demo/chunk_enhancement_model.py", "demo/chunk_enhancement_codec.py",
+              "demo/feature_head_enhancement.py", "src/models/video_model_ht.py",
+              "src/layers/layers.py", "src/utils/transforms.py",
               "demo/chunk_enhancement_experiment.py", "demo/run_chunk_enhancement.sh",
               "demo/stage_c_three_path_roi_probe.py", "src/layers/extensions/inference/dmc_hts_proxy.cpp",
               "src/layers/extensions/inference/dmc_hts_proxy.h", "src/layers/extensions/inference/bind.cpp"]
@@ -133,7 +135,15 @@ def features_main(args, run):
 
 def checkpoint(model, step, **extra):
     return {"format": model.FORMAT, "model_config": model.config,
-            "model": model.state_dict(), "step": step, **extra}
+            "model": model.export_state() if hasattr(model, "export_state") else model.state_dict(),
+            "step": step, **extra}
+
+
+def new_model(architecture):
+    if architecture == "uf_head":
+        from demo.feature_head_enhancement import FeatureHeadEnhancement
+        return FeatureHeadEnhancement().cuda().train()
+    return ChunkEnhancement().cuda().train()
 
 
 def decode_main(args, run):
@@ -171,26 +181,52 @@ def smoke_main(args, run):
     original = (MECHANISM / "samples" / sample["sample_id"] / "base.acse").read_bytes()
     base, chunks = decode_features(base_codec, original, mutate_copies=True)
     source = load_source(sample)
-    model = ChunkEnhancement().cuda().train()
+    model = new_model(args.architecture)
     # Exercise nonzero symbols/corrections, not a vacuous zero-output roundtrip.
     # This diagnostic initialization is NOT used by formal training.
     with torch.no_grad():
         model.analysis[-1].weight.mul_(8)
         model.synthesis[-1].weight.mul_(8)
+        if hasattr(model, "feature_synthesis"):
+            model.feature_synthesis[-1].weight.mul_(8)
     roi = [96, 64, 96, 64]
     chunk = chunks[1]
     source_t = pack_region(source, chunk["start"], 8, roi, "cuda")
     base_t = pack_region(base, chunk["start"], 8, roi, "cuda")
-    feat = region_features(chunk, roi, "cuda")
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    feat = region_features(chunk, roi, "cuda", getattr(model, "feature_halo", 0))
+    feature_before = feat.clone()
+    head_checks = {}
+    if hasattr(model, "head"):
+        with torch.no_grad():
+            zero = torch.zeros_like(model.core(feat)[:, :512])
+            np.testing.assert_array_equal(model.apply_feature_delta(base_t, feat, zero).cpu(), base_t.cpu())
+        head_before = {k: v.clone() for k, v in model.head.state_dict().items()}
+        head_checks["zero_correction_exact"] = True
+        with torch.no_grad():
+            rendered = model.render(chunk["features"][:, :512].cuda().float()).clamp(0, 1)
+            rh, rw = base.shape[1:3]
+            native = pack_region(base, chunk["start"], chunk["count"], [0, 0, rw, rh], "cuda")
+            error = (rendered[..., :rh, :rw]-native[..., :rh, :rw]).abs()*255
+            head_checks.update(native_renderer_mean_abs_u8=error.mean().item(),
+                               native_renderer_max_abs_u8=error.max().item())
+    optimizer = torch.optim.Adam((p for p in model.parameters() if p.requires_grad), lr=1e-4)
     for _ in range(32):
         prediction = model(source_t, base_t, feat)
         loss = 128 * (prediction["reconstruction"]-source_t).square().mean() + prediction["bits"]/(8*96*64)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
-        if not all(p.grad is not None and torch.isfinite(p.grad).all() for p in model.parameters()):
+        active = [(n, p) for n, p in model.named_parameters() if p.requires_grad
+                  and not (hasattr(model, "head") and n.startswith("synthesis."))]
+        if not all(p.grad is not None and torch.isfinite(p.grad).all() for n, p in active):
             raise RuntimeError("non-finite/missing training gradient")
         optimizer.step()
+    torch.testing.assert_close(feat, feature_before, rtol=0, atol=0)
+    if hasattr(model, "head"):
+        for k, value in model.head.state_dict().items():
+            torch.testing.assert_close(value, head_before[k], rtol=0, atol=0)
+        assert all(p.grad is None and not p.requires_grad for p in model.head.parameters())
+        head_checks.update(frozen_head_exact=True, decoded_features_exact=True,
+                           feature_synthesis_gradient_nonzero=bool(model.feature_synthesis[-1].weight.grad.abs().sum()))
     weights = args.output / "smoke.pt"
     atomic_torch(weights, checkpoint(model, 32, diagnostic_only=True))
     model = load_model(weights)
@@ -218,7 +254,8 @@ def smoke_main(args, run):
         if name == "missing_first":
             np.testing.assert_array_equal(decoded[0], base[0])
         results[name] = report
-    atomic_json(args.output / "smoke.json", {"passed": True, "data_role": "previously used development",
+    atomic_json(args.output / "smoke.json", {"passed": True, "architecture": args.architecture,
+                "head_checks": head_checks, "data_role": "previously used development",
                 "nonzero_correction": True, "source_changes_payload": True,
                 "sample": sample, "feature_copy_isolation": True, "fresh_decodes": results,
                 "packet_costs": costs, "parameters": sum(p.numel() for p in model.parameters()),
@@ -242,6 +279,7 @@ def train_main(args, run):
               "uvg_sampling_probability": 0.25,
               "warmup_steps": args.warmup_steps, "rate_ramp_steps": args.rate_ramp_steps,
               "initial_gain": args.initial_gain, "lambda_scale": args.lambda_scale,
+              "architecture": args.architecture,
               "code_hashes": {p: file_hash(REPO / p) for p in CODE_FILES}}
     if min(args.warmup_steps, args.rate_ramp_steps) < 0 or min(args.initial_gain, args.lambda_scale) <= 0:
         raise ValueError("invalid warmup, rate ramp or initialization")
@@ -252,11 +290,13 @@ def train_main(args, run):
     random.seed(config["seed"])
     np.random.seed(config["seed"])
     torch.manual_seed(config["seed"])
-    model = ChunkEnhancement().cuda().train()
+    model = new_model(args.architecture)
     with torch.no_grad():
         model.analysis[-1].weight.mul_(args.initial_gain)
         model.synthesis[-1].weight.mul_(args.initial_gain)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+        if hasattr(model, "feature_synthesis"):
+            model.feature_synthesis[-1].weight.mul_(args.initial_gain)
+    optimizer = torch.optim.Adam((p for p in model.parameters() if p.requires_grad), lr=config["learning_rate"])
     rng = random.Random(config["seed"])
     step = 0
     resume = args.output / "resume.pt"
@@ -264,7 +304,12 @@ def train_main(args, run):
         saved = torch.load(resume, map_location="cpu", weights_only=False)
         if saved["config"] != config:
             raise RuntimeError("checkpoint config mismatch")
-        model.load_state_dict(saved["model"])
+        if saved["model_config"] != model.config:
+            raise RuntimeError("model architecture/frozen head changed on resume")
+        if hasattr(model, "load_export_state"):
+            model.load_export_state(saved["model"])
+        else:
+            model.load_state_dict(saved["model"])
         optimizer.load_state_dict(saved["optimizer"])
         rng.setstate(saved["random_state"])
         torch.set_rng_state(saved["torch_rng"])
@@ -288,7 +333,9 @@ def train_main(args, run):
     if not all(samples.values()):
         raise RuntimeError("both REDS and UVG required")
     atomic_json(args.output / "training_manifest.json", {"data_role": "training; original REDS train and approved UVG adaptation",
-                "samples": manifest["samples"], "parameters": sum(p.numel() for p in model.parameters())})
+                "samples": manifest["samples"], "parameters": sum(p.numel() for p in model.parameters()),
+                "trainable_parameters": sum(p.numel() for p in model.parameters() if p.requires_grad),
+                "model_config": model.config})
     trained_steps = step
     try:
         while step < args.steps:
@@ -305,7 +352,7 @@ def train_main(args, run):
             start, count = chunk["start"], chunk["count"]
             target = pack_region(source, start, count, roi, "cuda")
             bottom = pack_region(base, start, count, roi, "cuda")
-            feat = region_features(chunk, roi, "cuda")
+            feat = region_features(chunk, roi, "cuda", getattr(model, "feature_halo", 0))
             quality = rng.randrange(3)
             qstep, weight = config["qsteps"][quality], config["lambdas"][quality]
             optimizer.zero_grad(set_to_none=True)
@@ -364,6 +411,7 @@ def main():
     parser.add_argument("--rate-ramp-steps", type=int, default=0)
     parser.add_argument("--initial-gain", type=float, default=1.0)
     parser.add_argument("--lambda-scale", type=float, default=1.0)
+    parser.add_argument("--architecture", choices=("rgb", "uf_head"), default="rgb")
     parser.add_argument("--feature-manifest", type=Path)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--stream", type=Path)

@@ -51,7 +51,7 @@ def information_diagnostic(model, source, base, chunks, rois):
         for roi in rois:
             bottom = pack_region(base, start, count, roi, "cuda")
             target = pack_region(source, start, count, roi, "cuda")
-            features = region_features(chunk, roi, "cuda")
+            features = region_features(chunk, roi, "cuda", getattr(model, "feature_halo", 0))
             result = model(target, bottom, features, 1.0, count)
             for kind in ("y", "z"):
                 symbols = result[f"{kind}_symbols"]
@@ -60,7 +60,7 @@ def information_diagnostic(model, source, base, chunks, rois):
             c = model.condition(bottom, features, 1.0, count)
             z = torch.zeros_like(model.scales_z(c))
             mean, _ = model.prior_y(c, z)
-            reconstructed = model.reconstruct(bottom, c, mean, 1.0)
+            reconstructed = model.reconstruct(bottom, c, mean, 1.0, features, count)
             x, y, w, h = roi
             output[start:start+count, y:y+h, x:x+w] = unpack_region(reconstructed, count, roi)
     return output, counts

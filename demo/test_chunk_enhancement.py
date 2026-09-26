@@ -53,6 +53,39 @@ class ChunkTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             region_features(chunk, (1, 0, 64, 64), "cpu")
 
+    def test_read_only_feature_halo(self):
+        grid = torch.arange(1024*32*40).reshape(1, 1024, 32, 40).float()
+        saved = grid.clone()
+        chunk = {"features": grid}
+        actual = region_features(chunk, (64, 64, 64, 64), "cpu", halo=4)
+        torch.testing.assert_close(actual, grid[..., 4:20, 4:20], rtol=0, atol=0)
+        edge = region_features(chunk, (0, 0, 64, 64), "cpu", halo=4)
+        self.assertEqual(tuple(edge.shape), (1, 1024, 16, 16))
+        self.assertEqual(torch.count_nonzero(edge[..., :4, :]).item(), 0)
+        torch.testing.assert_close(edge[..., 4:, 4:], grid[..., :12, :12], rtol=0, atol=0)
+        torch.testing.assert_close(grid, saved, rtol=0, atol=0)
+
+    def test_feature_head_checkpoint_and_zero_identity(self):
+        from demo.feature_head_enhancement import FeatureHeadEnhancement
+        model = FeatureHeadEnhancement(width=16, latent=8, hyper=4).eval()
+        self.assertFalse(any(p.requires_grad for p in model.head.parameters()))
+        state = model.export_state()
+        self.assertFalse(any(k.startswith("head.") for k in state))
+        model.load_export_state(state)
+        invalid = dict(state)
+        invalid.pop(next(iter(invalid)))
+        with self.assertRaises(ValueError):
+            model.load_export_state(invalid)
+        with self.assertRaisesRegex(ValueError, "hash mismatch"):
+            FeatureHeadEnhancement(head_sha256="0"*64)
+        features = torch.randn(1, 1024, 16, 16) * 0.01
+        base = torch.rand(1, 24, 64, 64)
+        with torch.no_grad():
+            actual = model.apply_feature_delta(base, features, torch.zeros(1, 512, 8, 8))
+        torch.testing.assert_close(actual, base, rtol=0, atol=0)
+        model.train()
+        self.assertFalse(model.head.training)
+
     def fixture(self):
         folder = tempfile.TemporaryDirectory(prefix="chunk_unit_")
         self.addCleanup(folder.cleanup)

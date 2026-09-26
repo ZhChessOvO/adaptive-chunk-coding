@@ -76,10 +76,22 @@ def pack_region(frames, start, count, roi, device):
     return F.pad(t, (0, -w % 64, 0, -h % 64), mode="replicate")
 
 
-def region_features(chunk, roi, device):
+def region_features(chunk, roi, device, halo=0):
     x, y, w, h = roi
     if x % 8 or y % 8:
         raise ValueError("feature-conditioned region origin must align to 8 pixels")
+    if halo:
+        if halo < 0:
+            raise ValueError("negative feature halo")
+        # Extract real neighboring base features, including the padded ROI.
+        # At full-frame boundaries the external feature halo is zero-filled.
+        grid = chunk["features"]
+        left, top = x//8-halo, y//8-halo
+        right, bottom = x//8+(w+63)//64*8+halo, y//8+(h+63)//64*8+halo
+        gh, gw = grid.shape[-2:]
+        f = grid[..., max(top, 0):min(bottom, gh), max(left, 0):min(right, gw)]
+        return F.pad(f.to(device, torch.float32),
+                     (max(0, -left), max(0, right-gw), max(0, -top), max(0, bottom-gh)))
     h8, w8 = (h + 7) // 8, (w + 7) // 8
     f = chunk["features"][:, :, y//8:y//8+h8, x//8:x//8+w8].to(device, torch.float32)
     if f.shape[-2:] != (h8, w8):
@@ -95,10 +107,16 @@ def unpack_region(tensor, count, roi):
 
 def load_model(path, device="cuda:0"):
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    if checkpoint.get("format") != ChunkEnhancement.FORMAT:
+    from demo.feature_head_enhancement import FeatureHeadEnhancement
+    architectures = {ChunkEnhancement.FORMAT: ChunkEnhancement,
+                     FeatureHeadEnhancement.FORMAT: FeatureHeadEnhancement}
+    if checkpoint.get("format") not in architectures:
         raise ValueError("not a chunk enhancement checkpoint")
-    model = ChunkEnhancement(**checkpoint["model_config"]).to(device)
-    model.load_state_dict(checkpoint["model"])
+    model = architectures[checkpoint["format"]](**checkpoint["model_config"]).to(device)
+    if hasattr(model, "load_export_state"):
+        model.load_export_state(checkpoint["model"])
+    else:
+        model.load_state_dict(checkpoint["model"])
     model.eval()
     return model
 
@@ -124,7 +142,7 @@ def encode_enhancement(model, model_path, original_container, source, base, chun
                     raise ValueError("overlapping single-layer enhancement regions")
             bottom = pack_region(base, start, count, roi, device)
             target = pack_region(source, start, count, roi, device)
-            feature = region_features(chunk, roi, device)
+            feature = region_features(chunk, roi, device, getattr(model, "feature_halo", 0))
             payload, recon, stats = model.compress(target, bottom, feature, qstep, count)
             pm = {"packet_id": len(wires)+1, "codec": model.FORMAT,
                   "start": start, "count": count, "roi": list(roi), "qstep": qstep}
@@ -166,7 +184,7 @@ def decode_enhancement(model, model_path, codec, data, *, allow_incomplete_tail=
         if occupied[region].any():
             raise ValueError("duplicate/overlapping single-layer region")
         bottom = pack_region(base, start, count, roi, device)
-        feature = region_features(by_start[start], roi, device)
+        feature = region_features(by_start[start], roi, device, getattr(model, "feature_halo", 0))
         result = model.decompress(packet.payload, bottom, feature, q, count)
         output[region] = unpack_region(result, count, roi)
         occupied[region] = True

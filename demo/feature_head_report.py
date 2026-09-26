@@ -38,6 +38,18 @@ def main():
     p.add_argument("--reference", type=Path, default=Path(
         "/root/autodl-fs/DCVC/runs/a800_chunk_enhancement_20260926"))
     args = p.parse_args()
+    old_config = read(args.reference / "train_warmup/config.json")
+    new_config = read(args.root / "train/config.json")
+    recipe_fields = [k for k in old_config if k != "code_hashes"]
+    if any(old_config[k] != new_config[k] for k in recipe_fields):
+        raise ValueError("training recipes differ; label the comparison explicitly")
+    old_steps = [json.loads(v) for v in (args.reference / "train_warmup/metrics.jsonl").read_text().splitlines()]
+    new_steps = [json.loads(v) for v in (args.root / "train/metrics.jsonl").read_text().splitlines()]
+    choices = ("step", "dataset", "sample_id", "roi", "start", "count", "qstep")
+    same_choices = len(old_steps) == len(new_steps) and all(
+        all(a[k] == b[k] for k in choices) for a, b in zip(old_steps, new_steps))
+    if not same_choices:
+        raise ValueError("training sample/crop/quality schedules differ")
     new_path, old_path = args.root / "evaluation/summary.json", args.reference / "evaluation_warmup/summary.json"
     new, old = read(new_path), read(old_path)
     extra_path = args.reference / "uf_intermediate/summary.json"
@@ -116,6 +128,7 @@ def main():
         canvas.save(args.root / f"zoom_{sid}.png")
     atomic_json(args.root / "comparison.json", {
         "data_role": "previously used development", "same_base_and_rois": True,
+        "training_recipe_and_sample_schedule_equal": same_choices, "training_steps": len(new_steps),
         "sources": {str(p): file_hash(p) for p in (new_path, old_path, extra_path)}, "results": rows})
     for row in rows:
         print(json.dumps({"sample": row["sample"]["sample_id"], "q1": {

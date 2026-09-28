@@ -29,8 +29,37 @@ from demo.stage_c_seedvr2_lora_utils import (load_lora_adapter, lora_modules,
     trainable_lora_parameters, load_lora_state_dict, adapter_payload,
     atomic_torch_save, save_lora_adapter)
 from demo.stage_c_seedvr2_lora_finetune import (select_training_entry,
-    append_jsonl, truncate_step_log)
+    append_jsonl)
 from demo.scalable_experiment import check_space, resources, now
+
+
+def restore_step_log(path, completed):
+    """Power-loss recovery: ignore only an incomplete final JSON write.
+
+    Checkpointed steps must still be present; corruption in an earlier or
+    newline-terminated record is an error, not silently discarded evidence.
+    """
+    lines = path.read_text().splitlines(keepends=True) if path.exists() else []
+    records = {}
+    for index, line in enumerate(lines):
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            if index == len(lines)-1 and not line.endswith('\n'):
+                break
+            raise
+        if int(record['step']) <= completed:
+            if record['step'] in records:
+                raise RuntimeError('duplicate checkpointed step record')
+            records[record['step']] = record
+    if sorted(records) != list(range(1,completed+1)):
+        raise RuntimeError('missing checkpointed step record')
+    ordered = [records[i] for i in range(1,completed+1)]
+    path.parent.mkdir(parents=True,exist_ok=True)
+    temporary = path.with_suffix('.jsonl.tmp')
+    temporary.write_text(''.join(json.dumps(r)+'\n' for r in ordered))
+    os.replace(temporary,path)
+    return ordered
 
 
 def differentiable_decode(runner, latent):
@@ -132,7 +161,7 @@ def main(args):
         load_lora_state_dict(runner.dit, resume['adapter']['state_dict'])
         optimizer.load_state_dict(resume['optimizer'])
         completed = resume['step']
-    rows = truncate_step_log(args.output/'steps.jsonl', completed)
+    rows = restore_step_log(args.output/'steps.jsonl', completed)
     if len(rows) != completed:
         raise RuntimeError('step log and checkpoint disagree')
     from models.dit_v2 import na

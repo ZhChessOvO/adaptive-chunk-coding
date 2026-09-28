@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import numpy as np
 import torch
-from demo.conditioned_generation_train import image_terms, differentiable_decode
+from demo.conditioned_generation_train import image_terms, differentiable_decode, restore_step_log
 
 
 class MSEMetric(torch.nn.Module):
@@ -15,6 +15,19 @@ class MSEMetric(torch.nn.Module):
 
 
 class ConditionedGenerationTests(unittest.TestCase):
+    def test_power_loss_log_tail_and_checkpoint_boundary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'steps.jsonl'
+            path.write_text('{"step":1}\n{"step":2}\n{"step":3')
+            self.assertEqual(restore_step_log(path,1),[{'step':1}])
+            self.assertEqual(path.read_text(),'{"step": 1}\n')
+            path.write_text('{"step":1}\n{"step":2')
+            with self.assertRaises(RuntimeError):
+                restore_step_log(path,2)
+            path.write_text('{"step":1}\ncorrupt\n')
+            with self.assertRaises(json.JSONDecodeError):
+                restore_step_log(path,1)
+
     def test_optional_adapter_not_needed_for_fallback(self):
         from demo import conditioned_generation_decode as decoder
         from demo.test_scalable_cooperation import CooperationTests

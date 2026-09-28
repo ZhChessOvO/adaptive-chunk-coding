@@ -12,6 +12,10 @@ export PYTHONPATH="$repo:${PYTHONPATH:-}" CUDA_VISIBLE_DEVICES=0
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 PYTHONUNBUFFERED=1
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 cd "$repo"
+if [[ "${1:-}" == "report" ]]; then
+    shift
+    exec python demo/conditioned_generation_report.py "$@"
+fi
 if [[ "${1:-}" == "evaluate" ]]; then
     shift
     exec python demo/conditioned_generation_evaluate.py "$@"

@@ -51,8 +51,24 @@ and produces the CPU-only digest, fixed-prefix curves and incremental-E plots.
 Results and the feature-condition discussion are at
 https://app.notion.com/p/3e98b22ebd8d813dbca5d606f633d9e0.
 Keep the image-objective adapter as a research candidate, not a silent change
-to old receiver profiles. Feature adapters, joint E/G tuning and router training
-have not started; discuss the next interface before extending the experiment.
+to old receiver profiles.
+
+The user has now approved the feature-condition continuation (2026-09-28).
+Use `bash demo/run_feature_condition.sh smoke` and then `train`, in tmux.
+The separate receiver observes decoded P8 delta from the same E packets,
+leaving E RGB and UF references unchanged. Its small zero-output-initialized
+adapter aligns eight learned phases to the local five VAE temporal positions;
+absent packets and the I-frame fallback supply no fabricated delta. This first
+profile supports native-scale, aligned crops, not arbitrary resizing. Train
+paired RGB-only and RGB-plus-feature 1000-step continuations from the completed
+image-objective adapter at strength one, with identical crops/noise/losses.
+Reuse the 90 REDS/30 UVG caches; keep original UF/E/DiT/VAE frozen. Both LoRA and
+the small feature adapter may train. Do not jointly tune E or start the router.
+The feature arm runs first, then the RGB control automatically; evaluation is
+for the next session. Once actual formal steps and an atomic checkpoint are
+confirmed, update Notion and hand off per the user's latest explicit request.
+Correctness checks and current status:
+https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

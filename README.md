@@ -15,6 +15,10 @@
 本 README 后续的研究叙述是历史版本，环境安装说明仍可参考。
 条件适配的运行入口为 `bash demo/run_conditioned_generation.sh`，配方与进度见
 [生成侧训练记录](https://app.notion.com/p/3e98b22ebd8d8143a89de2d0ea97e5a0)。
+同一补包的特征条件适配使用独立入口 `bash demo/run_feature_condition.sh`：
+先在 tmux 中运行 `smoke`，再运行 `train`（可用同一命令断点续跑）；
+`test` 为 CPU 回归。正式队列串行训练特征组和 RGB 对照，不自动进入 Router。
+接口、状态与下一次评价见 [特征条件适配](https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9)。
 
 ## 历史主线（Old version）
 

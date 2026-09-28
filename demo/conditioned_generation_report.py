@@ -100,8 +100,26 @@ def report(root):
         bytes_and_hashes=True,adapter_resume_exact=True,paired_training_schedule_exact=True,
         generation_off_without_weights=True,repeat_exact=True,old_receiver_equivalent=True,
         unchanged_non_generate=True)
+    # A better G(Y) alone does not establish better USE of E. Compare the
+    # no-E -> full-E change for each generator, with everything else fixed.
+    conditional = []
+    for sid,row in rows.items():
+        gains = {}
+        for candidate in ('baseline','latent','image'):
+            if candidate == 'baseline':
+                none,full = [row['points'][MODES[m][0]] for m in ('none','full')]
+            else:
+                none,full = [next(r for r in summary['results'] if r['sample_id']==sid and
+                                 r['mode']==m and r['candidate']==candidate) for m in ('none','full')]
+            gains[candidate] = dict(
+                lpips_benefit_from_E=none['roi_quality']['lpips_alex']-full['roi_quality']['lpips_alex'],
+                psnr_benefit_from_E=full['roi_quality']['psnr_db']-none['roi_quality']['psnr_db'],
+                extra_E_bytes=full['bytes']-none['bytes'],
+                full_E_psnr_change_from_direct=full['roi_quality']['psnr_db']-
+                    row['points']['enhance_q1']['roi_quality']['psnr_db'])
+        conditional.append(dict(sample_id=sid,gains=gains))
     atomic_json(evaluation/'audit.json',dict(checks=checks,artifacts=details,resources=resources()))
-    atomic_json(evaluation/'analysis.json',dict(groups=groups,
+    atomic_json(evaluation/'analysis.json',dict(groups=groups,conditional_effect=conditional,
         training={k:v['summary'] for k,v in training.items()},
         label='area-weighted local metrics per clip, then equal clip means; 4 development clips'))
     native_figures(evaluation,rows)

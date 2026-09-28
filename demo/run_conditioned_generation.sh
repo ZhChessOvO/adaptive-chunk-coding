@@ -18,7 +18,13 @@ if [[ "${1:-}" == "report" ]]; then
 fi
 if [[ "${1:-}" == "evaluate" ]]; then
     shift
-    exec python demo/conditioned_generation_evaluate.py "$@"
+    python demo/conditioned_generation_evaluate.py "$@"
+    # The default formal queue includes its CPU-only audit and fixed figures.
+    # Custom roots/smoke may instead invoke the explicit report subcommand.
+    if [[ $# -eq 0 ]]; then
+        exec python demo/conditioned_generation_report.py
+    fi
+    exit 0
 fi
 if [[ "${1:-}" == "test" ]]; then
     exec python -m unittest demo.test_conditioned_generation demo.test_scalable_cooperation demo.test_scalable_generation demo.test_chunk_enhancement demo.test_scalable_format demo.test_patch_efficiency demo.test_patch_prefix_probe -v

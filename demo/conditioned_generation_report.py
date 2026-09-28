@@ -124,6 +124,7 @@ def report(root):
         label='area-weighted local metrics per clip, then equal clip means; 4 development clips'))
     native_figures(evaluation,rows)
     training_figures(evaluation,training)
+    temporal_figure(evaluation,rows)
     print(json.dumps(dict(checks=checks,full_prefix=groups['full']),ensure_ascii=False,indent=2))
 
 
@@ -169,6 +170,38 @@ def training_figures(root, training):
     for ax,title in zip(axes,['Shared latent error (train)','LPIPS loss (train, not evaluation)']):
         ax.set_title(title);ax.set_xlabel('step');ax.grid(alpha=.3);ax.legend()
     fig.savefig(root/'training_diagnostics.png',dpi=150);plt.close(fig)
+
+
+def temporal_figure(root, rows):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',15)
+    for sid,row in rows.items():
+        if row['sample']['frame_count'] != 33:
+            continue
+        source=load_source(row['sample'])
+        videos={'E only':load_frames(OLD/sid/'enhance_q1/reconstruction.npz'),
+                'Old G(E)':load_frames(OLD/sid/'cooperate_l05/reconstruction.npz'),
+                'Latent adapt':load_frames(root/sid/'latent_full/reconstruction.npz'),
+                'Image adapt':load_frames(root/sid/'image_full/reconstruction.npz')}
+        t,n,x,y,w,h=row['metric_regions'][0]
+        movies={'GT':source,**videos};frames=[]
+        for f in range(33):
+            canvas=Image.new('RGB',(5*w*3,h*3+32),'white');draw=ImageDraw.Draw(canvas)
+            for i,(name,video) in enumerate(movies.items()):
+                image=Image.fromarray(video[f,y:y+h,x:x+w]).resize((w*3,h*3),Image.Resampling.NEAREST)
+                canvas.paste(image,(i*w*3,32))
+                draw.text((i*w*3+3,7),name,font=font,fill='black')
+            frames.append(canvas)
+        frames[0].save(root/'long33_sequence.gif',save_all=True,append_images=frames[1:],duration=125,loop=0)
+        fig,ax=plt.subplots(figsize=(9,4),constrained_layout=True)
+        for name,video in videos.items():
+            error=(video[:,y:y+h,x:x+w].astype(np.float64)-source[:,y:y+h,x:x+w])**2
+            ax.plot(np.arange(33),error.mean((1,2,3)),label=name)
+        ax.axvline(16.5,color='gray',ls='--',label='E packets only in first 17 frames')
+        ax.set(xlabel='Frame index',ylabel='Local RGB MSE (lower better)',title='Fixed 33-frame ROI; not LPIPS')
+        ax.grid(alpha=.3);ax.legend();fig.savefig(root/'long33_error.png',dpi=150);plt.close(fig)
 
 
 if __name__ == '__main__':

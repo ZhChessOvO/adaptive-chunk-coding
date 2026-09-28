@@ -101,7 +101,8 @@ class EvaluationQueueTests(unittest.TestCase):
         updates = []
         run = SimpleNamespace(started=time.monotonic(), check=lambda:None,
                               update=lambda **kw:updates.append(kw))
-        with patch("demo.chunk_enhancement_evaluate.subprocess.check_output", side_effect=["12345\n", ""]), \
+        with patch("demo.chunk_enhancement_evaluate.fcntl.flock"), \
+             patch("demo.chunk_enhancement_evaluate.subprocess.check_output", side_effect=["12345\n", ""]), \
              patch("demo.chunk_enhancement_evaluate.Path.read_bytes",
                    return_value=b"python\0/demo/chunk_enhancement_experiment.py\0train\0"), \
              patch("demo.chunk_enhancement_evaluate.time.sleep") as sleep:
@@ -113,7 +114,8 @@ class EvaluationQueueTests(unittest.TestCase):
     def test_exited_process_does_not_block_evaluation(self):
         from demo.chunk_enhancement_evaluate import exclusive_native_evaluation
         run = SimpleNamespace(started=time.monotonic(), check=lambda:None, update=lambda **kw:None)
-        with patch("demo.chunk_enhancement_evaluate.subprocess.check_output", return_value="12345\n"), \
+        with patch("demo.chunk_enhancement_evaluate.fcntl.flock"), \
+             patch("demo.chunk_enhancement_evaluate.subprocess.check_output", return_value="12345\n"), \
              patch("demo.chunk_enhancement_evaluate.Path.read_bytes", side_effect=FileNotFoundError), \
              patch("demo.chunk_enhancement_evaluate.time.sleep") as sleep:
             with exclusive_native_evaluation(run):

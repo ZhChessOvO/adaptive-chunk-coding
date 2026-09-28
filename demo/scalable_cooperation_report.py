@@ -119,10 +119,24 @@ def audit(root,summary):
     np.testing.assert_array_equal(load_frames(legacy/"reconstruction.npz"),
                                   load_frames(OLD/old_sid/"combined/reconstruction.npz"))
     beats = [json.loads(line) for line in (root/"heartbeat.jsonl").read_text().splitlines()]
+    # A resumed evaluator reports the latest attempt's duration in summary.json.
+    # Preserve observed time from prior attempts rather than presenting a fast
+    # cache verification as the cost of the original experiment.
+    attempt_ends = []
+    previous = 0.
+    for beat in beats:
+        elapsed = beat["elapsed_seconds"]
+        if elapsed < previous:
+            attempt_ends.append(previous)
+        previous = elapsed
+    attempt_ends.append(max(previous,summary["seconds"]))
     return dict(passed=True,utc=now(),fresh_decodes=count+1,rows=rows,
                 legacy_v1_exact=True,peak_cuda_allocated_bytes=peak,
                 peak_sampled_gpu_mib=max(int(v["gpu"].split(",")[2]) for v in beats),
-                elapsed_seconds=summary["seconds"],resources=resources())
+                elapsed_seconds=sum(attempt_ends),last_attempt_seconds=summary["seconds"],
+                attempts=len(attempt_ends),
+                elapsed_note="Sum of observed attempt durations; an abruptly interrupted attempt may miss its final heartbeat interval.",
+                resources=resources())
 
 
 def visual(root,row):
@@ -168,16 +182,30 @@ def visual(root,row):
     roi = row["rois"][-1] if row["prepared"]["wall_roi_added"] else row["rois"][0]
     x,y,w,h = roi
     movie = []
-    for t in range(min(17,len(source))):
+    for t in range(len(source)):
         frame = Image.new("RGB",(224*5,round(224*h/w)+30),"white")
         d = ImageDraw.Draw(frame)
         for i,name in enumerate(names[:5]):
             crop = Image.fromarray(arrays[name][t,y:y+h,x:x+w]).resize((224,round(224*h/w)),Image.Resampling.NEAREST)
             frame.paste(crop,(i*224,30))
-            d.text((i*224+3,3),name,font=font,fill="black")
+            d.text((i*224+3,3),f"{name} | t={t}",font=font,fill="black")
         movie.append(frame)
     movie[0].save(directory/"temporal_comparison.gif",save_all=True,append_images=movie[1:],
                   duration=125,loop=0,optimize=False)
+    if len(source) > 17:
+        fig,ax = plt.subplots(figsize=(9,3))
+        for name in names[1:5]:
+            difference = (arrays[name][:,y:y+h,x:x+w].astype(np.float32)
+                          -source[:,y:y+h,x:x+w].astype(np.float32))
+            ax.plot(np.arange(len(source)),np.mean(difference**2,axis=(1,2,3)),label=name)
+        ax.axvline(16.5,linestyle="--",color="gray",label="E packets cover frames 0-16 only")
+        ax.set(xlabel="Frame index (continuous base reference)",ylabel="Fixed ROI RGB MSE",
+               title="33-frame diagnostic: G uses 17/8 overlapping windows")
+        ax.legend(fontsize=8)
+        ax.grid(alpha=.25)
+        fig.tight_layout()
+        fig.savefig(directory/"temporal_roi_error.png",dpi=150)
+        plt.close(fig)
 
 
 def plots(root,rows):

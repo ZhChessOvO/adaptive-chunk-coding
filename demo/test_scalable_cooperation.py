@@ -1,4 +1,9 @@
 import unittest
+import json
+from pathlib import Path
+import tempfile
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
@@ -92,6 +97,44 @@ class CooperationTests(unittest.TestCase):
         self.assertEqual(first[2].base,last[2].base)
         np.testing.assert_array_equal(c.weights((33,128,128,3),first[0]),
                                       c.weights((33,128,128,3),last[0]))
+
+    def test_disabled_generation_never_resolves_generator_assets(self):
+        # Receiver fallback must work even when the optional G weights are absent.
+        from demo import scalable_cooperation_decode as decoder
+        from demo.scalable_format import frame_hash
+        inner,control = self.fixture()
+        parsed = parse(inner)
+        base = np.full((33,128,128,3),20,np.uint8)
+        enhanced = base.copy()
+        enhanced[1:9,64:,64:] = 40
+        report = dict(source_frames_read=False,applied_packets=[1],
+            base_bytes=len(parsed.base),container_header_bytes=parsed.base_end-len(parsed.base),
+            packet_bytes=sum(len(p.wire) for p in parsed.packets),incomplete_tail_bytes=0,
+            total_bytes=len(inner),base_hash=frame_hash(base),output_hash=frame_hash(enhanced),
+            non_enhanced_exact=True)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for disabled,blend in ((True,1.),(False,0.)):
+                stream = root/f"{disabled}-{blend}.acsg"
+                stream.write_bytes(c.wrap(inner,dict(control,blend=blend)))
+                args = SimpleNamespace(stream=stream,output=root/stream.stem,
+                                       disable_generation=disabled)
+                with patch.multiple(decoder,configure_torch=lambda:None,
+                    load_model=lambda _:object(),BaseCodec=lambda *_:object(),
+                    decode_enhancement=lambda *a,**kw:(enhanced,dict(report),base)), \
+                    patch.object(decoder,"identities",side_effect=FileNotFoundError("G weights absent")) as assets, \
+                    patch.object(decoder,"restore",side_effect=AssertionError("G executed")) as restore, \
+                    patch.object(decoder.torch.cuda,"max_memory_allocated",return_value=0), \
+                    patch.object(decoder.torch.cuda,"empty_cache"), \
+                    patch.object(decoder.torch.distributed,"is_initialized",return_value=False):
+                    decoder.decode(args)
+                assets.assert_not_called()
+                restore.assert_not_called()
+                result = json.loads((args.output/"decode.json").read_text())
+                self.assertFalse(result["generation_executed"])
+                self.assertFalse(result["generation_assets_validated"])
+                with np.load(args.output/"reconstruction.npz") as value:
+                    np.testing.assert_array_equal(value["reconstruction"],enhanced)
 
 
 if __name__ == "__main__":

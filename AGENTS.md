@@ -8,6 +8,24 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Cooperation update (2026-09-28; supersedes the next-stage queue below)
+
+The user approved optional same-region Enhance -> Generate, retaining all four
+cases: neither, E only, G only, and E followed by G. Low importance does not
+require generation. First run the bounded paired probe documented at
+https://app.notion.com/p/3e78b22ebd8d8172bd29faf1b7dffc23:
+same base/region/E payload, G(base) versus G(received enhanced RGB), original
+SeedVR2 versus existing LoRA strengths, then limited context/processing-size
+diagnostics. Keep the existing A enhancement model, BF16 assets, immutable UF
+reference chain, one optional E layer, single A800, tmux and real fresh decode.
+Do not immediately generate mutually exclusive B/E/G teacher labels or train
+the router; first measure conditional cooperative benefits. Feature adapters
+and joint fine-tuning follow evidence from this probe, not an arbitrary gate.
+Preserve the ACSG v1 decoder and its pinned profile byte-for-byte. New cooperation
+uses ACSG v2 in separate modules; explicit ROI controls in this diagnostic are
+charged and do not claim the future receiver-derived policy is already trained.
+Method/results remain in Notion, not duplicate Git experiment documents.
+
 The user approved the scalable pivot and implementation plan. This section
 supersedes every historical "current", "next", or authorization statement below.
 Use one immutable full-frame DCVC-UF QP8 base stream, append regional residual

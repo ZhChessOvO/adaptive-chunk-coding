@@ -9,10 +9,12 @@
 ## 当前入口（2026-09-28）
 
 研究已转向 **统一低码率基础层 + 可追加区域增强 + 可选生成协作**。
-已完成同一区域的 Base／只增强／只生成／增强后生成首轮验证；后续进入生成侧条件适配，不续跑下面的旧 spatial-QP 队列。
+已完成同一区域的 Base／只增强／只生成／增强后生成首轮验证；当前进入生成侧条件适配，不续跑下面的旧 spatial-QP 队列。
 最新方法、方案和进度以 [Notion 项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 及 [当前验证记录](https://app.notion.com/p/3e78b22ebd8d8172bd29faf1b7dffc23) 为准；
 本 README 后续的研究叙述是历史版本，环境安装说明仍可参考。
+条件适配的运行入口为 `bash demo/run_conditioned_generation.sh`，配方与进度见
+[生成侧训练记录](https://app.notion.com/p/3e98b22ebd8d8143a89de2d0ea97e5a0)。
 
 ## 历史主线（Old version）
 

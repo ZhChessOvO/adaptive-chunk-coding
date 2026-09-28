@@ -31,6 +31,20 @@ automatically. Results and the next generation-condition adaptation step are at
 https://app.notion.com/p/3e98b22ebd8d81e8b0cef5542c73d70d;
 consult that page and the roadmap before new training. No new router is trained.
 
+Generation-condition adaptation is now authorized (2026-09-28). Its separate
+entrypoint is `bash demo/run_conditioned_generation.sh`: `smoke` validates
+actual enhancement-prefix inputs, differentiable frozen-VAE image losses and
+exact interrupted/resumed LoRA weights/optimizer; `evaluate --smoke --output
+/root/autodl-fs/DCVC/runs/a800_conditioned_generation_20260928_smoke` validates
+fresh adapter reload, old-weight receiver equivalence and model-free G-off.
+Then `train` runs paired 1000-step latent-only/image-objective adaptations,
+and `evaluate` compares the final adapters on the same four development clips.
+All GPU stages must run serially in tmux. Reuse the 90 REDS/30 UVG training
+cache; keep UF/E frozen and preserve all older stream profiles. The new
+ACSG2 receiver uses a distinct profile plus transmitted adapter hash; do not
+overwrite the legacy adapter. Progress and recipe, not a duplicate Git report:
+https://app.notion.com/p/3e98b22ebd8d8143a89de2d0ea97e5a0.
+
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do
 not restore the former backbone-plus-two-experts design. Context may be used

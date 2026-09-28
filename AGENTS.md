@@ -26,6 +26,14 @@ uses ACSG v2 in separate modules; explicit ROI controls in this diagnostic are
 charged and do not claim the future receiver-derived policy is already trained.
 Method/results remain in Notion, not duplicate Git experiment documents.
 
+Router simplification confirmed by the user on 2026-09-28: keep one router
+backbone followed by generation-region boundary/fragmentation reduction; do
+not restore the former backbone-plus-two-experts design. Context may be used
+inside the backbone. Investigate its injection point and ablations when router
+training begins; this probe's SeedVR2 crop context is not router context.
+Boundary reduction is distinct from output feathering and must retain all four
+optional E/G states. This decision does not start router training now.
+
 The user approved the scalable pivot and implementation plan. This section
 supersedes every historical "current", "next", or authorization statement below.
 Use one immutable full-frame DCVC-UF QP8 base stream, append regional residual

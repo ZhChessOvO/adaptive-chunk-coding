@@ -14,7 +14,8 @@ export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 cd "$repo"
 if [[ "${1:-}" == "report" ]]; then
     shift
-    exec python demo/conditioned_generation_report.py "$@"
+    python demo/conditioned_generation_report.py "$@"
+    exec python demo/conditioned_generation_digest.py "$@"
 fi
 if [[ "${1:-}" == "evaluate" ]]; then
     shift
@@ -22,7 +23,8 @@ if [[ "${1:-}" == "evaluate" ]]; then
     # The default formal queue includes its CPU-only audit and fixed figures.
     # Custom roots/smoke may instead invoke the explicit report subcommand.
     if [[ $# -eq 0 ]]; then
-        exec python demo/conditioned_generation_report.py
+        python demo/conditioned_generation_report.py
+        exec python demo/conditioned_generation_digest.py
     fi
     exit 0
 fi

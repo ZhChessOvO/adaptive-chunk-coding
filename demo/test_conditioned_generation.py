@@ -15,6 +15,29 @@ class MSEMetric(torch.nn.Module):
 
 
 class ConditionedGenerationTests(unittest.TestCase):
+    def test_digest_keeps_domains_prefixes_and_metric_scopes_separate(self):
+        from demo.conditioned_generation_digest import aggregate, CLIPS, MODES, METRICS
+        rows = []
+        for i, sid in enumerate(CLIPS):
+            for j, mode in enumerate(MODES):
+                def point(value):
+                    return {field: {k: value + offset for k in METRICS}
+                            for field, offset in (('roi_quality', 0), ('quality', 100))}
+                for candidate, offset in (('latent', 10), ('image', 20)):
+                    rows.append(dict(sample_id=sid, mode=mode, candidate=candidate,
+                                     **point(i+j*10+offset),
+                                     baseline=point(i+j*10), direct=point(i+j*10+30)))
+        local = aggregate(rows, 'roi_quality')
+        whole = aggregate(rows, 'quality')
+        self.assertEqual(local['full']['all']['image']['lpips_alex'], 41.5)
+        self.assertEqual(local['none']['REDS']['baseline']['lpips_alex'], 1.)
+        self.assertEqual(local['partial']['UVG']['direct']['lpips_alex'], 42.)
+        self.assertEqual(whole['full']['all']['image']['lpips_alex'], 141.5)
+        with self.assertRaises(ValueError):
+            aggregate(rows[:-1], 'quality')
+        with self.assertRaises(ValueError):
+            aggregate(rows+[rows[-1]], 'quality')
+
     def test_power_loss_log_tail_and_checkpoint_boundary(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)/'steps.jsonl'

@@ -45,6 +45,15 @@ ACSG2 receiver uses a distinct profile plus transmitted adapter hash; do not
 overwrite the legacy adapter. Progress and recipe, not a duplicate Git report:
 https://app.notion.com/p/3e98b22ebd8d8143a89de2d0ea97e5a0.
 
+The paired generation-condition adaptation and all 27 fresh decodes are now
+complete; do not restart training automatically. `report` rechecks artifacts
+and produces the CPU-only digest, fixed-prefix curves and incremental-E plots.
+Results and the feature-condition discussion are at
+https://app.notion.com/p/3e98b22ebd8d813dbca5d606f633d9e0.
+Keep the image-objective adapter as a research candidate, not a silent change
+to old receiver profiles. Feature adapters, joint E/G tuning and router training
+have not started; discuss the next interface before extending the experiment.
+
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do
 not restore the former backbone-plus-two-experts design. Context may be used

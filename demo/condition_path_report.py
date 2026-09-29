@@ -117,6 +117,13 @@ def figures(root,lookup,refs,changes):
             ax.grid(alpha=.25); ax.legend(fontsize=7)
         fig.suptitle('Lines: existing sample-condition prefixes; stars: NEW mean-condition full-E only',fontsize=10)
         fig.savefig(root/f'prefix_context_{metric}.png',dpi=150); plt.close(fig)
+    fixed_visuals(root,lookup,refs)
+    artifacts = {p.name:file_hash(p) for p in root.iterdir() if p.suffix in ('.png','.gif')}
+    atomic_json(root/'figure_artifacts.json',artifacts)
+
+
+def fixed_visuals(root,lookup,refs):
+    """Also usable for already completed clips while the serial queue runs."""
     font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',13)
     for sid,row in refs.items():
         videos = {'GT':load_source(row['sample']), 'E only':load_frames(OLD/sid/'enhance_q1/reconstruction.npz')}
@@ -143,5 +150,3 @@ def figures(root,lookup,refs,changes):
                     frame.paste(crop,(i*w*2,30)); draw.text((i*w*2+3,6),name,font=font,fill='black')
                 frames.append(frame)
             frames[0].save(root/f'{sid}_sequence.gif',save_all=True,append_images=frames[1:],duration=125,loop=0)
-    artifacts = {p.name:file_hash(p) for p in root.iterdir() if p.suffix in ('.png','.gif')}
-    atomic_json(root/'figure_artifacts.json',artifacts)

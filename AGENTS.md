@@ -117,6 +117,13 @@ and model-free G-off checks (32 total). All old modules, weights and results
 remain unchanged. No new training, internal injection architecture, joint E or
 router work is implied. Scope/status/figures live at
 https://app.notion.com/p/3ea8b22ebd8d817a97e9e1a618b7e37c.
+This comparison is complete: 32 fresh decodes, 48 exactly paired noise windows,
+15 exact old-output replays, and all 32 points validated through the no-recompute
+resume branch. Do not restart it as new training. Posterior mean does not remove
+the content-dependent interface tradeoff; keep prior models/profiles. Discuss
+the proposed independent internal conditioning branch before implementing a new
+architecture or training recipe. An initial dtype-confounded two-decode attempt
+is preserved separately as diagnostic evidence, excluded from formal results.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

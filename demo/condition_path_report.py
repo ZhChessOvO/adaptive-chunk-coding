@@ -1,15 +1,18 @@
 """Audit and visualize the single-factor posterior experiment, CPU only."""
 import json
+from pathlib import Path
 from statistics import mean
+from unittest.mock import patch
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from demo.chunk_enhancement_experiment import read
 from demo.condition_path_experiment import (ARMS, CONDITIONS, INTERFACE, PREVIOUS, OLD,
-    destination, assert_pair, validate_point)
+    destination, assert_pair, validate_point, point)
 from demo.feature_condition_report import CLIPS, METRICS
 from demo.conditioned_generation_evaluate import MODES
+from demo import scalable_cooperation_format as fmt
 from demo.patch_prefix_probe import load_frames
 from demo.scalable_codec import atomic_json, file_hash
 from demo.scalable_experiment import load_source, resources
@@ -25,10 +28,15 @@ def report(root):
     expected = {(sid,a,c,p) for sid in CLIPS for a in ARMS for c in CONDITIONS
                 for p in (('full','none') if sid == next(iter(CLIPS)) else ('full',))}
     assert set(lookup) == expected and len(lookup) == 30
+    hashes = {(a,c):summary['protocol']['profiles'][f'{a}_{c}'] for a in ARMS for c in CONDITIONS}
     for r in summary['results']+summary['checks']:
         dest = destination(root,r['sample_id'],r['arm'],r['condition'],r['prefix'],r['check'])
         assert read(dest/'result.json') == r
         validate_point(dest,r,refs[r['sample_id']])
+        with patch('demo.condition_path_experiment.execute',side_effect=AssertionError('unexpected recomputation')):
+            resumed = point(root,refs[r['sample_id']],r['arm'],r['condition'],r['prefix'],
+                            {},hashes,None,None,None,r['check'])
+            assert resumed == r
     noise_windows = 0
     for sid,a,c,p in expected:
         if c != 'sample': continue
@@ -56,7 +64,16 @@ def report(root):
         for field in ('roi_quality','quality')}
     changes = []
     for sid in CLIPS:
+        output_change = {}
+        for a in ARMS:
+            sample = load_frames(destination(root,sid,a,'sample','full')/'reconstruction.npz')
+            center = load_frames(destination(root,sid,a,'mean','full')/'reconstruction.npz')
+            control,_,_,_ = fmt.parse((destination(root,sid,a,'mean','full')/'stream.acsg').read_bytes())
+            values = (center.astype(np.float32)-sample)[fmt.weights(sample.shape,control)>0]
+            output_change[a] = dict(generated_channel_mae_255=float(np.abs(values).mean()),
+                                    generated_channel_changed_fraction=float((values!=0).mean()))
         changes.append(dict(sample_id=sid, sample_name=CLIPS[sid],
+            mean_sample_output_change=output_change,
             mean_gain={a:lookup[(sid,a,'sample','full')]['roi_quality']['lpips_alex']-
                          lookup[(sid,a,'mean','full')]['roi_quality']['lpips_alex'] for a in ARMS},
             feature_gain_vs={c:{a:lookup[(sid,a,c,'full')]['roi_quality']['lpips_alex']-
@@ -64,6 +81,7 @@ def report(root):
                                for a in ('rgb','zero')} for c in CONDITIONS}))
     heartbeats = [json.loads(l) for l in (root/'heartbeat.jsonl').read_text().splitlines()]
     digest = dict(aggregates=aggregates,changes=changes,elapsed_seconds=summary['elapsed_seconds'],
+        report_code_sha256=file_hash(Path(__file__)),
         timing={a:{c:mean(r['fresh_decode']['seconds'] for r in full if r['arm']==a and r['condition']==c)
                    for c in CONDITIONS} for a in ARMS},
         peak_cuda_allocated_bytes=max(r['fresh_decode']['peak_cuda_allocated_bytes'] for r in full),
@@ -72,6 +90,7 @@ def report(root):
         whole_scope='All 17/17/33/17 frames, equal clip mean',
         role='Four reused development clips, one fixed noise seed schedule; no generalization claim')
     atomic_json(root/'audit.json',dict(complete=True,fresh_decodes=32,legacy_pixel_replays=15,
+        resumed_points_without_execution=32,
         paired_noise_windows=noise_windows,paired_rng_and_noise_exact=True,
         raw_condition_and_noise_match_across_arms=True,real_bytes_exact=True,
         inner_payload_unchanged=True,source_free=True,outside_generate_exact=True,

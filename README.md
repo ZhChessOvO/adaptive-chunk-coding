@@ -21,6 +21,11 @@
 `test` 为 CPU 回归。`smoke`／`train` 保留用于复现，不自动进入 Router 或联合调 E。
 接口与训练配方见 [特征条件适配](https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9)，
 评价状态与图表见 [特征接口结果](https://app.notion.com/p/3ea8b22ebd8d81fabc2bd92ee8cfb87c)。
+当前获批的接口专项适配入口为 `bash demo/run_feature_interface.sh`：先在 tmux 中
+运行 `smoke`，再运行 `run`，自动完成两组仅接口训练、真实码流评价与汇总。
+同一路径重跑可恢复原子训练断点并跳过已校验评价点；`test` 是 CPU 回归，
+`train`／`evaluate`／`report` 可分阶段使用。固定最新 RGB LoRA，不更新 UF、E 或 Router。
+配方、对照与状态见 [接口专项适配](https://app.notion.com/p/3ea8b22ebd8d8176a6b2ef459c3f068e)。
 
 ## 历史主线（Old version）
 

@@ -78,6 +78,21 @@ https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9.
 Evaluation status and figures:
 https://app.notion.com/p/3ea8b22ebd8d81fabc2bd92ee8cfb87c.
 
+The user approved the interface-only continuation on 2026-09-29. Preserve the
+small positive result above; do not turn it into a failed performance gate.
+Use `bash demo/run_feature_interface.sh smoke`, then `run`, in tmux. The latter
+serializes two 3000-effective-update arms, 38 fresh decodes and CPU reporting.
+Freeze the completed RGB LoRA plus UF/E/DiT/VAE; train only the 39,984-parameter
+interface. Compare received delta against an equally trained RGB/coverage-only
+zero-delta control with paired samples/crops/noise/objectives. Same-weight
+zero/shuffle/off receiver ablations distinguish content, alignment and capacity.
+No-E is structurally exact and verified, not a meaningless training update.
+Use separate hashed receiver profiles and keep every previous module/output.
+Reuse the existing 120 mixed caches and assets. Atomic checkpoints every 25
+updates, exact resume smoke, shared GPU exclusion and resource heartbeats apply.
+Do not start joint E training or the router. Recipe/status/results live only at
+https://app.notion.com/p/3ea8b22ebd8d8176a6b2ef459c3f068e.
+
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do
 not restore the former backbone-plus-two-experts design. Context may be used

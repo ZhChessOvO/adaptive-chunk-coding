@@ -92,6 +92,18 @@ Reuse the existing 120 mixed caches and assets. Atomic checkpoints every 25
 updates, exact resume smoke, shared GPU exclusion and resource heartbeats apply.
 Do not start joint E training or the router. Recipe/status/results live only at
 https://app.notion.com/p/3ea8b22ebd8d8176a6b2ef459c3f068e.
+The paired interface-only training, all 38 evaluations and CPU reporting are
+now complete. Do not restart the queue. Results and the next discussion:
+https://app.notion.com/p/3ea8b22ebd8d8159bf55ebdd198cae13.
+`bash demo/run_feature_interface_analysis.sh` reaudits artifacts and resumes four
+observational numerics replays; its `posterior` command resumes two VAE sampling
+observations. All six reproduce saved pixels exactly; no weights are updated.
+Preserve the pinned training/receiver files at baed308. Training conditions use
+posterior-mode BF16 caches, while the receiver samples its VAE posterior and
+adds interface corrections in FP32 before DiT autocast. Do not call the old
+receiver's addition-site statistics final BF16 measurements. First discuss a
+fixed-weight condition-path comparison (RGB and both interfaces, same diffusion
+noise) before new training or a different internal injection architecture.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

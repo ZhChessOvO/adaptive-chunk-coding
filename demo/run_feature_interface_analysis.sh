@@ -11,4 +11,8 @@ export PYTHONPATH="$repo:${PYTHONPATH:-}" CUDA_VISIBLE_DEVICES=0
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 PYTHONUNBUFFERED=1
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 cd "$repo"
+if [[ "${1:-}" == posterior ]]; then
+    shift
+    exec python demo/feature_interface_posterior_probe.py "$@"
+fi
 exec python demo/feature_interface_analysis.py "$@"

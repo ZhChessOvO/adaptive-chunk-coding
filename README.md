@@ -26,6 +26,10 @@
 同一路径重跑可恢复原子训练断点并跳过已校验评价点；`test` 是 CPU 回归，
 `train`／`evaluate`／`report` 可分阶段使用。固定最新 RGB LoRA，不更新 UF、E 或 Router。
 配方、对照与状态见 [接口专项适配](https://app.notion.com/p/3ea8b22ebd8d8176a6b2ef459c3f068e)。
+该队列现已完成，不自动重训。最新曲线与结论见
+[专项结果与数值复查](https://app.notion.com/p/3ea8b22ebd8d8159bf55ebdd198cae13)。
+`bash demo/run_feature_interface_analysis.sh` 在 tmux 中复核训练和结果，并续跑只读精度重放；
+加 `posterior` 参数可复现 VAE 采样观测。两者不更新模型、不改原接收器或旧码流。
 
 ## 历史主线（Old version）
 

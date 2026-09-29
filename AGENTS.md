@@ -105,6 +105,19 @@ receiver's addition-site statistics final BF16 measurements. First discuss a
 fixed-weight condition-path comparison (RGB and both interfaces, same diffusion
 noise) before new training or a different internal injection architecture.
 
+The user has now approved that fixed-weight comparison (2026-09-29). Use
+`bash demo/run_condition_path.sh run` in tmux; `test` runs CPU regressions and
+`report` reaudits existing outputs. Separate `condition_path_*.py` modules and
+hashed bundles select posterior sample or mean. Both execute the upstream VAE
+posterior draw, then use the selected condition; paired RNG states and actual
+diffusion-noise tensors must match. Keep the existing FP32-add/BF16-DiT cast
+policy unchanged to isolate one factor. Compare frozen RGB, trained zero-feature
+and real-feature interfaces: 24 full-E points, 6 first-clip no-E points, repeat
+and model-free G-off checks (32 total). All old modules, weights and results
+remain unchanged. No new training, internal injection architecture, joint E or
+router work is implied. Scope/status/figures live at
+https://app.notion.com/p/3ea8b22ebd8d817a97e9e1a618b7e37c.
+
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do
 not restore the former backbone-plus-two-experts design. Context may be used

@@ -30,6 +30,10 @@
 [专项结果与数值复查](https://app.notion.com/p/3ea8b22ebd8d8159bf55ebdd198cae13)。
 `bash demo/run_feature_interface_analysis.sh` 在 tmux 中复核训练和结果，并续跑只读精度重放；
 加 `posterior` 参数可复现 VAE 采样观测。两者不更新模型、不改原接收器或旧码流。
+已获批的固定权重条件对照入口为 `bash demo/run_condition_path.sh run`（tmux）：
+三种模型比较 VAE 采样／均值，逐窗口核对相同生成噪声，不重训或更改精度路径。
+同一命令可从已核验结果续跑；`test` 运行回归，`report` 重新审计与作图。
+范围与最新状态见 [条件路径对照](https://app.notion.com/p/3ea8b22ebd8d817a97e9e1a618b7e37c)。
 
 ## 历史主线（Old version）
 

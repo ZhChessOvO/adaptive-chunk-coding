@@ -1,4 +1,5 @@
 import unittest
+import copy
 from unittest.mock import patch
 
 import torch
@@ -84,6 +85,43 @@ class FeatureTests(unittest.TestCase):
         nn.init.normal_(self.net.fuse[-1].weight,std=100)
         side,_=self.net(self.cond,[packet()])
         self.assertLessEqual(float(side.abs().max().detach()),.25)
+
+
+class ReportTests(unittest.TestCase):
+    @staticmethod
+    def points():
+        rows=[]
+        for prefix,mode in enumerate(('none','partial','full')):
+            for clip in range(4):
+                for candidate in ('rgb','feature'):
+                    value=prefix*100+clip*10+(1 if candidate=='feature' else 0)
+                    def quality(v):
+                        return dict(lpips_alex=v,psnr_db=v+1,temporal_delta_mae=v+2)
+                    row=dict(sample_id=f'clip{clip}',mode=mode,candidate=candidate,
+                        dataset='REDS' if clip<2 else 'UVG',roi_quality=quality(value),
+                        quality=quality(value+1000))
+                    for key,offset in [('direct',10),('previous',20)]:
+                        row[key]=dict(roi_quality=quality(prefix*100+clip*10+offset),
+                                      quality=quality(prefix*100+clip*10+offset+1000))
+                    rows.append(row)
+        return rows
+
+    def test_pair_domain_prefix_and_scope(self):
+        from demo.feature_condition_report import aggregate
+        points=self.points()
+        local=aggregate(points,'roi_quality')
+        whole=aggregate(points,'quality')
+        self.assertEqual(local['none']['all']['rgb']['lpips_alex'],15)
+        self.assertEqual(local['full']['REDS']['feature']['lpips_alex'],206)
+        self.assertEqual(local['partial']['UVG']['previous']['lpips_alex'],145)
+        self.assertEqual(whole['full']['all']['feature']['lpips_alex'],1216)
+
+    def test_missing_or_duplicate_clip_rejected(self):
+        from demo.feature_condition_report import aggregate
+        rows=self.points()
+        with self.assertRaises(ValueError):aggregate(rows[:-1],'roi_quality')
+        rows[-1]=copy.deepcopy(rows[-3])
+        with self.assertRaises(ValueError):aggregate(rows,'roi_quality')
 
 
 if __name__ == '__main__':

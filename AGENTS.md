@@ -64,11 +64,19 @@ paired RGB-only and RGB-plus-feature 1000-step continuations from the completed
 image-objective adapter at strength one, with identical crops/noise/losses.
 Reuse the 90 REDS/30 UVG caches; keep original UF/E/DiT/VAE frozen. Both LoRA and
 the small feature adapter may train. Do not jointly tune E or start the router.
-The feature arm runs first, then the RGB control automatically; evaluation is
-for the next session. Once actual formal steps and an atomic checkpoint are
-confirmed, update Notion and hand off per the user's latest explicit request.
-Correctness checks and current status:
+Both 1000-step arms are now complete (2026-09-29); do not restart training.
+Use `evaluate` for the paired real-stream evaluation in tmux: 24 paired points,
+four same-LoRA branch-off ablations, and three fresh-decode/recovery checks.
+It resumes validated points without redoing them. `report` rechecks artifacts
+and creates CPU-only summaries, curves, fixed crops and sequence previews.
+These four clips remain development evidence, not independent generalization.
+Do not infer interface benefit from a comparison to a less-trained adapter;
+compare equal-step RGB and feature arms, then the same LoRA with the branch off.
+Discuss the results before another training recipe, joint E update or router.
+Interface and training configuration:
 https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9.
+Evaluation status and figures:
+https://app.notion.com/p/3ea8b22ebd8d81fabc2bd92ee8cfb87c.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

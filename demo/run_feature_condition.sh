@@ -18,4 +18,12 @@ if [[ -z "${TMUX:-}" ]]; then
     echo 'Run GPU queues inside tmux.' >&2
     exit 2
 fi
+if [[ "${1:-}" == evaluate ]]; then
+    shift
+    exec python demo/feature_condition_evaluate.py "$@"
+fi
+if [[ "${1:-}" == report ]]; then
+    shift
+    exec python demo/feature_condition_report.py "$@"
+fi
 exec python demo/feature_condition_pipeline.py "$@"

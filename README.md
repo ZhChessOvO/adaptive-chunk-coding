@@ -6,7 +6,7 @@
 
 </div>
 
-## 当前入口（2026-09-28）
+## 当前入口（2026-09-29）
 
 研究已转向 **统一低码率基础层 + 可追加区域增强 + 可选生成协作**。
 已完成同一区域的 Base／只增强／只生成／增强后生成首轮验证；当前进入生成侧条件适配，不续跑下面的旧 spatial-QP 队列。
@@ -16,9 +16,11 @@
 条件适配的运行入口为 `bash demo/run_conditioned_generation.sh`，配方与进度见
 [生成侧训练记录](https://app.notion.com/p/3e98b22ebd8d8143a89de2d0ea97e5a0)。
 同一补包的特征条件适配使用独立入口 `bash demo/run_feature_condition.sh`：
-先在 tmux 中运行 `smoke`，再运行 `train`（可用同一命令断点续跑）；
-`test` 为 CPU 回归。正式队列串行训练特征组和 RGB 对照，不自动进入 Router。
-接口、状态与下一次评价见 [特征条件适配](https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9)。
+两组训练已完成，不自动重启。`evaluate` 在 tmux 中逐点保存真实码流配对评价，
+同一命令可从已校验的结果续跑；`report` 在 tmux 中完成 CPU 审计、曲线和固定画面。
+`test` 为 CPU 回归。`smoke`／`train` 保留用于复现，不自动进入 Router 或联合调 E。
+接口与训练配方见 [特征条件适配](https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9)，
+评价状态与图表见 [特征接口结果](https://app.notion.com/p/3ea8b22ebd8d81fabc2bd92ee8cfb87c)。
 
 ## 历史主线（Old version）
 

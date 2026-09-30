@@ -41,6 +41,12 @@
 同一输出路径续跑会校验配置、断点和已完成结果。固定已有RGB LoRA与UF/E，
 比较旧入口加法、内部真实特征和内部零特征，不启动Router。
 配方、运行状态及后续结果仅维护在 [内部条件接口](https://app.notion.com/p/3eb8b22ebd8d81a3b573f5c4906975ba)。
+三组训练、58次真实解码和报告现已完成，不自动重启；图与下一步讨论见
+[内部接口结果](https://app.notion.com/p/3eb8b22ebd8d8196b4fced245fb8e9b5)。
+`bash demo/run_internal_condition_analysis.sh` 在 tmux 中只读验证全部续跑分支，
+禁止新解码或指标重算，并保留正式统计与耗时；输出为 `evaluation/analysis.json`。
+新检查的 CPU 回归为 `python -m unittest demo.test_internal_condition_analysis`。
+保持已固定的训练／接收源码不变；新的 LoRA 联训配方待讨论，不进入 E 或 Router 训练。
 
 ## 历史主线（Old version）
 

@@ -141,6 +141,16 @@ training, 58 fresh decodes, content/alignment ablations and CPU figures; atomic
 25-step checkpoints, GPU exclusion and 30-second resource heartbeats remain.
 No new assets, joint E update or router training. Recipe/status live only at
 https://app.notion.com/p/3eb8b22ebd8d81a3b573f5c4906975ba.
+All three 3000-step arms, 58 fresh decodes and the report are now complete.
+Do not restart this queue or promote the internal branch automatically.
+Results, fixed visuals and the next discussion are at
+https://app.notion.com/p/3eb8b22ebd8d8196b4fced245fb8e9b5.
+`bash demo/run_internal_condition_analysis.sh` checks all completed resume
+branches without permitting inference or metric recomputation, preserves the
+formal timing/summary, and summarizes content ablations from existing files.
+Keep the formal training/receiver source pins at 98c094f unchanged. Discuss
+the proposed equal-budget RGB/internal-real/internal-zero LoRA coadaptation
+before new training; it is not yet launched. No E or router updates are implied.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

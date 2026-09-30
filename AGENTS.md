@@ -152,6 +152,24 @@ Keep the formal training/receiver source pins at 98c094f unchanged. Discuss
 the proposed equal-budget RGB/internal-real/internal-zero LoRA coadaptation
 before new training; it is not yet launched. No E or router updates are implied.
 
+The user approved that three-arm LoRA coadaptation on 2026-09-30 and requested
+handoff once formal training is verified running. Use the separate entrypoint
+`bash demo/run_joint_condition.sh smoke`, then `train`, inside tmux. All three
+arms start from the same completed RGB LoRA and newly zero-output-initialized
+internal interface: RGB LoRA only, actual-packet interface plus LoRA, and
+zero-packet-content interface plus LoRA. Each trains 3000 steps, with paired
+samples/crops/noise, one-third none/partial/full conditions, and 25% UVG sampling.
+Preserve the prior internal receiver/model modules exactly; the bundle carries
+updated LoRA weights and its distinct weight hash without changing decoding
+behavior. No-E rehearsal updates LoRA but skips the interface optimizer; no-E
+must equal that SAME new LoRA with its branch off, not the old RGB checkpoint.
+Freeze UF/E/base DiT/VAE. Smoke checks exact 3+3/6-step LoRA, branch and optimizer
+resume, all-arm image gradients, six fresh reload/fallback decodes and pairing.
+The formal queue runs internal, zero, RGB serially, saves every 25 steps and
+audits completion. Evaluation/figures follow in the next session, not an
+unimplemented automatic stage. Protocol/status:
+https://app.notion.com/p/3eb8b22ebd8d81debf34d68b813ddd34.
+
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do
 not restore the former backbone-plus-two-experts design. Context may be used

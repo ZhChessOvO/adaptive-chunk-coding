@@ -46,7 +46,12 @@
 `bash demo/run_internal_condition_analysis.sh` 在 tmux 中只读验证全部续跑分支，
 禁止新解码或指标重算，并保留正式统计与耗时；输出为 `evaluation/analysis.json`。
 新检查的 CPU 回归为 `python -m unittest demo.test_internal_condition_analysis`。
-保持已固定的训练／接收源码不变；新的 LoRA 联训配方待讨论，不进入 E 或 Router 训练。
+保持已固定的训练／接收源码不变。新的三组 LoRA 联训现已获批，独立入口为
+`bash demo/run_joint_condition.sh smoke`，通过后 `bash demo/run_joint_condition.sh train`。
+两条均在 tmux 中执行；正式队列串行完成内部真实、内部零特征和 RGB 各3000步后审计，
+每25步保存原子断点，同一命令可恢复；`test` 为 CPU 回归。评价与图表留待下一次会话。
+不进入 E 或 Router 训练，配方与实际状态仅维护在
+[接口与LoRA共同适配](https://app.notion.com/p/3eb8b22ebd8d81debf34d68b813ddd34)。
 
 ## 历史主线（Old version）
 

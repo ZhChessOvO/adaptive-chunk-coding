@@ -125,6 +125,23 @@ the proposed independent internal conditioning branch before implementing a new
 architecture or training recipe. An initial dtype-confounded two-decode attempt
 is preserved separately as diagnostic evidence, excluded from formal results.
 
+The user approved independent internal conditioning on 2026-09-30. Separate
+`internal_condition_*.py` modules preserve every old profile. Use
+`bash demo/run_internal_condition.sh smoke`, then `run`, inside tmux. Freeze
+the completed RGB LoRA plus UF/E/DiT/VAE; train three paired 3000-step arms:
+legacy input addition, internal received features, and internal zero-feature
+control. The latter two have equal 124,992-parameter interfaces, injecting once
+before block 24 of 32; the input architecture retains 39,984 parameters.
+All use posterior-mean BF16 conditions/noise, FP32 interface arithmetic and
+identical cached samples/crops/noise/objectives. This unifies those choices,
+not the remaining cached-full-frame versus inference-ROI context difference.
+Verify image gradients, exact 3+3 versus 6-step weights/optimizer, zero-init,
+no-E and model-free G-off before formal training. The run queue serializes
+training, 58 fresh decodes, content/alignment ablations and CPU figures; atomic
+25-step checkpoints, GPU exclusion and 30-second resource heartbeats remain.
+No new assets, joint E update or router training. Recipe/status live only at
+https://app.notion.com/p/3eb8b22ebd8d81a3b573f5c4906975ba.
+
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do
 not restore the former backbone-plus-two-experts design. Context may be used

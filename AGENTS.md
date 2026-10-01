@@ -215,6 +215,16 @@ https://app.notion.com/p/3ec8b22ebd8d815e9a51f784f515360d.
 Do not duplicate the research report in Git. Do not automatically end the user
 session merely because tmux starts; the latest request is to keep making useful
 progress and organize Notion during training, stopping for substantive discussion.
+Follow-up evaluation uses `bash demo/run_roi_condition_evaluate.sh run` in tmux;
+the global GPU mutex lets it queue safely behind training. It performs 58 new
+decodes and validates/reuses 12 initial RGB points plus 40 prior equal-budget
+joint endpoints (36 main, four full-prefix interface-off). The latter are
+historical measurements, not new decodes or independent validation. Report both
+RGB/real/zero arm pairing and same-LoRA content controls, with fixed old/new
+visuals; do not invent a partial interface-off curve. Waiting for training is
+excluded from evaluation elapsed time and sampled evaluation GPU peak. `history`
+is a CPU-only artifact-reader preflight; `evaluate`/`report` are separate stages,
+and `test` checks pairing, resume-without-recomputation and historical scopes.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

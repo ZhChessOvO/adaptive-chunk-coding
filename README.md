@@ -71,6 +71,9 @@
 同一命令可恢复；历史接收器及旧缓存不变。
 本轮配方和运行状态见 [区域训练对齐](https://app.notion.com/p/3ec8b22ebd8d815e9a51f784f515360d)，
 历轮结果与图统一查 [实验导航](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)。
+后续 `bash demo/run_roi_condition_evaluate.sh run`（tmux）会等待训练释放GPU，
+再完成58次真实解码、同预算旧终点对比及固定图；`evaluate`／`report`可分开续跑，
+`history`是旧结果读取的CPU预检，`test`为CPU回归。排队时间与实际评价耗时分开统计。
 
 ## 历史主线（Old version）
 

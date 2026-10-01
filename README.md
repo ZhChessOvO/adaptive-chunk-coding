@@ -56,6 +56,13 @@
 保持原训练和接收源码不变；12个初始 RGB 对照点仅校验复用，不计为新解码。
 不进入 E 或 Router 训练，配方与实际状态仅维护在
 [接口与LoRA共同适配](https://app.notion.com/p/3eb8b22ebd8d81debf34d68b813ddd34)。
+该58项评价、图表与禁止重算的续跑复查均已完成，不自动重启；最新结果和下一步讨论见
+[联训结果与固定可视化](https://app.notion.com/p/3ec8b22ebd8d81458221c2e47c864595)。
+`bash demo/run_joint_condition_analysis.sh` 在 tmux 中只读核验完成点，
+保留原始统计、耗时与哈希；新增像素对比和开关图只写入 `evaluation/supplement`，
+审计摘要为 `evaluation/analysis.json`。不运行生成器、不更新权重。
+该检查的 CPU 回归为 `python -m unittest demo.test_joint_condition_analysis`；
+训练／接收／正式评价源码不变。下一轮 ROI 路径对齐或 E/G 联训尚待讨论。
 
 ## 历史主线（Old version）
 

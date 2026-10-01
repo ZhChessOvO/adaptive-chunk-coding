@@ -182,9 +182,22 @@ The queue keeps the global GPU mutex and 30-second resource heartbeats.
 Preserve a8348c9 training and earlier receiver/model source pins. No E or Router
 training or automatic model promotion follows evaluation. Report the paired
 RGB budget control separately from same-weight feature-content ablations.
-On 2026-10-01 Notion page fetch/search returned HTTP 500 (cross-cell memcached);
-research-document synchronization is pending, not completed. Reconnect/retry
-Notion before publishing results under 03.13; do not duplicate the report in Git.
+All 58 fresh decodes, original figures and the no-recompute resume audit are
+now complete. Notion read/write succeeded again on 2026-10-01, and the pending
+training/evaluation records were synchronized. Results and the next discussion:
+https://app.notion.com/p/3ec8b22ebd8d81458221c2e47c864595.
+`bash demo/run_joint_condition_analysis.sh` (tmux, CPU only) replays all completed
+resume branches with decoding, metric recomputation and formal-summary writes
+forbidden. It preserves original hashes/timing and writes independent pixel
+comparisons and figures under `evaluation/supplement`; `evaluation/analysis.json`
+records the audit. CPU regression: `python -m unittest
+demo.test_joint_condition_analysis`, alongside the existing 44-test evaluation
+suite. Preserve the pinned training/receiver/evaluation/report files unchanged.
+The same-weight interface-off result is a post-hoc research candidate, not a
+promoted model; E still decodes and conditions generation through enhanced RGB.
+Discuss ROI training/inference alignment versus joint E/G optimization before
+the next training recipe. Neither that new training nor Router has started.
+Do not duplicate the research report in Git.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

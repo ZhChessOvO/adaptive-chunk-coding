@@ -2,78 +2,39 @@
 
 # Budget-Adaptive Regional Coding and Restoration
 
-**在 DCVC-UF 上进行 Generate / Base / Enhance 区域路由**
+**基于 DCVC-UF 的可伸缩区域增强与生成协作**
 
 </div>
 
-## 当前入口（2026-10-01）
+## 文档入口
 
-研究已转向 **统一低码率基础层 + 可追加区域增强 + 可选生成协作**。
-已完成同一区域的 Base／只增强／只生成／增强后生成首轮验证；当前进入生成侧条件适配，不续跑下面的旧 spatial-QP 队列。
-最新方法、方案和进度以 [Notion 项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
-及 [当前验证记录](https://app.notion.com/p/3e78b22ebd8d8172bd29faf1b7dffc23) 为准；
-本 README 后续的研究叙述是历史版本，环境安装说明仍可参考。
-条件适配的运行入口为 `bash demo/run_conditioned_generation.sh`，配方与进度见
-[生成侧训练记录](https://app.notion.com/p/3e98b22ebd8d8143a89de2d0ea97e5a0)。
-同一补包的特征条件适配使用独立入口 `bash demo/run_feature_condition.sh`：
-两组训练已完成，不自动重启。`evaluate` 在 tmux 中逐点保存真实码流配对评价，
-同一命令可从已校验的结果续跑；`report` 在 tmux 中完成 CPU 审计、曲线和固定画面。
-`test` 为 CPU 回归。`smoke`／`train` 保留用于复现，不自动进入 Router 或联合调 E。
-接口与训练配方见 [特征条件适配](https://app.notion.com/p/3e98b22ebd8d81d2b386d5b4b5b4a7c9)，
-评价状态与图表见 [特征接口结果](https://app.notion.com/p/3ea8b22ebd8d81fabc2bd92ee8cfb87c)。
-当前获批的接口专项适配入口为 `bash demo/run_feature_interface.sh`：先在 tmux 中
-运行 `smoke`，再运行 `run`，自动完成两组仅接口训练、真实码流评价与汇总。
-同一路径重跑可恢复原子训练断点并跳过已校验评价点；`test` 是 CPU 回归，
-`train`／`evaluate`／`report` 可分阶段使用。固定最新 RGB LoRA，不更新 UF、E 或 Router。
-配方、对照与状态见 [接口专项适配](https://app.notion.com/p/3ea8b22ebd8d8176a6b2ef459c3f068e)。
-该队列现已完成，不自动重训。最新曲线与结论见
-[专项结果与数值复查](https://app.notion.com/p/3ea8b22ebd8d8159bf55ebdd198cae13)。
-`bash demo/run_feature_interface_analysis.sh` 在 tmux 中复核训练和结果，并续跑只读精度重放；
-加 `posterior` 参数可复现 VAE 采样观测。两者不更新模型、不改原接收器或旧码流。
-已获批的固定权重条件对照入口为 `bash demo/run_condition_path.sh run`（tmux）：
-三种模型比较 VAE 采样／均值，逐窗口核对相同生成噪声，不重训或更改精度路径。
-同一命令可从已核验结果续跑；`test` 运行回归，`report` 重新审计与作图。
-范围与最新状态见 [条件路径对照](https://app.notion.com/p/3ea8b22ebd8d817a97e9e1a618b7e37c)。
-该32点对照与续跑审计已完成，不自动重跑。
-用户已同意下一轮内部条件接口，入口为 `bash demo/run_internal_condition.sh`：
-在 tmux 中先运行 `smoke`，通过后 `run` 串行完成三组各3000步训练、58次真实解码与图表。
-`train`／`evaluate`／`report` 可分阶段使用，`test` 是不占GPU的回归检查；
-同一输出路径续跑会校验配置、断点和已完成结果。固定已有RGB LoRA与UF/E，
-比较旧入口加法、内部真实特征和内部零特征，不启动Router。
-配方、运行状态及后续结果仅维护在 [内部条件接口](https://app.notion.com/p/3eb8b22ebd8d81a3b573f5c4906975ba)。
-三组训练、58次真实解码和报告现已完成，不自动重启；图与下一步讨论见
-[内部接口结果](https://app.notion.com/p/3eb8b22ebd8d8196b4fced245fb8e9b5)。
-`bash demo/run_internal_condition_analysis.sh` 在 tmux 中只读验证全部续跑分支，
-禁止新解码或指标重算，并保留正式统计与耗时；输出为 `evaluation/analysis.json`。
-新检查的 CPU 回归为 `python -m unittest demo.test_internal_condition_analysis`。
-保持已固定的训练／接收源码不变。新的三组 LoRA 联训现已获批，独立入口为
-`bash demo/run_joint_condition.sh smoke`，通过后 `bash demo/run_joint_condition.sh train`。
-两条均在 tmux 中执行；正式队列串行完成内部真实、内部零特征和 RGB 各3000步后审计，
-每25步保存原子断点，同一命令可恢复；`test` 为 CPU 回归。三组训练现已完成，不自动重训。
-后续评价使用独立入口 `bash demo/run_joint_condition_evaluate.sh run`（tmux）：
-58次真实解码核对等字节、等噪声和各自 LoRA 的无补包回退，并自动生成曲线与固定图。
-`evaluate`／`report` 可分阶段使用；同一命令校验并复用完成点，`test` 是 CPU 回归。
-保持原训练和接收源码不变；12个初始 RGB 对照点仅校验复用，不计为新解码。
-不进入 E 或 Router 训练，配方与实际状态仅维护在
-[接口与LoRA共同适配](https://app.notion.com/p/3eb8b22ebd8d81debf34d68b813ddd34)。
-该58项评价、图表与禁止重算的续跑复查均已完成，不自动重启；最新结果和下一步讨论见
-[联训结果与固定可视化](https://app.notion.com/p/3ec8b22ebd8d81458221c2e47c864595)。
-`bash demo/run_joint_condition_analysis.sh` 在 tmux 中只读核验完成点，
-保留原始统计、耗时与哈希；新增像素对比和开关图只写入 `evaluation/supplement`，
-审计摘要为 `evaluation/analysis.json`。不运行生成器、不更新权重。
-该检查的 CPU 回归为 `python -m unittest demo.test_joint_condition_analysis`；
-训练／接收／正式评价源码不变。
+当前主线是 **共享低码率基础层＋可追加区域增强＋可选生成协作**。
+方法、实验状态、结果与可视化只在 Notion 维护，不在 Git 另写研究报告：
 
-当前已获批的 ROI 区域训练对齐使用独立入口 `bash demo/run_roi_condition.sh`：
-先在 tmux 中运行 `smoke`，通过后 `train`；`test` 为 CPU 回归。
-三组同初始权重、同样本/裁剪/噪声各3000步，UF/E冻结，不启动Router。
-正式目录为 `/root/autodl-fs/DCVC/runs/a800_roi_condition_20261001`，每25步原子保存，
-同一命令可恢复；历史接收器及旧缓存不变。
-本轮配方和运行状态见 [区域训练对齐](https://app.notion.com/p/3ec8b22ebd8d815e9a51f784f515360d)，
-历轮结果与图统一查 [实验导航](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)。
-后续 `bash demo/run_roi_condition_evaluate.sh run`（tmux）会等待训练释放GPU，
-再完成58次真实解码、同预算旧终点对比及固定图；`evaluate`／`report`可分开续跑，
-`history`是旧结果读取的CPU预检，`test`为CPU回归。排队时间与实际评价耗时分开统计。
+- [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
+- [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [03 实验导航：所有版本、曲线与固定画面](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)
+
+下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
+其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
+
+## 当前运行入口：ROI 区域训练对齐
+
+配方与实际状态：[03.14 区域训练对齐](https://app.notion.com/p/3ec8b22ebd8d815e9a51f784f515360d)。
+保持旧训练/接收源码不变；本轮冻结 UF/E，不训练 Router。
+
+| 操作 | 命令 |
+| --- | --- |
+| CPU 回归 | `bash demo/run_roi_condition_evaluate.sh test` |
+| tmux 中的短训练、断点与解码检查 | `bash demo/run_roi_condition.sh smoke` |
+| tmux 中的三组训练 | `bash demo/run_roi_condition.sh train` |
+| tmux 中排队评价与作图 | `bash demo/run_roi_condition_evaluate.sh run --max-hours 12` |
+| 旧结果只读预检 | `bash demo/run_roi_condition_evaluate.sh history`（tmux） |
+
+正式目录：`/root/autodl-fs/DCVC/runs/a800_roi_condition_20261001`；烟测另加 `_smoke`。
+每25步原子保存，同一命令可恢复；GPU互斥锁保证训练和真实UF解码不同时运行。
+评价支持单独 `evaluate`／`report`，已完成点校验后复用；排队时间与实际评价耗时分开统计。
+不要因为 tmux 已启动就自动结束当前会话，后续安排遵从用户最新指示。
 
 ## 历史主线（Old version）
 

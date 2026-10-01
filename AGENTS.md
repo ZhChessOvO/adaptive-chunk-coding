@@ -170,6 +170,22 @@ audits completion. Evaluation/figures follow in the next session, not an
 unimplemented automatic stage. Protocol/status:
 https://app.notion.com/p/3eb8b22ebd8d81debf34d68b813ddd34.
 
+All three coadaptation arms completed 3000 steps and passed the paired training
+audit. Do not restart training. The separate follow-up entrypoint is
+`bash demo/run_joint_condition_evaluate.sh run` in tmux. It performs 58 new
+fresh decodes: 36 main, 12 same-weight full-prefix off/zero/shuffle controls,
+8 own-LoRA no-E equivalence checks, one repeat and one model-free G-off.
+Initial RGB's 12 old mean/BF16 points are artifact-checked reuse, not new decodes.
+`evaluate` and CPU `report` are also available separately; completed points are
+validated before reuse, and the original evaluation summary/timing is preserved.
+The queue keeps the global GPU mutex and 30-second resource heartbeats.
+Preserve a8348c9 training and earlier receiver/model source pins. No E or Router
+training or automatic model promotion follows evaluation. Report the paired
+RGB budget control separately from same-weight feature-content ablations.
+On 2026-10-01 Notion page fetch/search returned HTTP 500 (cross-cell memcached);
+research-document synchronization is pending, not completed. Reconnect/retry
+Notion before publishing results under 03.13; do not duplicate the report in Git.
+
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do
 not restore the former backbone-plus-two-experts design. Context may be used

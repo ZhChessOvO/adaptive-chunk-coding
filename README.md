@@ -6,7 +6,7 @@
 
 </div>
 
-## 当前入口（2026-09-30）
+## 当前入口（2026-10-01）
 
 研究已转向 **统一低码率基础层 + 可追加区域增强 + 可选生成协作**。
 已完成同一区域的 Base／只增强／只生成／增强后生成首轮验证；当前进入生成侧条件适配，不续跑下面的旧 spatial-QP 队列。
@@ -49,7 +49,11 @@
 保持已固定的训练／接收源码不变。新的三组 LoRA 联训现已获批，独立入口为
 `bash demo/run_joint_condition.sh smoke`，通过后 `bash demo/run_joint_condition.sh train`。
 两条均在 tmux 中执行；正式队列串行完成内部真实、内部零特征和 RGB 各3000步后审计，
-每25步保存原子断点，同一命令可恢复；`test` 为 CPU 回归。评价与图表留待下一次会话。
+每25步保存原子断点，同一命令可恢复；`test` 为 CPU 回归。三组训练现已完成，不自动重训。
+后续评价使用独立入口 `bash demo/run_joint_condition_evaluate.sh run`（tmux）：
+58次真实解码核对等字节、等噪声和各自 LoRA 的无补包回退，并自动生成曲线与固定图。
+`evaluate`／`report` 可分阶段使用；同一命令校验并复用完成点，`test` 是 CPU 回归。
+保持原训练和接收源码不变；12个初始 RGB 对照点仅校验复用，不计为新解码。
 不进入 E 或 Router 训练，配方与实际状态仅维护在
 [接口与LoRA共同适配](https://app.notion.com/p/3eb8b22ebd8d81debf34d68b813ddd34)。
 

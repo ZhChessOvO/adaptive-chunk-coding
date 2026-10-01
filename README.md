@@ -62,7 +62,15 @@
 保留原始统计、耗时与哈希；新增像素对比和开关图只写入 `evaluation/supplement`，
 审计摘要为 `evaluation/analysis.json`。不运行生成器、不更新权重。
 该检查的 CPU 回归为 `python -m unittest demo.test_joint_condition_analysis`；
-训练／接收／正式评价源码不变。下一轮 ROI 路径对齐或 E/G 联训尚待讨论。
+训练／接收／正式评价源码不变。
+
+当前已获批的 ROI 区域训练对齐使用独立入口 `bash demo/run_roi_condition.sh`：
+先在 tmux 中运行 `smoke`，通过后 `train`；`test` 为 CPU 回归。
+三组同初始权重、同样本/裁剪/噪声各3000步，UF/E冻结，不启动Router。
+正式目录为 `/root/autodl-fs/DCVC/runs/a800_roi_condition_20261001`，每25步原子保存，
+同一命令可恢复；历史接收器及旧缓存不变。
+本轮配方和运行状态见 [区域训练对齐](https://app.notion.com/p/3ec8b22ebd8d815e9a51f784f515360d)，
+历轮结果与图统一查 [实验导航](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)。
 
 ## 历史主线（Old version）
 

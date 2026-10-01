@@ -195,9 +195,26 @@ demo.test_joint_condition_analysis`, alongside the existing 44-test evaluation
 suite. Preserve the pinned training/receiver/evaluation/report files unchanged.
 The same-weight interface-off result is a post-hoc research candidate, not a
 promoted model; E still decodes and conditions generation through enhanced RGB.
-Discuss ROI training/inference alignment versus joint E/G optimization before
-the next training recipe. Neither that new training nor Router has started.
-Do not duplicate the research report in Git.
+The user approved ROI training/inference alignment on 2026-10-01. Use the new
+`bash demo/run_roi_condition.sh smoke`, then `train`, inside tmux; preserve every
+historical pinned trainer, receiver and report. This is a paired 3000-step
+RGB/internal-real/internal-zero LoRA coadaptation, from the SAME initial adapter
+and sample/crop/noise schedule as the previous joint round, not three additional
+continuations from its endpoints. Freeze UF/E/base DiT/VAE; no Router training.
+The new path crops RGB before receiver-identical mean/BF16 VAE encoding, with a
+256-pixel processing window, central 128-pixel image supervision and 64-pixel
+context. Latent losses retain the full window. Thus this tests an ROI pipeline
+bundle (encoding order AND image-loss scope), not a single-factor causal claim.
+Smoke checks exact real-receiver condition tensors including rectangular/33-frame
+windows, 3+3 versus 6-step weight/optimizer resume, all-arm gradients, reloads and
+fallbacks. Local feature caches are separate and shared across arms; atomic
+checkpoints every 25 steps, global GPU mutex and 30-second resource records.
+Formal output: `/root/autodl-fs/DCVC/runs/a800_roi_condition_20261001`.
+Execution, experiment navigation and figures live in Notion:
+https://app.notion.com/p/3ec8b22ebd8d815e9a51f784f515360d.
+Do not duplicate the research report in Git. Do not automatically end the user
+session merely because tmux starts; the latest request is to keep making useful
+progress and organize Notion during training, stopping for substantive discussion.
 
 Router simplification confirmed by the user on 2026-09-28: keep one router
 backbone followed by generation-region boundary/fragmentation reduction; do

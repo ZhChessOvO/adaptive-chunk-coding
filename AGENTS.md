@@ -33,6 +33,23 @@ completed region atomically; replay validates saved artifacts without inference.
 Keep the global GPU mutex, 30-second resource heartbeats and historical source
 pins unchanged. No new downloads, multi-GPU work or arbitrary quality gates.
 This queue prepares labels only; Router training/evaluation has separate code.
+After the exact CPU resume smoke, `bash demo/run_four_state_router_queue.sh`
+may wait in its own tmux session for the complete teacher, then produce the
+teacher figures, train paired 240-epoch context/local utility backbones on CPU,
+and evaluate grouped-holdout table regret at six byte/ROI-call budgets. Both
+models have 6,982 parameters; context enters after local embeddings with equal
+parameter count. Inputs contain only B, decoded candidate Y and E coverage,
+not source X. Predict direct-E gains and G gains CONDITIONAL on Y (LPIPS primary;
+PSNR/temporal auxiliary). Only the target cell is supervised in isolated-E views.
+Never add the independent G(B) gain to E and call that E-to-G prediction.
+Use the simple sequence-group split only for Router development; these are
+component-training clips, not independent codec/generator evidence. Exact table
+budget allocation is not an exact full-video oracle. G controls remain charged;
+a deployed receiver-derived policy and actual routed RD are not completed by
+this CPU pilot. Do not auto-promote a model based only on table regret.
+Router output: `/root/autodl-fs/DCVC/runs/a800_four_state_router_20261002`.
+Each five epochs is an atomic resume boundary. The CPU queue neither competes
+for GPU memory nor modifies the in-flight teacher or historical source pins.
 Research plan, progress and results live only in Notion 03.16:
 https://app.notion.com/p/3ed8b22ebd8d81a8915ec00064643818.
 

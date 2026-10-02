@@ -30,10 +30,16 @@
 | tmux 中两样本、断点与 fresh 接收端烟测 | `bash demo/run_four_state.sh smoke --max-hours 3` |
 | tmux 中120条数据、真实字节与画质标签 | `bash demo/run_four_state.sh run --max-hours 24` |
 | tmux 中完成结果只读核验 | `bash demo/run_four_state.sh verify` |
+| CPU Router 单元测试 | `bash demo/run_four_state_router.sh test` |
+| tmux 中等待数据、训练并评价初版Router | `bash demo/run_four_state_router_queue.sh --max-hours 24` |
 
 正式目录：`/root/autodl-fs/DCVC/runs/a800_four_state_20261002`，烟测加 `_smoke`。
 按区域原子保存，相同命令续跑；进度和三盘/GPU心跳保存在正式目录。
 单区域收益表不是已验证的整幅组合质量，正式分配须重新解码/生成验证。
+Router队列另存`/root/autodl-fs/DCVC/runs/a800_four_state_router_20261002`，在数据完成后
+自动运行两组等容量的240-epoch CPU训练（本体内上下文／局部对照），每5轮原子保存。
+它只做分组开发集的收益预测与表格预算评价，不自动宣称真实路由RD或共享接收策略已完成。
+输入只有底图、实际候选重建和E覆盖；LPIPS为主，PSNR/时序为辅助；仍只用一个本体。
 
 ## 已完成运行入口：E＋G 联合训练与真实码流评价
 

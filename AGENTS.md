@@ -8,6 +8,34 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Online E/G joint adaptation (2026-10-02; latest authorization)
+
+The user approved joint E/G training while retaining the completed RGB-first
+ROI alignment. Use the separate `bash demo/run_online_eg.sh smoke`, then `train`,
+inside tmux. Continue both paired 3000-step arms from the completed 03.14 RGB
+LoRA and A/pad16 E model: `joint` updates E plus G LoRA; `fixed` updates only G
+LoRA. Preserve all historical source pins and outputs. Freeze UF, its rendering
+head, original DiT and VAE weights; do not start Router training or add another
+feature interface. Preserve Base/E-only/G-only/E-to-G modes.
+
+The online path must actually carry the generated-image loss through the VAE
+encoder to E; detached offline E images are not joint training. Keep RGB-first
+256px processing / 128px core / 64px halo, actual packet geometry and rounded
+receiver RGB. Verify the gradient from LPIPS alone to E analysis and synthesis,
+receiver input equality, exact interrupted/resumed E/G/optimizer states, real
+entropy streams, source-free fresh decode, repeats and model-free G-off first.
+Training entropy estimates are not actual stream sizes. The updated E changes
+packet lengths, so later comparisons must use actual-byte RD, not equal-q claims.
+
+The latest user explicitly requests handoff once formal training is running:
+confirm steps advance and an atomic checkpoint loads, update Notion, then end
+the session. Do not wait for the training to finish or auto-launch evaluation.
+The queue serializes joint then fixed, saves every25 steps and reports resources
+every30 seconds; same command resumes after restarting tmux. This supersedes
+older statements below that required E frozen or automatic continued monitoring.
+Recipe, progress and next-session evaluation live only at:
+https://app.notion.com/p/3ed8b22ebd8d8158be1dd92e3d59b99f.
+
 ### Cooperation update (2026-09-28; supersedes the next-stage queue below)
 
 The user approved optional same-region Enhance -> Generate, retaining all four

@@ -18,6 +18,23 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
+## 当前运行入口：四状态 Router 数据准备
+
+范围与进度：[03.16 四状态路由准备](https://app.notion.com/p/3ed8b22ebd8d81a8915ec00064643818)。
+先用已完成的联合版 E/G 测量 Base／只E／只G／E→G，之后训练单一本体 Router；
+这里的数据队列本身不更新模型。没有恢复旧两专家，也不重新运行已完成的训练。
+
+| 操作 | 命令 |
+| --- | --- |
+| CPU 协议测试 | `bash demo/run_four_state.sh test` |
+| tmux 中两样本、断点与 fresh 接收端烟测 | `bash demo/run_four_state.sh smoke --max-hours 3` |
+| tmux 中120条数据、真实字节与画质标签 | `bash demo/run_four_state.sh run --max-hours 24` |
+| tmux 中完成结果只读核验 | `bash demo/run_four_state.sh verify` |
+
+正式目录：`/root/autodl-fs/DCVC/runs/a800_four_state_20261002`，烟测加 `_smoke`。
+按区域原子保存，相同命令续跑；进度和三盘/GPU心跳保存在正式目录。
+单区域收益表不是已验证的整幅组合质量，正式分配须重新解码/生成验证。
+
 ## 已完成运行入口：E＋G 联合训练与真实码流评价
 
 配方与实际状态：[03.15 E与G联合训练](https://app.notion.com/p/3ed8b22ebd8d8158be1dd92e3d59b99f)。
@@ -38,7 +55,7 @@
 两组训练均已完成，`train.complete.json`与`training_audit.json`已落盘，不重新训练。
 92点评价、报告和只读恢复检查也已完成，正常无需重跑。
 结果与图：[03.15.1 联合训练评价](https://app.notion.com/p/3ed8b22ebd8d81a5a9b3de25abd5830a)。
-`evaluation.resume_audit.json`记录禁止重新推理/计算指标的恢复核验；下一阶段待讨论。
+`evaluation.resume_audit.json`记录禁止重新推理/计算指标的恢复核验；下一阶段已获同意，见03.16。
 需要复现时，评价可单独执行`evaluate`或`report`，已完成点校验后复用。
 真实码流、结果与图保存在正式目录的`evaluation/`；研究记录仍只在Notion维护。
 

@@ -8,6 +8,34 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Four-state Router preparation (2026-10-02; newest authorization)
+
+The user accepted the post-03.15 recommendation: joint E/G is the main candidate,
+new E plus control G remains an alternative. Proceed with a true Base/E/G/EG
+utility-and-cost table, then the single-backbone Router and later G-boundary
+reduction. This supersedes the older pending-discussion/no-Router handoff below;
+do not restore the two experts. Do not retrain completed UF/E/G models here.
+
+Use `bash demo/run_four_state.sh smoke`, then `run`, inside tmux. Formal output:
+`/root/autodl-fs/DCVC/runs/a800_four_state_20261002`; smoke adds `_smoke`.
+Reuse 90 REDS + 30 UVG component-training windows, not independent evidence.
+Measure all four states on 16 native 128px cells per 17-frame 512px window.
+E is real q1 I+P8+P8 packet bundles; G keeps RGB-first cropping, 64px context,
+16px feather and completed joint LoRA. Shared base/G overhead must be counted
+once; explicit G controls remain charged. A receiver-derived G policy is not
+implemented by this teacher. Do not describe an isolated tile montage as a
+decoded mixed stream: neighboring E can alter G context, so compositions need
+fresh evaluation before treating the table as an exact allocation oracle.
+
+Source-free receiver execution reuses model residency only after fresh-process
+pixel/noise equality, including an image-border and an interior cell. Save each
+completed region atomically; replay validates saved artifacts without inference.
+Keep the global GPU mutex, 30-second resource heartbeats and historical source
+pins unchanged. No new downloads, multi-GPU work or arbitrary quality gates.
+This queue prepares labels only; Router training/evaluation has separate code.
+Research plan, progress and results live only in Notion 03.16:
+https://app.notion.com/p/3ed8b22ebd8d81a8915ec00064643818.
+
 ### Online E/G joint adaptation (2026-10-02; latest authorization)
 
 The user approved joint E/G training while retaining the completed RGB-first

@@ -11,6 +11,7 @@ import numpy as np
 
 from demo import compact_enhancement_format as compact
 from demo import online_eg_evaluate as evaluate
+from demo import online_eg_analysis as analysis
 from demo.online_eg_eval_core import split_prefix, prefix_pixels, noise_pair, CLIPS
 from demo.online_eg_report import common_rate
 from demo.scalable_codec import atomic_json, atomic_npz, file_hash
@@ -140,6 +141,35 @@ class RateTests(unittest.TestCase):
 
     def test_duplicate_rates_do_not_select_best_quality(self):
         self.assertIsNone(common_rate(self.curve([100,100,400]),self.curve([200,300,400]),'roi_quality'))
+
+
+class ReadOnlyAuditTests(unittest.TestCase):
+    def root(self,folder):
+        root=Path(folder)
+        for name in ('run.complete.json','train.complete.json','training_audit.json','evaluation/summary.json'):
+            atomic_json(root/name,dict(complete=True,elapsed_seconds=123.))
+        return root
+
+    def test_success_preserves_original_summary_time(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=self.root(temporary)
+            with patch.object(evaluate,'evaluate'):
+                result=analysis.audit(root,SimpleNamespace())
+            self.assertTrue(result['original_results_and_timings_unchanged'])
+            self.assertEqual(json.loads((root/'evaluation/summary.json').read_text())['elapsed_seconds'],123.)
+
+    def test_summary_mutation_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=self.root(temporary)
+            def changed(*_):atomic_json(root/'evaluation/summary.json',dict(complete=True,elapsed_seconds=1.))
+            with patch.object(evaluate,'evaluate',side_effect=changed),self.assertRaises(AssertionError):
+                analysis.audit(root,SimpleNamespace())
+
+    def test_inference_attempt_is_forbidden(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=self.root(temporary)
+            with patch.object(evaluate,'evaluate',side_effect=lambda *_:evaluate.execute()),self.assertRaises(AssertionError):
+                analysis.audit(root,SimpleNamespace())
 
 
 if __name__=='__main__':unittest.main()

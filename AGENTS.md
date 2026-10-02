@@ -51,6 +51,11 @@ Completed evaluation points must validate without inference/metric recomputation
 `evaluate` and CPU-only `report` are separate modes. Retain resource heartbeats
 and the global GPU mutex. Training handoff above belongs to the prior session;
 this continuation proceeds through evaluation and discussion of its results.
+After the evaluation/report queue finishes, `bash demo/run_online_eg_analysis.sh`
+replays all completed points with inference and metric calculation forbidden,
+and verifies that original result JSON and elapsed times remain unchanged.
+Its CPU-only tmux task may wait behind the same GPU mutex; do not edit pinned
+evaluation or training modules while the formal queue is running.
 
 ### Cooperation update (2026-09-28; supersedes the next-stage queue below)
 

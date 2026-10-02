@@ -30,6 +30,7 @@
 | tmux 中的两组各3000步训练 | `bash demo/run_online_eg.sh train --max-hours 24` |
 | 评价 CPU 回归 | `bash demo/run_online_eg_evaluate.sh test` |
 | tmux 中的真实字节评价及固定图 | `bash demo/run_online_eg_evaluate.sh run --max-hours 8` |
+| 完成后的只读续跑检查 | `bash demo/run_online_eg_analysis.sh`（tmux，禁止重新推理/计算指标） |
 
 正式目录：`/root/autodl-fs/DCVC/runs/a800_online_eg_20261002`，烟测另加 `_smoke`。
 先运行joint，随后自动运行fixed；每25步原子保存E/G与优化器，相同命令续跑。

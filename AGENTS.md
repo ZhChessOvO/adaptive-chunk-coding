@@ -61,6 +61,16 @@ CPU-only crossed-model visuals and a generated-output RD zoom from the saved
 points. Keep this supplement separate from the pinned report. Crossed E/G
 combinations have only full-q1 measurements, not full matched-rate curves.
 
+The 92-point evaluation, report and completed-queue replay are now finished.
+`run.complete.json`, `evaluation/audit.json`, and `evaluation.resume_audit.json`
+all report completion; the replay preserves 241 JSON files and original timings.
+The separate crossed-model report and 34 CPU regressions also pass. Results and
+19 figures/previews are in Notion 03.15.1 and its two child galleries:
+https://app.notion.com/p/3ed8b22ebd8d81a5a9b3de25abd5830a.
+No task remains running. Discuss the next candidate E/G pairing and four-state
+Router data preparation with the user before starting new experiments/training;
+neither a new Router queue nor model promotion is authorized by this handoff.
+
 ### Cooperation update (2026-09-28; supersedes the next-stage queue below)
 
 The user approved optional same-region Enhance -> Generate, retaining all four

@@ -18,7 +18,7 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：E＋G 联合训练
+## 当前运行入口：E＋G 联合训练与真实码流评价
 
 配方与实际状态：[03.15 E与G联合训练](https://app.notion.com/p/3ed8b22ebd8d8158be1dd92e3d59b99f)。
 继承已完成的区域对齐版；单A800，UF固定，不训练Router。旧权重与接收入口保留。
@@ -28,11 +28,14 @@
 | CPU 回归 | `bash demo/run_online_eg.sh test` |
 | tmux 中的梯度、断点与真实解码检查 | `bash demo/run_online_eg.sh smoke` |
 | tmux 中的两组各3000步训练 | `bash demo/run_online_eg.sh train --max-hours 24` |
+| 评价 CPU 回归 | `bash demo/run_online_eg_evaluate.sh test` |
+| tmux 中的真实字节评价及固定图 | `bash demo/run_online_eg_evaluate.sh run --max-hours 8` |
 
 正式目录：`/root/autodl-fs/DCVC/runs/a800_online_eg_20261002`，烟测另加 `_smoke`。
 先运行joint，随后自动运行fixed；每25步原子保存E/G与优化器，相同命令续跑。
-完成标志为`train.complete.json`；正式评价留待下次会话，不自动启动。
-按用户本次要求，确认正式训练与断点正常并更新Notion后结束会话。
+两组训练均已完成，`train.complete.json`与`training_audit.json`已落盘，不重新训练。
+用户返回后继续评价；评价可单独执行`evaluate`或`report`，已完成点校验后复用。
+真实码流、结果与图保存在正式目录的`evaluation/`；研究记录仍只在Notion维护。
 
 ## 已完成运行入口：ROI 区域训练对齐
 

@@ -36,6 +36,22 @@ older statements below that required E frozen or automatic continued monitoring.
 Recipe, progress and next-session evaluation live only at:
 https://app.notion.com/p/3ed8b22ebd8d8158be1dd92e3d59b99f.
 
+Both online E/G arms have completed 3000 steps and the user has returned to
+continue. Do not restart training. Use the separate, tmux-only
+`bash demo/run_online_eg_evaluate.sh run` for the real-byte evaluation: 40 E-only,
+40 generated points, eight full-q1 crossed E/G controls and four receiver/repeat
+checks (92 fresh decodes). Re-encode the original packet geometry/order at
+q0.5/1/2, preserving true q1 prefixes. Joint E may change byte counts and RGB
+conditions; pair diffusion noise without incorrectly requiring equal conditions.
+Keep the completed 03.14 RGB points and native UF QP8/32 as checked historical
+references, not new decodes or a dense UF curve. Report local and whole-frame
+metrics, E-only utility, actual-byte curves and fixed visuals. No new training,
+Router, model promotion or downloads. Preserve cbda3b4 training/receiver pins.
+Completed evaluation points must validate without inference/metric recomputation;
+`evaluate` and CPU-only `report` are separate modes. Retain resource heartbeats
+and the global GPU mutex. Training handoff above belongs to the prior session;
+this continuation proceeds through evaluation and discussion of its results.
+
 ### Cooperation update (2026-09-28; supersedes the next-stage queue below)
 
 The user approved optional same-region Enhance -> Generate, retaining all four

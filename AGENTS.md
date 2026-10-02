@@ -56,6 +56,10 @@ replays all completed points with inference and metric calculation forbidden,
 and verifies that original result JSON and elapsed times remain unchanged.
 Its CPU-only tmux task may wait behind the same GPU mutex; do not edit pinned
 evaluation or training modules while the formal queue is running.
+Once the completed-queue audit passes, `demo/online_eg_cross_report.py` produces
+CPU-only crossed-model visuals and a generated-output RD zoom from the saved
+points. Keep this supplement separate from the pinned report. Crossed E/G
+combinations have only full-q1 measurements, not full matched-rate curves.
 
 ### Cooperation update (2026-09-28; supersedes the next-stage queue below)
 

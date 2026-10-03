@@ -3,7 +3,7 @@ import copy
 import unittest
 
 from demo.routervc_analysis import (UF_METHODS,common_support,matched_points,
-    paired_summary,interpolate_uf,comparisons,indexed)
+    paired_summary,interpolate_uf,comparisons,indexed,generation_timing)
 
 
 def record(sample='r1',dataset='REDS',method='context_smooth',ratio=.5,max_g=4,bpp=.02,lpips=.2):
@@ -45,6 +45,25 @@ class AnalysisTests(unittest.TestCase):
         for target in (.001,.04):self.assertEqual(interpolate_uf(points,target)['status'],'outside_measured_range')
         self.assertEqual(interpolate_uf(points,.01)['status'],'exact_measured_rate')
         self.assertEqual(interpolate_uf([points[0],copy.deepcopy(points[0]),points[1]],.01)['status'],'ambiguous_duplicate_rate')
+        self.assertEqual(interpolate_uf([points[0],copy.deepcopy(points[0]),points[1]],.02)['status'],'ambiguous_duplicate_rate')
+
+    def test_G_timing_measured_windows_not_area_or_network_call_count(self):
+        decode=dict(generation_executed=True,generation_runtime=dict(model_load_seconds=8.,
+            seconds_model_load_excluded=2.5,windows=[
+                dict(runtime=dict(seconds_model_load_excluded=1.)),
+                dict(runtime=dict(seconds_model_load_excluded=1.5))]))
+        result=generation_timing(decode)
+        self.assertEqual(result['g_execution_seconds_sum'],2.5)
+        self.assertEqual(result['g_model_load_seconds'],8.)
+        self.assertEqual(result['g_restore_window_calls'],2)
+        decode['generation_runtime']['seconds_model_load_excluded']=123.
+        with self.assertRaises(ValueError):generation_timing(decode)
+
+    def test_G_off_is_zero_but_missing_runtime_is_unknown(self):
+        self.assertEqual(generation_timing(dict(generation_executed=False))['g_execution_seconds_sum'],0.)
+        missing=generation_timing(dict(generation_executed=True))
+        self.assertIsNone(missing['g_execution_seconds_sum'])
+        self.assertIsNone(missing['g_restore_window_calls'])
 
     def test_fixed_route_ablation_is_not_reallocated_e_only(self):
         reference=record();without=record(method='route_no_g',max_g=0,lpips=.3)

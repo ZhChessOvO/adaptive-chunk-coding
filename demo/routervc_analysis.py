@@ -18,7 +18,7 @@ import numpy as np
 
 REPO=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(REPO))
-from demo.routervc_report import file_hash, atomic_json, save_figure, npz_shape, bits_per_pixel
+from demo.routervc_report import file_hash, atomic_json, save_figure, npz_shape, normalize_record
 
 DEFAULT=Path('/root/autodl-fs/DCVC/runs/routervc_20261003/supplement')
 ROUTERS=('context_raw','context_smooth','local_raw','local_smooth')
@@ -27,6 +27,7 @@ COLORS=dict(context_raw='#397bb5',context_smooth='#14559c',
             local_raw='#d8a254',local_smooth='#b96d15',base='#777777',
             e_only='#328454',g_only='#9463ad',full_g='#d16a98',full_frame_g='#a51b60')
 METRICS=('lpips_alex','psnr_db','temporal_delta_mae')
+G_TIMES=('g_execution_seconds_sum','g_model_load_seconds','g_restore_window_calls')
 
 
 def read(path):
@@ -43,6 +44,47 @@ def point_key(record):
 
 def record_key(record):
     return (*sample_key(record),*point_key(record))
+
+
+def generation_timing(decode):
+    """Extract recorded intervals, never estimate milliseconds from area/calls."""
+    runtime=decode.get('generation_runtime')
+    executed=decode.get('generation_executed',False)
+    if not executed:
+        if runtime is not None:raise ValueError('G-off record unexpectedly has G runtime')
+        return dict(g_execution_seconds_sum=0.,g_model_load_seconds=0.,
+                    g_restore_window_calls=0,g_timing_status='generation_not_executed')
+    if runtime is None:
+        return dict(g_execution_seconds_sum=None,g_model_load_seconds=None,
+                    g_restore_window_calls=None,g_timing_status='missing_recorded_runtime')
+    def seconds(value):
+        if value is None:return None
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<0:
+            raise ValueError('invalid recorded generation interval')
+        return float(value)
+    windows=runtime.get('windows')
+    execution=seconds(runtime.get('seconds_model_load_excluded'))
+    per_window=[]
+    if isinstance(windows,list):
+        for window in windows:
+            per_window.append(seconds(window.get('runtime',{}).get('seconds_model_load_excluded')))
+    if isinstance(windows,list) and windows and all(v is not None for v in per_window):
+        summed=sum(per_window)
+        if execution is not None and not math.isclose(execution,summed,rel_tol=1e-9,abs_tol=1e-7):
+            raise ValueError('G aggregate interval differs from recorded window intervals')
+        execution=summed
+    return dict(g_execution_seconds_sum=execution,
+                g_model_load_seconds=seconds(runtime.get('model_load_seconds')),
+                g_restore_window_calls=len(windows) if isinstance(windows,list) else None,
+                g_timing_status='recorded_intervals' if execution is not None else 'missing_recorded_execution_interval')
+
+
+def optional_means(rows,keys):
+    result={}
+    for key in keys:
+        values=[r.get(key) for r in rows if r.get(key) is not None]
+        result[key]=dict(mean=float(np.mean(values)) if values else None,available=len(values),total=len(rows))
+    return result
 
 
 def indexed(records):
@@ -79,6 +121,7 @@ def aggregate(rows):
         boundary_edges=float(np.mean([r['boundary_edges'] for r in rows])),
         components=float(np.mean([r['components'] for r in rows])),
         actual_G_roi_calls=float(np.mean([r['actual_G_roi_calls'] for r in rows])),
+        generation_timing=optional_means(rows,G_TIMES),
         peak_cuda_allocated_bytes=max(r['peak_cuda_allocated_bytes'] for r in rows),
         native_bytes_mean=float(np.mean([r['native_bytes'] for r in rows])))
 
@@ -115,13 +158,16 @@ def paired_summary(pairs,label):
         a,b=measured_values(reference),measured_values(variant)
         details.append(dict(dataset=reference['dataset'],sample_id=reference['sample_id'],
             reference=point_key(reference),variant=point_key(variant),
-            delta={k:b[k]-a[k] for k in a}))
+            delta={k:b[k]-a[k] for k in a},
+            generation_timing_delta={k:variant[k]-reference[k]
+                if variant.get(k) is not None and reference.get(k) is not None else None for k in G_TIMES}))
     groups={}
     for domain in ('REDS','UVG','All'):
         values=[r for r in details if domain=='All' or r['dataset']==domain]
         if not values:continue
         groups[domain]=dict(pairs=len(values),mean_delta={k:float(np.mean([r['delta'][k] for r in values]))
             for k in values[0]['delta']},
+            generation_timing_delta=optional_means([r['generation_timing_delta'] for r in values],G_TIMES),
             variant_lower_lpips=sum(r['delta']['lpips_alex']<0 for r in values),
             variant_higher_psnr=sum(r['delta']['psnr_db']>0 for r in values))
     return dict(label=label,direction='variant minus reference; negative LPIPS is improvement',
@@ -171,6 +217,8 @@ def interpolate_uf(points,target):
     ordered=sorted(points,key=lambda r:r['bpp'])
     if len(ordered)<2:return dict(status='insufficient_points')
     if any(not math.isfinite(r['bpp']) or r['bpp']<=0 for r in ordered):raise ValueError('invalid measured rates')
+    if len({r['bpp'] for r in ordered})!=len(ordered):
+        return dict(status='ambiguous_duplicate_rate')
     if target<ordered[0]['bpp'] or target>ordered[-1]['bpp']:
         return dict(status='outside_measured_range',minimum=ordered[0]['bpp'],maximum=ordered[-1]['bpp'])
     exact=[r for r in ordered if r['bpp']==target]
@@ -243,9 +291,9 @@ def draw_curves(destination,curve_sets):
             if not rows:continue
             axis.scatter([p['seconds'] for p in rows],[p['quality']['lpips_alex'] for p in rows],
                          color='black' if family=='DCVC-UF' else COLORS[family],label=family,s=44)
-        axis.set_xlabel('Measured complete fresh receiver time / s')
+        axis.set_xlabel('Recorded receiver interval / s (loading + checks included)')
         axis.set_ylabel('Whole-frame LPIPS (lower is better)');axis.grid(alpha=.2)
-        axis.legend(fontsize=8);axis.set_title(f'{domain} | same {len(group["samples"])} videos | Router G cap {cap}\n16 cells in the full-frame mask mean ONE actual G ROI, not 16 calls.',fontsize=10)
+        axis.legend(fontsize=8);axis.set_title(f'{domain} | same {len(group["samples"])} videos | Router G cap {cap}\nExcludes process startup/output writes; not pure-network latency. Full-frame G uses one ROI.',fontsize=10)
         fig.tight_layout();name=f'time_quality_{domain}_g{cap}.png'
         save_figure(fig,destination/name);plt.close(fig);outputs.append(name)
     return outputs
@@ -255,9 +303,15 @@ def load_records(root,run=None):
     summary=read(root/'summary.json');done=read(root/'complete.json');report=read(root/'report/summary.json')
     summary_hash=file_hash(root/'summary.json')
     if (not summary.get('complete') or not done.get('complete') or not report.get('complete')
-            or done['summary']!=summary_hash or report['dependencies']['summary_sha256']!=summary_hash):
+            or done['summary']!=summary_hash or report['dependencies']['summary_sha256']!=summary_hash
+            or summary['baseline_protocol']!=file_hash(root/'protocol.json')):
         raise ValueError('completed supplementary evaluation and matching report are required')
     hashes={str(root/name):file_hash(root/name) for name in ('summary.json','complete.json','report/summary.json','protocol.json')}
+    for name,expected in {**report['input_hashes'],**{str(root/'report'/n):h for n,h in report['artifacts'].items()}}.items():
+        if run:run.check()
+        path=Path(name)
+        if str(path) not in hashes:hashes[str(path)]=file_hash(path)
+        if hashes[str(path)]!=expected:raise ValueError(f'changed saved report evidence: {path}')
     raw=indexed(summary['records']);normalized=indexed(report['records'])
     if raw.keys()!=normalized.keys():raise ValueError('report and actual result operating points differ')
     records=[]
@@ -273,18 +327,19 @@ def load_records(root,run=None):
         if str(source_path) not in hashes:hashes[str(source_path)]=file_hash(source_path)
         if hashes[str(source_path)]!=item['source_hash']:raise ValueError('changed recorded evaluation source')
         d=item['decode'];norm=normalized[key]
+        if read(folder/'fresh/decode.json')!=d:raise ValueError('embedded receiver metadata differs from fresh/decode.json')
         if d['source_frames_read'] or item['bytes']!=norm['bytes'] or item['bytes']!=d['total_bytes']:
             raise ValueError('source-free/actual-byte record mismatch')
         if item['quality']!=norm['quality'] and any(item['quality'][m]!=norm['quality'][m] for m in METRICS):
             raise ValueError('report metrics differ from the measured record')
         shape=npz_shape(folder/'fresh/reconstruction.npz')
-        if norm['shape']!=list(shape) or norm['bpp']!=bits_per_pixel(item['bytes'],shape):
-            raise ValueError('saved report BPP differs from actual decoded geometry')
+        if normalize_record(item,shape)!=norm:
+            raise ValueError('saved report fields differ from actual fresh record/geometry')
         calls=d.get('actual_G_roi_calls',len(d.get('route',{}).get('indices',[])))
         native=item.get('native_bytes',d.get('native_bytes',d.get('base_bytes')))
         if native is None:raise ValueError('missing native-byte accounting')
         records.append(dict(norm,actual_G_roi_calls=calls,native_bytes=native,
-                            selected_E=item.get('selected_E')))
+                            selected_E=item.get('selected_E'),**generation_timing(d)))
     return records,hashes
 
 
@@ -321,11 +376,22 @@ def analyze(root,destination=None,run=None):
         matched_support_by_G_cap=supports,curve_sets=curves,
         input_sample_count=len({sample_key(r) for r in records}),matched_sample_count=len(all_support),
         excluded_samples=[list(v) for v in sorted({sample_key(r) for r in records}-all_support)],
+        recorded_timing=[dict(dataset=r['dataset'],sample_id=r['sample_id'],point=list(point_key(r)),
+            receiver_seconds=r['decode_seconds'],actual_G_roi_calls=r['actual_G_roi_calls'],
+            **{k:r[k] for k in (*G_TIMES,'g_timing_status')}) for r in records if sample_key(r) in all_support],
         paired=comparisons(records,all_support),auxiliary_uf_interpolation=auxiliary_interpolation(records,all_support),
         artifacts={name:file_hash(destination/name) for name in artifacts},
         interpretation='Real fresh whole-frame results; exact same sample support in each figure; no independent-test or universal-dominance claim.',
         byte_scope='Every RD point uses full charged bytes. Native UF payload bytes are retained separately, never mixed with RouterVC container rates.',
         native_byte_scope='native_bytes_mean is only the UF base bitstream component; it excludes E packets and all wrappers.',
+        timing_scopes=dict(
+            receiver_interval='Recorded receiver interval includes stream parsing, model loading and checks; excludes process startup, output NPZ/JSON writes and quality evaluation. Filesystem cold/warm state is not normalized.',
+            receiver_timer_difference='Main RouterVC and route_no_g start before CUDA peak reset; UF and explicit-G baseline workers start after reset. These are recorded intervals, not identical end-to-end wall-clock instrumentation.',
+            g_execution_seconds_sum='Sum of measured PersistentSeedVR2.restore windows: VAE encode, noise/condition, runner inference, output resize and CUDA synchronization. Excludes model load, prior input preprocessing, later RGB conversion and outer temporal/ROI blending/feathering. Not pure DiT latency.',
+            g_model_load_seconds='Recorded PersistentSeedVR2 initialization/loading interval; excludes outer adapter/branch preparation. Cold disk loading is not separately identified.',
+            g_restore_window_calls='Number of recorded ROI-by-temporal-window restore invocations, NOT total neural-network/DiT/VAE calls.',
+            actual_G_roi_calls='Number of processing ROIs; full_frame_g has one even though its display grid contains 16 G cells.',
+            missing='Missing measurements stay null with availability counts; G-off is explicitly zero. No area or call-count timing estimates.'),
         signs='All paired deltas are variant minus reference. Negative LPIPS/time/bytes is lower; positive PSNR is higher.',
         no_inference=True,no_metric_recalculation=True,no_bd_rate=True)
     atomic_json(saved,result)

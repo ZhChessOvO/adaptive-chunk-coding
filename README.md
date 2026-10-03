@@ -1,6 +1,6 @@
 <div align="center">
 
-# Budget-Adaptive Regional Coding and Restoration
+# RouterVC
 
 **基于 DCVC-UF 的可伸缩区域增强与生成协作**
 
@@ -18,7 +18,26 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：四状态 Router 数据准备
+## 当前运行入口：RouterVC 完整闭环
+
+研究记录与图：[03.17 RouterVC完整闭环](https://app.notion.com/p/3ee8b22ebd8d8112aa83dfe749002a02)。
+四状态数据及两组Router训练已完成。新入口接入预算选包、接收端共享G策略、生成边界整理与真实码流评价。
+单一本体，不恢复两个专家；Base／只E／只G／E→G均保留。必要策略头计费，不再发送逐区域G图。
+
+| 操作 | 命令 |
+| --- | --- |
+| CPU测试 | `bash demo/run_routervc.sh test` |
+| tmux中真实解码、前缀、回退与重复检查 | `bash demo/run_routervc.sh smoke --max-hours 3` |
+| tmux中多预算/本体/边界对照 | `bash demo/run_routervc.sh run --max-hours 12` |
+| 完成后只读验证 | `bash demo/run_routervc.sh verify` |
+
+正式结果：`/root/autodl-fs/DCVC/runs/routervc_20261003`；烟测加`_smoke`。
+相同命令恢复，已完成码流和指标校验后复用。当前按E包字节预算与G调用上限分配；
+固定排序的E包可真正追加，G会随实际重建重算，不保证LPIPS逐包单调。
+边界整理暂不合并生成调用，实际耗时单独测量。当前评价复用候选缓存，不能把它的
+发送端时间写成从原视频开始的完整编码时间。详细能力范围和最新运行状态看Notion。
+
+## 已完成运行入口：四状态 Router 数据准备
 
 范围与进度：[03.16 四状态路由准备](https://app.notion.com/p/3ed8b22ebd8d81a8915ec00064643818)。
 先用已完成的联合版 E/G 测量 Base／只E／只G／E→G，之后训练单一本体 Router；
@@ -36,8 +55,8 @@
 正式目录：`/root/autodl-fs/DCVC/runs/a800_four_state_20261002`，烟测加 `_smoke`。
 按区域原子保存，相同命令续跑；进度和三盘/GPU心跳保存在正式目录。
 单区域收益表不是已验证的整幅组合质量，正式分配须重新解码/生成验证。
-Router队列另存`/root/autodl-fs/DCVC/runs/a800_four_state_router_20261002`，在数据完成后
-自动运行两组等容量的240-epoch CPU训练（本体内上下文／局部对照），每5轮原子保存。
+Router队列另存`/root/autodl-fs/DCVC/runs/a800_four_state_router_20261002`，现已完成
+两组等容量的240-epoch CPU训练（本体内上下文／局部对照），每5轮原子保存。
 它只做分组开发集的收益预测与表格预算评价，不自动宣称真实路由RD或共享接收策略已完成。
 输入只有底图、实际候选重建和E覆盖；LPIPS为主，PSNR/时序为辅助；仍只用一个本体。
 

@@ -8,7 +8,39 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Four-state Router preparation (2026-10-02; newest authorization)
+### RouterVC complete workflow (2026-10-03; newest authorization)
+
+The user named the method RouterVC and authorized completing its implementation
+workflow. The 120-window four-state teacher and both 240-epoch CPU Routers are
+complete; do not restart them. Keep both context/local candidates for real-stream
+comparison, since their table allocation regret is effectively close. Continue
+with one body, optional G-boundary reduction, true E packet prefixes, a shared
+receiver-derived G policy, and fresh whole-video evaluation. Preserve all four
+B/E/G/EG states and the completed joint E/G weights; UF remains frozen.
+
+New `routervc_*.py` files do not alter historical source pins. RTVC v1 wraps
+unchanged ACSE2 packets in a charged 310-byte strategy/model header; it transmits
+no per-region G map. The receiver re-predicts G from actual mixed B/Y/received
+coverage. Sender-side isolated-table predictions are only approximate planning,
+not a mixed-video oracle. Distinguish independently optimized E budgets from
+the fixed greedy packet ordering used for literal byte prefixes. Boundary
+penalties change G choices but do not merge generator calls in this profile;
+fewer connected components alone is not a measured speedup.
+
+Use `bash demo/run_routervc.sh test`, then tmux `smoke`, `run`, or `verify`.
+Outputs: `/root/autodl-fs/DCVC/runs/routervc_20261003` (smoke adds `_smoke`).
+Record actual candidate preparation costs separately from cached evaluation.
+Initially validate 17/33 frames and rectangular inputs; explicit implementation
+limits are not universal method limits. Do not silently resize or pad unsupported
+G geometry, claim semantic reliability from LPIPS, or call reused component
+training clips independent system tests. Keep single-A800 GPU exclusion,
+atomic resume, three-disk/VRAM heartbeats, real bytes and fixed visualizations.
+Do not end the session simply because tmux starts: proceed until the requested
+workflow is verified, a substantive user decision is needed, or handoff is asked.
+Research records and progress belong only in Notion:
+https://app.notion.com/p/3ee8b22ebd8d8112aa83dfe749002a02.
+
+### Completed four-state Router preparation (2026-10-02)
 
 The user accepted the post-03.15 recommendation: joint E/G is the main candidate,
 new E plus control G remains an alternative. Proceed with a true Base/E/G/EG
@@ -53,7 +85,7 @@ for GPU memory nor modifies the in-flight teacher or historical source pins.
 Research plan, progress and results live only in Notion 03.16:
 https://app.notion.com/p/3ed8b22ebd8d81a8915ec00064643818.
 
-### Online E/G joint adaptation (2026-10-02; latest authorization)
+### Completed online E/G joint adaptation (2026-10-02)
 
 The user approved joint E/G training while retaining the completed RGB-first
 ROI alignment. Use the separate `bash demo/run_online_eg.sh smoke`, then `train`,

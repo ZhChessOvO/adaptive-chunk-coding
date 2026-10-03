@@ -8,7 +8,53 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### RouterVC complete workflow (2026-10-03; newest authorization)
+### Full-view and content-aware Router revision (2026-10-03; latest)
+
+The user approved full-view/global-local Router inputs and content-importance
+supervision while preserving one backbone and B/E/G/EG. Importance and content
+harm come from offline training labels, never transmitted protection hints.
+Sender selects E packets; receiver derives G from decoded B/Y/coverage. No
+separate E/G mask or protection map is sent. Packet coordinates, timing and
+necessary headers still count; RTVC v1 already has zero explicit G-map bytes,
+so do not invent a new saving by subtracting zero a second time. Optional user
+no-generation regions are receiver-local settings, not the default wire method.
+
+First establish full-frame data and broader current-model evaluation, plus
+honest content-label contracts; do not call these steps completed Router
+training. Keep prior E/G weights and pinned modules unchanged. Add isolated
+modules for this revision; defer physical demo/ refactoring. Preserve local
+ROI-aligned training when later exploring mixed spatial scales. Only actual
+content annotations/metrics may justify semantic labels; unknown is not safe.
+The user confirmed the first content-aware stage targets readable text/digits
+and face geometry (not identity recognition). General subject importance is a
+later extension, not a prerequisite. Use per-category masked supervision when
+only partial labels exist; never fabricate absent/safe labels to fill a table.
+The 25,338-parameter visual backbone and its paired global/local perceptual
+baseline are separate from content-supervised training. Do not deploy untrained
+semantic heads or describe teacher generation as a completed Router training.
+
+REDS originals remain available; existing UVG PNGs are 512px crops. The user
+explicitly approved proceeding with REDS full-view + existing UVG crops for
+mixed training, without waiting for full UVG uploads. Preserve their distinct
+view provenance and report REDS full-view and UVG crop evaluation separately.
+Restoring full UVG is an optional later improvement, not a current blocker.
+No large server downloads. If archives eventually arrive, remove them only
+after verified extraction and retain the sole full-frame source. Never label
+UVG crops as full-view. Distinguish resized full-frame from native resolution,
+and keep padding out of metric/valid-pixel denominators.
+
+Implementation, decisions and progress belong only in Notion 03.18:
+https://app.notion.com/p/3ee8b22ebd8d813c9dbedd66dd5eb4a6.
+Output: /root/autodl-fs/DCVC/runs/routervc_revision_20261003. Keep tmux/resume,
+single-GPU exclusion, real bytes/fresh decode and three-mount heartbeats.
+Current entrypoints: run_routervc_mixedview_teacher.sh for the measured teacher,
+run_routervc_visual_train.sh for the perceptual baseline, and
+run_routervc_revision_queue.sh for their supervised sequence after teacher smoke.
+Visual input caches may live on /root/autodl-tmp/DCVC/cache/routervc_visual_20261003;
+formal weights and results stay on autodl-fs. Check actual completion markers and
+Notion before starting a queue; do not repeat completed inference.
+
+### RouterVC complete workflow (2026-10-03; completed earlier phase)
 
 The user named the method RouterVC and authorized completing its implementation
 workflow. The 120-window four-state teacher and both 240-epoch CPU Routers are

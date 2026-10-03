@@ -18,10 +18,58 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：RouterVC 完整闭环
+## 当前改造入口：混合视野与内容监督
+
+方案与进度只维护在 [03.18 实施与结果](https://app.notion.com/p/3ee8b22ebd8d813c9dbedd66dd5eb4a6)。
+使用 REDS 完整画面与现有 UVG 裁剪，不等待原始 UVG；清单区分两类视野。
+旧码流已经不发逐区域 G 图，不能再次虚减字节。新模块不修改历史实验源码。
+
+```bash
+# 项目 Python 环境内运行；prepare、probe 与审计均在 tmux 中运行。
+python -m demo.routervc_fullview_data inventory --splits val \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/fullview_manifest.json
+python -m demo.routervc_fullview_data prepare \
+  --manifest /root/autodl-fs/DCVC/runs/routervc_revision_20261003/fullview_manifest.json \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/data_smoke \
+  --sample-ids reds-val-000-f000-n17-fullview --max-hours 2
+bash demo/run_routervc_fullview_probe.sh \
+  --input /root/autodl-fs/DCVC/runs/routervc_revision_20261003/data_smoke/samples/reds-val-000-f000-n17-fullview/frames \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/fullview_probe_verified --verify-only
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_byte_audit --verify-only
+```
+
+上面的 probe 命令只读复验已完成结果，不重新推理。首次运行改用新的输出目录，去掉
+`--verify-only`，可设置 `--max-hours 6`；相同配置和源码下用相同命令续跑。
+旧 `fullview_probe` / `fullview_probe_recovered` 保存修复前后的运行记录，不覆盖其协议。
+准备输出绑定样本选择，
+换选择使用新输出目录。这里的 probe 仅检查一个 1024×576 完整视野窗口，不是原生分辨率
+或测试集结论。`routervc_content_objective.py` 是离线标签接口，不代表语义标注或训练已完成。
+
+混合训练输入及新版视觉本体入口（长任务均在tmux）：
+
+```bash
+python -m demo.routervc_mixedview_data manifest \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/mixedview_manifest.json
+python -m demo.routervc_mixedview_data prepare \
+  --manifest /root/autodl-fs/DCVC/runs/routervc_revision_20261003/mixedview_manifest.json \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/mixedview_data
+bash demo/run_routervc_mixedview_teacher.sh smoke \
+  --data /root/autodl-fs/DCVC/runs/routervc_revision_20261003/mixedview_data \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/mixedview_teacher_smoke
+# 上述真实数据烟测完成后，接续正式teacher及两种等容量视觉本体训练：
+bash demo/run_routervc_revision_queue.sh
+```
+
+teacher只生成B/E/G/EG实测标签，不更新模型；30个相同UVG裁剪的旧标签核验后复用。
+队列先训练感知收益对照，尚不含真实文字/面部监督，不自动接入或晋升部署模型。
+视觉输入缓存放数据盘，正式模型/结果放文件存储；同命令可恢复。
+CPU测试：`bash demo/run_routervc_visual_train.sh test`。
+
+## 已完成运行入口：RouterVC 完整闭环
 
 研究记录与图：[03.17 RouterVC完整闭环](https://app.notion.com/p/3ee8b22ebd8d8112aa83dfe749002a02)。
-本轮完整实现与评价已完成；[整体验证、标准UF曲线与强整帧G对照](https://app.notion.com/p/3ee8b22ebd8d81578d66c6e03b5070c9)。
+旧阶段实现与四裁剪开发评价已完成；[整体验证、标准UF曲线与强整帧G对照](https://app.notion.com/p/3ee8b22ebd8d81578d66c6e03b5070c9)。
+其中120个RD点不是120段独立测试视频；更广泛评价在03.18推进。
 四状态数据及两组Router训练已完成。新入口接入预算选包、接收端共享G策略、生成边界整理与真实码流评价。
 单一本体，不恢复两个专家；Base／只E／只G／E→G均保留。必要策略头计费，不再发送逐区域G图。
 

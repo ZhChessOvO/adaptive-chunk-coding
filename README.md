@@ -21,6 +21,7 @@
 ## 当前运行入口：RouterVC 完整闭环
 
 研究记录与图：[03.17 RouterVC完整闭环](https://app.notion.com/p/3ee8b22ebd8d8112aa83dfe749002a02)。
+本轮完整实现与评价已完成；[整体验证、标准UF曲线与强整帧G对照](https://app.notion.com/p/3ee8b22ebd8d81578d66c6e03b5070c9)。
 四状态数据及两组Router训练已完成。新入口接入预算选包、接收端共享G策略、生成边界整理与真实码流评价。
 单一本体，不恢复两个专家；Base／只E／只G／E→G均保留。必要策略头计费，不再发送逐区域G图。
 
@@ -98,6 +99,16 @@ CUDA_VISIBLE_DEVICES='' /root/autodl-tmp/DCVC/envs/dcvcuf/bin/python \
 输出含MP4、固定封面和校验manifest。`--repeats 1`减少上传大小；烟测可改用`_smoke`目录与
 `--profile smoke`。展示帧率不代表原始帧率或解码速度，MP4转码字节和画面不参与RD／LPIPS评价。
 既有预览保持不变；改变展示参数时使用新输出目录。
+
+包含强整帧G对照的五面板预览（同样在tmux中，仅CPU、复用保存结果）：
+
+```bash
+CUDA_VISIBLE_DEVICES='' /root/autodl-tmp/DCVC/envs/dcvcuf/bin/python \
+  -m demo.routervc_fullframe_preview
+```
+
+默认输出`supplement/preview_fullframe/`，展示原图、原生UF QP32、Router G4/G8和单ROI整帧G。
+UF字幕用真实原生字节，其余用完整码流字节；不会覆盖已有预览或重新计算指标。
 
 ## 已完成运行入口：四状态 Router 数据准备
 

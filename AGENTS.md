@@ -40,6 +40,21 @@ workflow is verified, a substantive user decision is needed, or handoff is asked
 Research records and progress belong only in Notion:
 https://app.notion.com/p/3ee8b22ebd8d8112aa83dfe749002a02.
 
+Completion handoff: this research workflow, the baseline supplement, partial-tail
+recovery checks, CPU audit and native-UF report are now complete. Inspect
+`workflow/complete.json`, `audit.json`, `supplement/complete.json`, and
+`supplement/native_uf_report/complete.json` before resuming; use the read-only
+verification commands instead of restarting training or completed evaluation.
+The public source-frame entrypoint is `bash demo/run_routervc_codec.sh` inside
+tmux. Its bounded geometry and preparation resume granularity are in README;
+literal byte prefixes are not an online incremental-state decoder.
+Preserve all completed source pins. Do not auto-promote context or boundary
+penalties, or mistake 16 separate G ROIs for the one-ROI full-frame baseline.
+The full-frame companion is CPU-only `python -m demo.routervc_fullframe_preview`
+and writes only `supplement/preview_fullframe/` by default. Final results,
+visuals and the methodological choices to discuss next are maintained at:
+https://app.notion.com/p/3ee8b22ebd8d81578d66c6e03b5070c9.
+
 ### Completed four-state Router preparation (2026-10-02)
 
 The user accepted the post-03.15 recommendation: joint E/G is the main candidate,

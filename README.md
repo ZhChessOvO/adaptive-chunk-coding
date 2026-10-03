@@ -65,6 +65,35 @@ teacher只生成B/E/G/EG实测标签，不更新模型；30个相同UVG裁剪的
 视觉输入缓存放数据盘，正式模型/结果放文件存储；同命令可恢复。
 CPU测试：`bash demo/run_routervc_visual_train.sh test`。
 
+离线文字/面部工具只生成诊断与标签，不向接收端发送信息：
+
+```bash
+# tmux、项目Python环境；权重已在数据盘时不要重复下载。
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_content_labels coverage \
+  --data /root/autodl-fs/DCVC/runs/routervc_revision_20261003/mixedview_data \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/content_coverage_pilot120
+```
+
+同命令只读复验已完成扫描。自动OCR不是字符真值；未核验的源参考/候选不生成文字错误
+训练目标。面部仅测五点几何，不测身份。工具说明、覆盖结果与误检图片见Notion 03.18.2。
+
+新版视觉Router的独立码流入口如下。必须显式指定正式模型，不默认部署烟测权重；
+目前只通过CPU接口测试，真实GPU验收须等待正式训练完成。旧入口/码流仍保持原样。
+
+```bash
+# 两条命令均在tmux、项目Python环境内运行，路径替换为实际输入/正式模型。
+python -m demo.routervc_visual_encode --input /path/to/frames \
+  --router /path/to/formal/model.pt --e-ratio .25 --max-g 4 \
+  --output /root/autodl-fs/DCVC/runs/my_visual_router/encode
+python -m demo.routervc_visual_decode \
+  --stream /root/autodl-fs/DCVC/runs/my_visual_router/encode/stream.rtvc \
+  --router /path/to/formal/model.pt \
+  --output /root/autodl-fs/DCVC/runs/my_visual_router/decode
+```
+
+G-off使用`--disable-generation`，无需提供Router/G权重。新旧策略由共享头中的哈希区分；
+头部与E包仍全部计费，不新增E/G/保护mask。保留单本体，未训练的语义输出不参与决策。
+
 ## 已完成运行入口：RouterVC 完整闭环
 
 研究记录与图：[03.17 RouterVC完整闭环](https://app.notion.com/p/3ee8b22ebd8d8112aa83dfe749002a02)。

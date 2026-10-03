@@ -34,6 +34,7 @@
 | tmux中自动补齐基线（先烟测，再正式） | `bash demo/run_routervc_baselines.sh queue` |
 | 完成后基线只读验证 | `bash demo/run_routervc_baselines.sh verify` |
 | tmux中排队CPU收尾：等正式／补充／恢复检查，审计、分析及短预览 | `bash demo/run_routervc_finalize.sh --max-hours 24` |
+| tmux中标准UF原生码率对比（等待收尾完成，仅CPU） | `bash demo/run_routervc_native_uf_report.sh --wait-workflow` |
 
 正式结果：`/root/autodl-fs/DCVC/runs/routervc_20261003`；烟测加`_smoke`。
 相同命令恢复，已完成码流和指标校验后复用。当前按E包字节预算与G调用上限分配；

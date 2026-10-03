@@ -30,12 +30,50 @@
 | tmux中真实解码、前缀、回退与重复检查 | `bash demo/run_routervc.sh smoke --max-hours 3` |
 | tmux中多预算/本体/边界对照 | `bash demo/run_routervc.sh run --max-hours 12` |
 | 完成后只读验证 | `bash demo/run_routervc.sh verify` |
+| UF／全G／固定路由消融 CPU 测试 | `bash demo/run_routervc_baselines.sh test` |
+| tmux中自动补齐基线（先烟测，再正式） | `bash demo/run_routervc_baselines.sh queue` |
+| 完成后基线只读验证 | `bash demo/run_routervc_baselines.sh verify` |
 
 正式结果：`/root/autodl-fs/DCVC/runs/routervc_20261003`；烟测加`_smoke`。
 相同命令恢复，已完成码流和指标校验后复用。当前按E包字节预算与G调用上限分配；
 固定排序的E包可真正追加，G会随实际重建重算，不保证LPIPS逐包单调。
 边界整理暂不合并生成调用，实际耗时单独测量。当前评价复用候选缓存，不能把它的
 发送端时间写成从原视频开始的完整编码时间。详细能力范围和最新运行状态看Notion。
+
+### 从自己的帧序列编码与独立接收
+
+在项目环境、tmux中使用独立公共入口；它负责GPU互斥、资源记录与原子续跑。
+输入是按文件名排序的PNG目录，或含`source`键的`uint8 [T,H,W,3]` RGB NPZ。
+不隐式改变尺寸；当前要求`T>=17`且`T=1+8n`，G还要求区域及上下文符合16像素对齐。
+已验证512×512、384×256，以及17/33帧。4×4是当前Router拓扑，不是码流的普适限制。
+
+```bash
+# 示例路径须替换为实际输入和新的输出目录；两条命令均在tmux内执行。
+bash demo/run_routervc_codec.sh encode \
+  --input /path/to/frames --count 33 \
+  --output /root/autodl-fs/DCVC/runs/my_routervc/encode \
+  --e-ratio 0.5 --max-g 4 --mode prefix
+bash demo/run_routervc_codec.sh decode \
+  --stream /root/autodl-fs/DCVC/runs/my_routervc/encode/stream.rtvc \
+  --output /root/autodl-fs/DCVC/runs/my_routervc/decode
+```
+
+`--e-ratio`是全部候选E包字节的比例，不是总码率；也可用`--e-budget`指定E包字节上限。
+发送端先实际编码候选包，再按预算选择；`encode.json`记录完整准备与选包耗时。
+接收端没有源图参数，`fresh/reconstruction.npz`保存底图、增强图与最终输出。
+`--disable-generation`可直接显示收到E后的画面，`--allow-incomplete-tail`只容忍末尾未收全的包，
+不会把半个熵载荷当有效增强。相同命令续跑，配置变化使用新输出目录。
+换E额度时可用`--prepared-dir`复用经过hash核验的候选缓存；保持同一输入、模型与G策略，
+`prefix`模式的较高预算流才是原字节串的追加。不要用`independent`模式声称逐字节前缀。
+
+独立CPU审计（完成后，tmux中）只验证保存证据，不重新推理或计算指标：
+
+```bash
+CUDA_VISIBLE_DEVICES='' /root/autodl-tmp/DCVC/envs/dcvcuf/bin/python \
+  -m demo.routervc_audit --output /root/autodl-fs/DCVC/runs/routervc_20261003
+```
+
+基线补充输出在正式目录的`supplement/`；所有研究解释、结果与图片仍只维护在Notion。
 
 ## 已完成运行入口：四状态 Router 数据准备
 

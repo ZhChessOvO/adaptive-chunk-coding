@@ -53,6 +53,12 @@ run_routervc_revision_queue.sh for their supervised sequence after teacher smoke
 Visual input caches may live on /root/autodl-tmp/DCVC/cache/routervc_visual_20261003;
 formal weights and results stay on autodl-fs. Check actual completion markers and
 Notion before starting a queue; do not repeat completed inference.
+The independent run_routervc_visual_evaluate.sh queue waits for both formal
+visual Router models without holding the GPU lock, then checks fresh/repeat/
+G-off decoding and evaluates fixed REDS full-view and UVG crop samples. It
+rejects smoke weights, does not promote a model, and uses boundary_lambda=0
+to isolate the global/local comparison. See Notion 03.18.3 for the scope;
+resume verified points instead of restarting inference.
 
 ### RouterVC complete workflow (2026-10-03; completed earlier phase)
 

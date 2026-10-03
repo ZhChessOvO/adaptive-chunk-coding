@@ -78,7 +78,7 @@ CUDA_VISIBLE_DEVICES='' python -m demo.routervc_content_labels coverage \
 训练目标。面部仅测五点几何，不测身份。工具说明、覆盖结果与误检图片见Notion 03.18.2。
 
 新版视觉Router的独立码流入口如下。必须显式指定正式模型，不默认部署烟测权重；
-目前只通过CPU接口测试，真实GPU验收须等待正式训练完成。旧入口/码流仍保持原样。
+CPU接口测试不能代替正式模型的真实GPU编解码验收。旧入口/码流仍保持原样。
 
 ```bash
 # 两条命令均在tmux、项目Python环境内运行，路径替换为实际输入/正式模型。

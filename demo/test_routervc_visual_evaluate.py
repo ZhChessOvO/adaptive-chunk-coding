@@ -1,5 +1,6 @@
 """CPU-only bounded evaluation contracts. No formal data or GPU execution."""
 from copy import deepcopy
+from contextlib import nullcontext
 import json
 from pathlib import Path
 import tempfile
@@ -49,6 +50,61 @@ def formal_models(root):
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_formal_startup_builds_real_configs_from_json_checkpoint_paths(self):
+        """Keep completed_models -> setup -> make_config -> file_hash real.
+
+        The old tests exercised these pieces separately and missed the JSON
+        string path crossing into the Path-only hashing API.
+        """
+        from demo import routervc_visual_format as fmt
+        from demo import scalable_cooperation_format as cooperation
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            formal_models(root/'visual_router')
+            module.save(root/'mixedview_manifest.json', dict(samples=samples()))
+            weights = root/'weights'; weights.mkdir()
+            (weights/'adapter.pt').write_bytes(b'fixture-adapter')
+            (weights/'enhancement.pt').write_bytes(b'fixture-enhancement')
+            output = root/'visual_evaluation'; output.mkdir()
+            run = SimpleNamespace(root=output, check=Mock(), update=Mock(), thread=Mock(),
+                                  stop=Mock(), log_resources=Mock(), progress={})
+            identities = {key:'0'*64 for key in cooperation.HASHES}
+            def evaluated(actual_run, protocol):
+                self.assertIs(actual_run, run)
+                self.assertEqual(len(protocol['sources']), 13)
+                self.assertEqual(len(protocol['configs']), 4)
+                for arm in module.ARMS:
+                    self.assertIsInstance(protocol['models']['arms'][arm]['path'], str)
+                    for cap in (4, 8):
+                        config = protocol['configs'][f'{arm}_g{cap}']
+                        fmt.validate(config)
+                        self.assertEqual(config['router'], module.digest(root/'visual_router'/arm/'model.pt'))
+                        self.assertEqual(config['max_g'], cap)
+                        self.assertEqual(config['boundary_lambda'], 0.)
+                self.assertTrue((output/'request.json').is_file())
+                self.assertEqual(module.read(output/'protocol.json'), protocol)
+                return dict(complete=True, samples=13, points=169)
+            with patch.dict('os.environ', {'TMUX':'unit-test'}), \
+                    patch.object(module, 'REVISION', root), patch.object(module, 'WEIGHTS', weights), \
+                    patch.object(module, 'code_hashes', return_value={}), \
+                    patch('demo.routervc_format.identities', return_value=identities), \
+                    patch('demo.routervc_fullview_data.source_hash', return_value={'fixture':'source'}), \
+                    patch('demo.chunk_enhancement_experiment.Run', return_value=run), \
+                    patch('demo.chunk_enhancement_evaluate.exclusive_native_evaluation',
+                          return_value=nullcontext()) as gpu_lock, \
+                    patch.object(module, 'evaluate', side_effect=evaluated) as evaluate:
+                module.main([])
+                gpu_lock.assert_called_once_with(run)
+                evaluate.assert_called_once()
+                before = {name:(module.digest(output/name), (output/name).stat().st_mtime_ns)
+                          for name in ('request.json', 'protocol.json')}
+                # Recreating the same protocol is a read-only replay, not a rebind.
+                args = SimpleNamespace(manifest=root/'mixedview_manifest.json', wait_hours=48., max_hours=12.)
+                module.setup(run, args, module.completed_models(root/'visual_router'))
+                for name, value in before.items():
+                    self.assertEqual((module.digest(output/name), (output/name).stat().st_mtime_ns), value)
+            self.assertFalse((output/'last_failure.json').exists())
+
     def test_exact_thirteen_samples_including_development_and_crop_exposure(self):
         rows = samples()
         selected = module.selected_samples(dict(samples=rows+[dict(sample_id='not-approved',router_split='train')]))

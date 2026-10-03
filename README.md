@@ -97,15 +97,18 @@ G-off使用`--disable-generation`，无需提供Router/G权重。新旧策略由
 正式双臂训练后的接续评价（独立tmux窗口）：
 
 ```bash
-bash demo/run_routervc_visual_evaluate.sh
+bash demo/run_routervc_visual_evaluate.sh \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/visual_evaluation_recovered
 # 全部完成后校验已有结果，不重新推理或计算指标：
-bash demo/run_routervc_visual_evaluate.sh --verify-only
+bash demo/run_routervc_visual_evaluate.sh \
+  --output /root/autodl-fs/DCVC/runs/routervc_revision_20261003/visual_evaluation_recovered --verify-only
 ```
 
 默认等待`routervc_revision_20261003/visual_router`的两组正式完成标志，拒绝smoke模型。
 等待最多48小时且不占GPU锁；之后单次评价最多12小时，含GPU排队和指标计算。
 相同命令恢复已核验的点；源码、模型或输入变化须使用新输出目录。
-结果在`routervc_revision_20261003/visual_evaluation`；具体样本、比较设置与状态见
+本机修复后结果在`routervc_revision_20261003/visual_evaluation_recovered`；原`visual_evaluation`
+保留启动失败记录，不覆盖其源码绑定。具体样本、比较设置与状态见
 [03.18.3 扩展比较](https://app.notion.com/p/3ee8b22ebd8d811f8a67f1a7b0a43c8f)。
 CPU测试：`bash demo/run_routervc_visual_evaluate.sh test`（tmux内）。
 

@@ -156,7 +156,8 @@ def setup(run, args, models):
         run.check()
         sources.append(dict(sample=sample, original_file_hashes=full.source_hash(sample)))
     code = code_hashes()
-    configs = {f'{arm}_g{cap}': fmt.make_config(models['arms'][arm]['path'], WEIGHTS/'adapter.pt',
+    # Completion records are JSON: restore Path at the hashing API boundary.
+    configs = {f'{arm}_g{cap}': fmt.make_config(Path(models['arms'][arm]['path']), WEIGHTS/'adapter.pt',
                    max_g=cap, boundary_lambda=0., seed=20261003) for arm in ARMS for cap in (4, 8)}
     protocol = dict(schema=SCHEMA, manifest_sha256=digest(args.manifest), sources=sources,
         models=models, configs=configs, points=point_plan(), code=code,
@@ -575,12 +576,15 @@ def main(argv=None):
         if request['code'] != code_hashes() or request['manifest_sha256'] != digest(args.manifest):
             raise ValueError('evaluation code/manifest changed while waiting for formal training')
         deadline.begin('bounded_evaluation', args.max_hours*3600)
+        run.update(phase='building_evaluation_protocol', holds_GPU_mutex=False)
         protocol = setup(run, args, models)
         if args.verify_only or (run.root/'complete.json').exists():
             result = evaluate(run, protocol, verify_only=True)
         else:
+            run.update(phase='waiting_for_GPU_mutex', holds_GPU_mutex=False)
             with exclusive_native_evaluation(run):
                 os.environ['ROUTERVC_VISUAL_PARENT'] = str(os.getpid())
+                run.update(phase='fresh_receiver_smoke', holds_GPU_mutex=True)
                 result = evaluate(run, protocol)
         print(json.dumps(dict(complete=result['complete'], samples=result['samples'], points=result['points'])), flush=True)
     except BaseException as error:

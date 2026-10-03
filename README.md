@@ -75,6 +75,22 @@ CUDA_VISIBLE_DEVICES='' /root/autodl-tmp/DCVC/envs/dcvcuf/bin/python \
 
 基线补充输出在正式目录的`supplement/`；所有研究解释、结果与图片仍只维护在Notion。
 
+### 查看已有结果的运动对照
+
+补充评价完成后，在tmux中用CPU制作固定REDS／UVG并排MP4，不重新推理或计算指标：
+
+```bash
+CUDA_VISIBLE_DEVICES='' /root/autodl-tmp/DCVC/envs/dcvcuf/bin/python \
+  -m demo.routervc_preview \
+  --root /root/autodl-fs/DCVC/runs/routervc_20261003/supplement \
+  --profile formal --repeats 1 \
+  --output /root/autodl-fs/DCVC/runs/routervc_20261003/supplement/preview_single
+```
+
+输出含MP4、固定封面和校验manifest。`--repeats 1`减少上传大小；烟测可改用`_smoke`目录与
+`--profile smoke`。展示帧率不代表原始帧率或解码速度，MP4转码字节和画面不参与RD／LPIPS评价。
+既有预览保持不变；改变展示参数时使用新输出目录。
+
 ## 已完成运行入口：四状态 Router 数据准备
 
 范围与进度：[03.16 四状态路由准备](https://app.notion.com/p/3ed8b22ebd8d81a8915ec00064643818)。

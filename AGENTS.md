@@ -8,7 +8,7 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Cheap-packet Router adaptation (2026-10-04; latest)
+### Cheap-packet Router adaptation (2026-10-04; completed, latest)
 
 The user approved Router-only training after the completed efficiency results.
 Freeze UF and completed joint E/G weights; teach the same single visual body
@@ -35,6 +35,18 @@ probe. Do not call equal byte caps equal realized bpp. Report source groups
 separately, model-free G-off, true prefixes and all-G-call memory maxima.
 All historical pinned files remain unchanged. Do not exit merely because tmux
 starts; continue useful work and update Notion until discussion is needed.
+
+Completion handoff: teacher, paired 120-epoch Routers, all 156 evaluation points,
+four extra repeat/G-off checks, 104 literal prefixes and the joined report are
+complete. Evaluation/report read-only re-entry passed; inspect complete markers
+instead of restarting inference. The CPU-only `routervc_light_label_report`
+reads saved labels/training histories into `label_diagnostics`; it never selects
+a different checkpoint. 304 RouterVC CPU tests passed. Results/RD and all fixed
+images/route maps are linked near the top of Notion 03.20; direct result page:
+https://app.notion.com/p/3ef8b22ebd8d815382d5e9a655d9cf21.
+No model was promoted and no new GPU task is running. Discuss the next objective
+(mixed-reconstruction supervision/context placement and validation selection)
+before new training or changing frozen UF/E/G. These are proposals, not approval.
 
 ### Fixed-weight transmission/execution efficiency (2026-10-04; completed)
 

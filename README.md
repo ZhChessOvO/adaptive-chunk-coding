@@ -18,9 +18,11 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：轻补包 Router 适配
+## 最新完成入口：轻补包 Router 适配
 
-当前任务与研究记录见 [03.20 轻补包 Router](https://app.notion.com/p/3ef8b22ebd8d810bb1d7ec68e38de801)。
+结果、RD图和画面入口见 [03.20.1 结果](https://app.notion.com/p/3ef8b22ebd8d815382d5e9a655d9cf21)，
+方案与记录见 [03.20 轻补包 Router](https://app.notion.com/p/3ef8b22ebd8d810bb1d7ec68e38de801)。
+标签、两版训练、156点评价和图表均已完成并核验；已有完成标志时只读重放，不重新推理。
 只训练原结构的Router，不改UF/E/G；q2补包保持真实熵编码，不增加动作mask。
 以下任务在tmux中执行；相同命令恢复，检查完成项后复用：
 

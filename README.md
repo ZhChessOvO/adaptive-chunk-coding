@@ -18,7 +18,27 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：固定权重的传输与执行效率
+## 当前入口：轻补包 Router 适配
+
+当前任务与研究记录见 [03.20 轻补包 Router](https://app.notion.com/p/3ef8b22ebd8d810bb1d7ec68e38de801)。
+只训练原结构的Router，不改UF/E/G；q2补包保持真实熵编码，不增加动作mask。
+以下任务在tmux中执行；相同命令恢复，检查完成项后复用：
+
+```bash
+bash demo/run_routervc_light_router.sh test
+bash demo/run_routervc_light_router.sh smoke
+bash demo/run_routervc_light_router.sh run
+# 独立tmux窗口；不占GPU地等两臂正式训练结束，再运行同q2包库的旧/新比较：
+bash demo/run_routervc_light_evaluate.sh run
+```
+
+正式根目录为`/root/autodl-fs/DCVC/runs/routervc_light_router_20261004`；
+`teacher_smoke`核对真实解码及恢复，`teacher`保留实测标签，`router`保存两版120轮模型，
+`evaluation`保存真实码流与fresh接收结果。小型视觉缓存放数据盘。
+评价中的E比例指q2候选库真实包字节比例，与03.19沿用q1位置的实验不同。
+旧代码/模型/结果不覆盖；这不是内容保护训练，也不自动选择部署模型。
+
+## 已完成阶段入口：固定权重的传输与执行效率
 
 方案、结果与图仅记录于 [03.19 传输与执行效率](https://app.notion.com/p/3ef8b22ebd8d81fbb362f658f696a241)。
 不修改历史码流或模型。以下长任务在tmux中运行，共享单卡互斥锁；同命令断点恢复，

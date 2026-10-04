@@ -8,7 +8,35 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Fixed-weight transmission/execution efficiency (2026-10-04; latest)
+### Cheap-packet Router adaptation (2026-10-04; latest)
+
+The user approved Router-only training after the completed efficiency results.
+Freeze UF and completed joint E/G weights; teach the same single visual body
+the measured qE=2 E and conditional G gains. Reuse authenticated unchanged B/G
+teachers; re-encode/decode q2 E and regenerate EG. Keep the 90 REDS resized
+full-view + 30 UVG crop pool and its 96/24 sequence-group split. No new semantic
+heads, experts, merged G scheduling, E/G fine-tuning or downloads in this stage.
+Train both equal-capacity global/local arms for the same 120 epochs; use actual
+q2 bundle bytes to allocate, then evaluate against the old Router using q2 too.
+Do not attribute cheaper payload gains to Router retraining. Charge all headers,
+preserve source-free fresh decoding, literal within-q2 prefixes, no extra masks.
+
+Use `bash demo/run_routervc_light_router.sh smoke` then `run` inside tmux.
+Both commands resume and share the GPU mutex through their child jobs. The
+run queue prepares teachers and trains both Routers; evaluation is separate.
+Formal root: `/root/autodl-fs/DCVC/runs/routervc_light_router_20261004`.
+Fast compact visual cache: `/root/autodl-tmp/DCVC/cache/routervc_light_20261004`.
+Current scope/progress: https://app.notion.com/p/3ef8b22ebd8d810bb1d7ec68e38de801.
+`bash demo/run_routervc_light_evaluate.sh run` waits without the GPU mutex for
+both formal models, then compares old/new and global/local on the same q2 bank
+and 0/25/50 percent E-byte caps, G8. Byte-identical old E0 results are authenticated
+reuse; other points are fresh decodes. This differs from the old q1-location q2
+probe. Do not call equal byte caps equal realized bpp. Report source groups
+separately, model-free G-off, true prefixes and all-G-call memory maxima.
+All historical pinned files remain unchanged. Do not exit merely because tmux
+starts; continue useful work and update Notion until discussion is needed.
+
+### Fixed-weight transmission/execution efficiency (2026-10-04; completed)
 
 The user approved the post-03.18 efficiency probes and explicitly values VRAM
 savings independently of decoder speed. Retain the original low-memory tiled

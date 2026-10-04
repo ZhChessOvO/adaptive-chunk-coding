@@ -8,6 +8,40 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Mixed-reconstruction Router continuation (2026-10-04; authorized, latest)
+
+The user approved the next objective after 03.20 and requests session handoff
+once formal optimization is demonstrably running. Freeze UF/E/G and retain qE=2.
+Use the same 90 REDS resized full views + 30 existing UVG crops and 96/24
+sequence split. No downloads, content heads, extra masks, experts or G merging.
+Three equal-capacity continuations start from the same completed q2 global/local
+Router: isolated_core control, mixed_core, mixed_halo. Each runs 120 epochs.
+Mixtures use deterministic nested 4/8 REGION subsets, not byte-budget fractions.
+Measure conditional G on actual mixed Y; do not sum old isolated G labels.
+Halo input uses G's clipped 64px neighborhood at the unchanged 64px CNN input;
+this includes a context/detail sampling tradeoff, not a pure capacity increase.
+
+Use `bash demo/run_routervc_mixed.sh test`, then `smoke`, then `train` in tmux.
+First epoch prepares each missing fixed-teacher sample before optimizing it;
+later epochs replay those same labels. This is not on-policy or pseudo-label
+training. Atomic checkpoints contain all three models/optimizers and the exact
+within-epoch cursor. G results are separately atomic per region. Preserve G's
+precision flags across Router updates. Select best on held-out mixed-Y local
+conditional G4/G8 regret with dataset-equal averaging, loss tie-break; also keep
+last epoch. This is not a whole-video RD metric or content-protection result.
+
+Output: `/root/autodl-fs/DCVC/runs/routervc_mixed_router_20261004`.
+Compact cache: `/root/autodl-tmp/DCVC/cache/routervc_mixed_20261004`.
+Notion 03.21: https://app.notion.com/p/3ef8b22ebd8d8136941ad2d5b7c1cf43.
+The queue enforces the shared GPU mutex, 30-second resource heartbeats and disk
+limits. Smoke checks paired optimization/restart/best-state equality, actual
+partial-E fresh decode, fixed diffusion noise and model-free G-off. Do not call
+teacher preparation alone formal training: verify an advancing optimizer cursor
+and loadable checkpoint, update Notion/Git, then end this session as requested.
+Evaluation and deployment-profile integration are for the next session; do not
+automatically launch them or feed these separately formatted models to old
+receivers. Historical pinned modules/weights/results remain unchanged.
+
 ### Cheap-packet Router adaptation (2026-10-04; completed, latest)
 
 The user approved Router-only training after the completed efficiency results.

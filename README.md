@@ -18,6 +18,26 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
+## 当前运行入口：混合画面 Router 训练
+
+方案与进度只记录于[03.21 混合画面 Router](https://app.notion.com/p/3ef8b22ebd8d8136941ad2d5b7c1cf43)。
+UF/E/G固定；三组等容量Router分别使用孤立区域、真实混合重建、混合重建＋生成邻域。
+长任务均在tmux中运行，同命令恢复；先烟测再正式训练：
+
+```bash
+bash demo/run_routervc_mixed.sh test
+bash demo/run_routervc_mixed.sh smoke
+bash demo/run_routervc_mixed.sh train
+# 全部训练完成后，只读核验已有模型和标签
+bash demo/run_routervc_mixed.sh verify
+```
+
+正式目录`/root/autodl-fs/DCVC/runs/routervc_mixed_router_20261004`；`formal/router/progress.json`
+记录真实更新步数，`formal/router/resume.pt`包含全部三组模型、优化器和轮内位置。
+各组保留`best.pt`与`last.pt`；第一轮逐段测标签后训练，后续复用固定标签。
+新模型使用独立输入格式，不能直接传入旧接收器；真实码流评价在下一次会话接续。
+紧凑缓存放数据盘，不下载新数据、不发送动作mask、不训练内容保护。
+
 ## 最新完成入口：轻补包 Router 适配
 
 结果、RD图和画面入口见 [03.20.1 结果](https://app.notion.com/p/3ef8b22ebd8d815382d5e9a655d9cf21)，

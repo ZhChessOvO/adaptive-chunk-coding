@@ -42,6 +42,21 @@ Evaluation and deployment-profile integration are for the next session; do not
 automatically launch them or feed these separately formatted models to old
 receivers. Historical pinned modules/weights/results remain unchanged.
 
+Launch handoff: all 313 RouterVC CPU tests passed. The two-window smoke measured
+64 mixed G labels, checked exact GPU mid-epoch model/optimizer/best-state resume,
+and passed six fresh/G-off checks. The separate `routervc_mixed_interleave_check`
+passed REDS/UVG before/after live Router updates with exact G pixels/noise and
+restored precision flags. Formal `routervc_mixed_train` tmux is running: all
+three optimizers advanced and the epoch-one cursor checkpoint reloads with
+finite, changed weights. `formal/router/resume.pt` is authoritative; progress
+is in `formal/router/progress.json`, child logs in `queue/formal_training.log`.
+Resume with the same `train` command after a restart, never repeat completed
+teacher cells. On return inspect these files/complete markers before acting.
+The additional interleave audit is `python -m torch.distributed.run --standalone
+--nproc-per-node=1 demo/routervc_mixed_interleave_check.py` in the project CUDA
+environment/tmux; it is read-only when complete. Stop this session after Notion
+handoff as requested, leaving training running; do not auto-launch evaluation.
+
 ### Cheap-packet Router adaptation (2026-10-04; completed, latest)
 
 The user approved Router-only training after the completed efficiency results.

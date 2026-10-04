@@ -112,6 +112,26 @@ bash demo/run_routervc_visual_evaluate.sh \
 [03.18.3 扩展比较](https://app.notion.com/p/3ee8b22ebd8d811f8a67f1a7b0a43c8f)。
 CPU测试：`bash demo/run_routervc_visual_evaluate.sh test`（tmux内）。
 
+完成后的独立分析与补充对照（不覆盖原169点；长任务均在tmux中）：
+
+```bash
+# 只读复核、分组RD；可选从保存的增强RGB计分，不重新生成或改原始指标
+bash demo/run_routervc_visual_report.sh --score-enhanced
+# 补足原生UF质量索引40/48/56的真实码率覆盖
+bash demo/run_routervc_uf_extension.sh
+# 两版Router相同G8预算下的E=0真实码流消融，自动等待单GPU互斥锁
+bash demo/run_routervc_zero_e_probe.sh
+# 在已测四状态像素上检查原图含文字/脸的区域，不训练、不发送标签
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_content_review
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_content_review_figures
+```
+
+输出分别在当前revision根目录的`visual_evaluation_analysis`、`visual_uf_rate_extension`、
+`visual_zero_E`、`content_candidate_review`及`content_review_visuals`。
+相同代码/参数恢复逐点结果；先检查完成标志，不重跑已完成推理。G-off评分保留同一码流
+字节，不冒充另外压缩的低开销E-only流。文字自动识别仍是诊断，不自动启用内容保护头。
+结果、图像和下一步选择只记录于Notion 03.18。
+
 ## 已完成运行入口：RouterVC 完整闭环
 
 研究记录与图：[03.17 RouterVC完整闭环](https://app.notion.com/p/3ee8b22ebd8d8112aa83dfe749002a02)。

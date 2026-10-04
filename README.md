@@ -32,11 +32,14 @@ bash demo/run_routervc_light_router.sh run
 bash demo/run_routervc_light_evaluate.sh run
 # 项目Python环境内，独立tmux中的CPU图表任务；等待评价，不重新推理：
 CUDA_VISIBLE_DEVICES='' python -m demo.routervc_light_report --wait
+# 标签和训练完成后的CPU诊断；读取已有质量和训练曲线，不推理、不重选checkpoint：
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_light_label_report
 ```
 
 正式根目录为`/root/autodl-fs/DCVC/runs/routervc_light_router_20261004`；
 `teacher_smoke`核对真实解码及恢复，`teacher`保留实测标签，`router`保存两版120轮模型，
-`evaluation`保存真实码流与fresh接收结果。小型视觉缓存放数据盘。
+`evaluation`保存真实码流与fresh接收结果，`label_diagnostics`保存标签／训练诊断。
+小型视觉缓存放数据盘。
 评价中的E比例指q2候选库真实包字节比例，与03.19沿用q1位置的实验不同。
 旧代码/模型/结果不覆盖；这不是内容保护训练，也不自动选择部署模型。
 

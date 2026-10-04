@@ -8,6 +8,43 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Fixed-weight transmission/execution efficiency (2026-10-04; latest)
+
+The user approved the post-03.18 efficiency probes and explicitly values VRAM
+savings independently of decoder speed. Retain the original low-memory tiled
+G option; do not impose a speedup gate or infer consumer-GPU compatibility from
+A800 PyTorch allocation statistics. UF and E already use native rANS; do not
+describe the next stage as adding missing entropy coding.
+
+Current output: `/root/autodl-fs/DCVC/runs/routervc_efficiency_20261004`.
+Progress, results and figures belong in Notion 03.19 only:
+https://app.notion.com/p/3ef8b22ebd8d81fbb362f658f696a241.
+The entropy audit is complete: inspect `entropy_audit/complete.json` and resume
+read-only, not another inference run. The q2 probe keeps the original q1 E25/E50
+packet selections; those names are NOT fractions of the new q2 bank. It uses
+the existing q-conditioned E weights and the same receiver policy, not retraining
+or automatic promotion of the global/local Router. Each q has true packet
+prefixes; q1 versus q2 is independent re-encoding, never a prefix claim.
+
+The bounded-pair G probe uses the old q1 E50/G8 streams and a new shared policy
+fingerprint. Only adjacent selected cores merge, up to two cells and 1.5x the
+old maximum processing area; original feather/writeback support stays fixed.
+This area cap is NOT a VRAM guarantee. Preserve unmerged seed ordinals; different
+merged shapes do not have pixelwise paired noise. No E/G/protection mask is sent.
+Do not modify pinned historical codec/receiver code or old result JSONs.
+
+Memory correction: SeedVR2 resets CUDA peak counters per ROI. Old top-level
+decode.json peak fields can therefore represent only the last G call. Use the
+maximum across ALL recorded G calls for like-for-like historical comparisons.
+The scheduled receiver additionally accumulates peak allocations before every
+reset, including UF/E and loading. Do not equate these with total device VRAM.
+
+Queues: `run_routervc_qstep_probe.sh run`, `run_routervc_schedule_probe.sh`,
+and `run_routervc_entropy_audit.sh run`. Check complete markers first; all
+queues require tmux, share the single-GPU mutex and resume atomic results.
+Do not exit only because tmux starts. New long training/changed objectives still
+require discussing the efficiency results first; frozen probes are authorized.
+
 ### Full-view and content-aware Router revision (2026-10-03; latest)
 
 The user approved full-view/global-local Router inputs and content-importance

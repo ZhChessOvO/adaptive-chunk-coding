@@ -18,7 +18,27 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前改造入口：混合视野与内容监督
+## 当前入口：固定权重的传输与执行效率
+
+方案、结果与图仅记录于 [03.19 传输与执行效率](https://app.notion.com/p/3ef8b22ebd8d81fbb362f658f696a241)。
+不修改历史码流或模型。以下长任务在tmux中运行，共享单卡互斥锁；同命令断点恢复，
+已有`complete.json`时只读核验，不重新推理：
+
+```bash
+bash demo/run_routervc_entropy_audit.sh run
+bash demo/run_routervc_qstep_probe.sh run
+bash demo/run_routervc_schedule_probe.sh
+# 项目Python环境内的CPU几何分析：
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_generation_schedule
+```
+
+输出位于`/root/autodl-fs/DCVC/runs/routervc_efficiency_20261004`的`entropy_audit`、
+`q2_probe`、`G_pair_probe`和`G_geometry`。三个shell入口都支持`test`运行CPU合同测试。
+q2实验沿用旧q1的补包位置；E25/E50不是新包库的字节比例。G合并使用新的共享执行指纹，
+不多发mask，原小块低显存模式保留。显存比较须取全部G调用中的峰值，不能只读旧解码器
+最后一次调用的顶层峰值字段；完整worker与G阶段峰值分开。
+
+## 已完成阶段入口：混合视野与内容监督准备
 
 方案与进度只维护在 [03.18 实施与结果](https://app.notion.com/p/3ee8b22ebd8d813c9dbedd66dd5eb4a6)。
 使用 REDS 完整画面与现有 UVG 裁剪，不等待原始 UVG；清单区分两类视野。

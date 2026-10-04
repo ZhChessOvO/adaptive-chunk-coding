@@ -60,6 +60,24 @@ rejects smoke weights, does not promote a model, and uses boundary_lambda=0
 to isolate the global/local comparison. See Notion 03.18.3 for the scope;
 resume verified points instead of restarting inference.
 
+Completion/resume handoff (2026-10-04): the mixed-view teacher, both formal
+120-epoch visual Routers, and all 169 first-batch evaluation points are complete.
+The independent UF quality-index 40/48/56 supplement is also complete and
+read-only verified. Check `visual_zero_E/complete.json` for the bounded 26-point
+zero-E/G8 control before resuming it. `visual_ablation_report/complete.json`
+identifies the joined CPU-only report; do not overwrite any source evaluation.
+The saved-pixel G-off scores are not new decodes or cheaper E-only streams.
+Original outputs/timing and source pins stay unchanged; do not restart training
+because older status paragraphs say it is pending. Results, fixed images and
+the next research decision live in Notion 03.18.3, not new Git experiment docs.
+Offline content review is diagnostic only: unverified OCR is not character
+truth, missing detections are unknown, and repeated regions/frames are not
+independent examples. No semantic heads were trained or enabled. Discuss the
+next training/architecture objective before promoting either Router or changing
+the frozen completed E/G weights; retain single-backbone B/E/G/EG and zero
+transmitted masks. Region-context overlap is processing-volume evidence, not
+FLOPs or a demonstrated scheduler speedup.
+
 ### RouterVC complete workflow (2026-10-03; completed earlier phase)
 
 The user named the method RouterVC and authorized completing its implementation

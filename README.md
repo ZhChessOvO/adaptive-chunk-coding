@@ -124,10 +124,12 @@ bash demo/run_routervc_zero_e_probe.sh
 # 在已测四状态像素上检查原图含文字/脸的区域，不训练、不发送标签
 CUDA_VISIBLE_DEVICES='' python -m demo.routervc_content_review
 CUDA_VISIBLE_DEVICES='' python -m demo.routervc_content_review_figures
+# 上面评价及E=0完成后，只读合并曲线、同流关G、运行时间与包字节分项
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_visual_ablation_report
 ```
 
 输出分别在当前revision根目录的`visual_evaluation_analysis`、`visual_uf_rate_extension`、
-`visual_zero_E`、`content_candidate_review`及`content_review_visuals`。
+`visual_zero_E`、`content_candidate_review`、`content_review_visuals`及`visual_ablation_report`。
 相同代码/参数恢复逐点结果；先检查完成标志，不重跑已完成推理。G-off评分保留同一码流
 字节，不冒充另外压缩的低开销E-only流。文字自动识别仍是诊断，不自动启用内容保护头。
 结果、图像和下一步选择只记录于Notion 03.18。

@@ -99,8 +99,10 @@ def fixed_visuals(root,rows,old,output):
         uf=min((r for r in old if r['sample_id']==sid and r['point'].startswith('uf_qp')),
                key=lambda r:abs(math.log(r['bpp']/selected[1]['bpp'])))
         uf_root=ORIGINAL if int(uf['point'].split('qp')[1])<=32 else REVISION/'visual_uf_rate_extension'
+        uf_folder=uf_root/'samples'/sid/uf['point']
+        verify_artifacts(uf_folder,read(uf_folder/'result.json')['artifacts'])
         with np.load(ORIGINAL/'samples'/sid/'source.npz',allow_pickle=False) as data:source=Image.fromarray(data['source'][8])
-        images=[('Source',source,None),('UF / nearest measured rate',Image.open(uf_root/'samples'/sid/uf['point']/'fixed_frame.png'),uf)]
+        images=[('Source',source,None),('UF / nearest measured rate',Image.open(uf_folder/'fixed_frame.png'),uf)]
         for title,r in zip(('q2 / old global-local','q2 / new global-local','q2 / new local'),selected):
             with np.load(root/'evaluation/samples'/sid/r['point']/'fresh/reconstruction.npz',allow_pickle=False) as data:
                 images.append((title,Image.fromarray(data['reconstruction'][8]),r))

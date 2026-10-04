@@ -45,6 +45,19 @@ queues require tmux, share the single-GPU mutex and resume atomic results.
 Do not exit only because tmux starts. New long training/changed objectives still
 require discussing the efficiency results first; frozen probes are authorized.
 
+Completion handoff: all three probes, the CPU geometry report and joined
+`report/complete.json` are complete and read-only verified. Do not restart
+completed inference or training. The q2 probe has 26 points and 13 true prefixes;
+the pair schedule has 13 points plus two repeated fresh decodes. These are
+separate changes, not a tested q2-plus-merged combination. Keep both execution
+options and both visual Router arms; no semantic heads/model were promoted.
+Results and the 13-window five-column gallery are linked near the top of
+Notion 03.19.1: https://app.notion.com/p/3ef8b22ebd8d81698ef2e655e9295450.
+The CPU-only joined report is `python -m demo.routervc_efficiency_report`;
+completed replay verifies original hashes without rewriting metrics or timing.
+292 RouterVC CPU tests passed. The next training priority is a discussion point,
+not authority to launch low-rate E/G or new Router training automatically.
+
 ### Full-view and content-aware Router revision (2026-10-03; latest)
 
 The user approved full-view/global-local Router inputs and content-importance

@@ -30,6 +30,8 @@ bash demo/run_routervc_qstep_probe.sh run
 bash demo/run_routervc_schedule_probe.sh
 # 项目Python环境内的CPU几何分析：
 CUDA_VISIBLE_DEVICES='' python -m demo.routervc_generation_schedule
+# CPU汇总、图像；完成后同命令只读复验：
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_efficiency_report
 ```
 
 输出位于`/root/autodl-fs/DCVC/runs/routervc_efficiency_20261004`的`entropy_audit`、

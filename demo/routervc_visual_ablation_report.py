@@ -120,7 +120,7 @@ def figures(report, saved, output):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import ScalarFormatter
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter
 
     fig, axes = plt.subplots(2, 2, figsize=(12.6, 9))
     for i, group in enumerate(GROUPS):
@@ -143,7 +143,11 @@ def figures(report, saved, output):
                     r = rows[f'global_local_e{q}_g8']
                     ax.annotate('E'+{'0':'0','0.25':'25','0.5':'50'}[q],
                         (r['bpp'],r[metric]), xytext=(3,8), textcoords='offset points', fontsize=8)
-            ax.set_xscale('log'); ax.xaxis.set_major_formatter(ScalarFormatter())
+            ax.set_xscale('log')
+            ticks=(.01,.02,.05,.1) if group=='REDS_fullview' else (.005,.01,.02,.04)
+            ax.xaxis.set_major_locator(FixedLocator(ticks))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x,_:f'{x:g}'))
+            ax.xaxis.set_minor_formatter(NullFormatter())
             ax.set_xlabel('Actual stream bits / pixel (log scale)')
             ax.set_ylabel('LPIPS (lower is better)' if j == 0 else 'PSNR dB (higher is better)')
             ax.set_title(group.replace('_', ' ') + (' / 6 windows' if i == 0 else ' / 7 windows'))

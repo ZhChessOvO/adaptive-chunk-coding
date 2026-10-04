@@ -62,10 +62,11 @@ resume verified points instead of restarting inference.
 
 Completion/resume handoff (2026-10-04): the mixed-view teacher, both formal
 120-epoch visual Routers, and all 169 first-batch evaluation points are complete.
-The independent UF quality-index 40/48/56 supplement is also complete and
-read-only verified. Check `visual_zero_E/complete.json` for the bounded 26-point
-zero-E/G8 control before resuming it. `visual_ablation_report/complete.json`
-identifies the joined CPU-only report; do not overwrite any source evaluation.
+The independent UF quality-index 40/48/56 supplement and bounded 26-point
+zero-E/G8 control are complete and read-only verified. Check
+`visual_zero_E/complete.json` instead of restarting it.
+`visual_ablation_report/complete.json` identifies the completed, verified
+CPU-only joined report; do not overwrite any source evaluation.
 The saved-pixel G-off scores are not new decodes or cheaper E-only streams.
 Original outputs/timing and source pins stay unchanged; do not restart training
 because older status paragraphs say it is pending. Results, fixed images and

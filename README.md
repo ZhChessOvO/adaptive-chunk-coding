@@ -30,6 +30,8 @@ bash demo/run_routervc_light_router.sh smoke
 bash demo/run_routervc_light_router.sh run
 # 独立tmux窗口；不占GPU地等两臂正式训练结束，再运行同q2包库的旧/新比较：
 bash demo/run_routervc_light_evaluate.sh run
+# 项目Python环境内，独立tmux中的CPU图表任务；等待评价，不重新推理：
+CUDA_VISIBLE_DEVICES='' python -m demo.routervc_light_report --wait
 ```
 
 正式根目录为`/root/autodl-fs/DCVC/runs/routervc_light_router_20261004`；

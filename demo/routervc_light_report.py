@@ -39,7 +39,9 @@ def comparisons(rows,old):
         uf=[r for r in old if r['sample_id']==row['sample_id'] and r['point'].startswith('uf_qp')]
         result.append(dict(sample_id=row['sample_id'],dataset=row['dataset'],arm=row['arm'],ratio=row['ratio'],
             same_cap_delta={k:row[k]-same[k] for k in ('bpp',*METRICS)},
-            E_changed=row['E_indices']!=same['E_indices'],G_changed=row['G_indices']!=same['G_indices'],
+            E_changed=set(row['E_indices'])!=set(same['E_indices']),
+            E_order_changed=row['E_indices']!=same['E_indices'],
+            G_changed=set(row['G_indices'])!=set(same['G_indices']),
             rate_matched={name:{k:row[k]-value if (value:=interpolate(curve,row['bpp'],k)) is not None else None
                 for k in METRICS} for name,curve in (('old_q2',peers),('native_UF',uf))}))
     groups={}
@@ -48,6 +50,7 @@ def comparisons(rows,old):
         for arm in ARMS:
             selected=[r for r in result if r['dataset']==ds and r['arm']==arm and r['ratio']>0]
             groups[ds][arm]=dict(points=len(selected),E_changed=sum(r['E_changed'] for r in selected),
+                E_order_changed=sum(r['E_order_changed'] for r in selected),
                 G_changed=sum(r['G_changed'] for r in selected),
                 same_cap_mean_delta=mean([r['same_cap_delta'] for r in selected],('bpp',*METRICS)),
                 matched={name:dict(covered=len(covered),lower_lpips=sum(r['lpips_alex']<0 for r in covered),
@@ -119,6 +122,49 @@ def fixed_visuals(root,rows,old,output):
     return records
 
 
+def route_states(e_indices,g_indices):
+    """Received E coverage plus receiver-local G decisions, never a wire mask."""
+    for indices in (e_indices,g_indices):
+        if len(set(indices))!=len(indices) or any(type(i) is not int or i not in range(16) for i in indices):
+            raise ValueError('invalid raster-grid route indices')
+    return [int(i in e_indices)+2*int(i in g_indices) for i in range(16)]
+
+
+def route_visuals(rows,output):
+    import numpy as np
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap
+    from matplotlib.patches import Patch
+    output.mkdir(exist_ok=True);records=[]
+    labels=('B','E','G','EG');colors=('#dddddd','#90c2e7','#f1c072','#bb9cce')
+    points=('old_global_local_e0.5_g8','new_global_local_e0.5_g8','new_local_e0.5_g8')
+    for sid in dict.fromkeys(r['sample_id'] for r in rows):
+        selected=[next(r for r in rows if r['sample_id']==sid and r['point']==name) for name in points]
+        fig,axes=plt.subplots(1,3,figsize=(10.5,4.2))
+        states=[]
+        for ax,row,title in zip(axes,selected,('Old global-local','Retrained global-local','Retrained local')):
+            values=route_states(row['E_indices'],row['G_indices']);states.append(values)
+            ax.imshow(np.array(values).reshape(4,4),cmap=ListedColormap(colors),vmin=0,vmax=3)
+            for i,value in enumerate(values):
+                ax.text(i%4,i//4,f'{i:02d}\n{labels[value]}',ha='center',va='center',fontsize=10)
+            ax.set_xticks([]);ax.set_yticks([])
+            ax.set_xticks(np.arange(-.5,4,1),minor=True);ax.set_yticks(np.arange(-.5,4,1),minor=True)
+            ax.grid(which='minor',color='white',linewidth=2);ax.tick_params(which='minor',length=0)
+            ax.set_title(f"{title}\n{row['bpp']:.5f} bpp | LPIPS {row['lpips_alex']:.4f}",fontsize=10)
+        fig.suptitle(sid+' / q2 E50, G8 / raster-grid decisions',fontsize=10)
+        fig.legend(handles=[Patch(facecolor=c,label=label) for c,label in zip(colors,labels)],
+                   loc='lower center',ncol=4,bbox_to_anchor=(.5,.075),frameon=False)
+        fig.text(.5,.025,'B: neither | E: enhance only | G: generate only | EG: both. These maps are NOT transmitted.',
+                 ha='center',fontsize=8)
+        fig.subplots_adjust(top=.79,bottom=.23,wspace=.12)
+        path=output/f'{sid}.png';save_plot(fig,path)
+        records.append(dict(sample_id=sid,path=str(path),sha256=digest(path),points=points,
+                            raster_states=states,transmitted=False))
+    return records
+
+
 def build(root,output):
     evaluation=root/'evaluation';prot=read(evaluation/'protocol.json')
     verify_artifacts(evaluation,read(evaluation/'complete.json')['artifacts'])
@@ -155,10 +201,12 @@ def build(root,output):
     old+= [r for r in read(REVISION/'visual_zero_E/summary.json')['rows'] if r['point'].endswith('_e0_g8')]
     matched=comparisons(rows,old);plot(groups,historical['group_means'],output)
     pictures=fixed_visuals(root,rows,old,output/'fixed_visuals')
+    routes=route_visuals(rows,output/'route_visuals')
     training={arm:dict(old=read(REVISION/'visual_router'/arm/'complete.json'),
                        new=read(root/'router'/arm/'complete.json')) for arm in ARMS}
     result=dict(complete=True,rows=rows,group_means=groups,comparisons=matched,E_prefix_changes=e_gain,
-        training=training,fixed_visuals=pictures,only_Router_retrained=True,semantic_supervision=False,
+        training=training,fixed_visuals=pictures,route_visuals=routes,
+        only_Router_retrained=True,semantic_supervision=False,
         scope='13 historically used windows; REDS full-view resized, UVG crop; not full independent test set',
         runtime_scope='fresh process with loads, historical E0 unchanged; no consumer-GPU claim')
     save(output/'summary.json',result)
@@ -189,6 +237,7 @@ def main():
         run.update(phase='read_only_report');result=build(args.root,args.output)
         names=['summary.json','inputs.json','rd_global_local.png','rd_local.png']
         names += [str(Path(r['path']).relative_to(args.output)) for r in result['fixed_visuals']]
+        names += [str(Path(r['path']).relative_to(args.output)) for r in result['route_visuals']]
         save(done,dict(complete=True,code_sha256=digest(__file__),inputs=binding,
                       artifacts={n:digest(args.output/n) for n in names}))
         run.update(phase='complete',completed=156,total=156)

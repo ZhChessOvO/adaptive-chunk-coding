@@ -1,8 +1,14 @@
 import unittest
-from demo.routervc_light_report import interpolate,comparisons,METRICS
+from demo.routervc_light_report import interpolate,comparisons,route_states,METRICS
 
 
 class LightReportTests(unittest.TestCase):
+    def test_visualized_states_do_not_require_transmitted_masks(self):
+        self.assertEqual(route_states([1,3],[2,3])[:5],[0,1,2,3,0])
+        self.assertEqual(route_states([],[]),[0]*16)
+        for e,g in (([1,1],[]),([],[16]),([True],[])):
+            with self.assertRaises(ValueError):route_states(e,g)
+
     def test_duplicate_prefix_rates_are_not_extrapolated(self):
         curve=[dict(bpp=.01,lpips_alex=.4),dict(bpp=.01,lpips_alex=.4)]
         self.assertEqual(interpolate(curve,.01,'lpips_alex'),.4)
@@ -20,7 +26,7 @@ class LightReportTests(unittest.TestCase):
                 for version in ('old','new'):
                     for ratio,bpp in ((0.,.01),(.25,.02),(.5,.04)):
                         rows.append(dict(sample_id=ds,dataset=ds,arm=arm,version=version,ratio=ratio,bpp=bpp,
-                            E_indices=[] if ratio==0 else [0],G_indices=[1],
+                            E_indices=[] if ratio==0 else ([0,2] if version=='old' else [2,0]),G_indices=[1],
                             **{k:.5 if version=='old' else .4 for k in METRICS}))
         result=comparisons(rows,old)
         for ds in ('REDS','UVG'):
@@ -30,6 +36,8 @@ class LightReportTests(unittest.TestCase):
                 self.assertEqual(group['matched']['old_q2']['covered'],2)
                 self.assertEqual(group['matched']['old_q2']['lower_lpips'],2)
                 self.assertAlmostEqual(group['matched']['old_q2']['mean_delta']['lpips_alex'],-.1)
+                self.assertEqual(group['E_changed'],0)  # Same selected cells, different prefix priority.
+                self.assertEqual(group['E_order_changed'],2)
 
 
 if __name__=='__main__':unittest.main()

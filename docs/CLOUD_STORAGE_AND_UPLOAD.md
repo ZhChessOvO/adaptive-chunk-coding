@@ -61,7 +61,30 @@
 
 ```bash
 df -h /root /root/autodl-tmp /root/autodl-fs .
+df -i /root /root/autodl-tmp /root/autodl-fs .
 ```
+
+容量和文件条目配额必须分别检查。当前文件存储最多容纳约 200,000 个文件／目录；
+即使 `df -h` 还有几十 GiB，`df -i` 为 100% 时也无法创建 checkpoint 临时文件。
+长队列除原有 80% 字节容量保护外，保留至少 5,000 个文件条目，并每 30 秒记录三盘
+容量、文件数、GPU 与耗时。外层 `tools/storage_guard.py` 可监控既有可恢复队列，
+不修改已锁定的训练源码；触发时向队列发送 SIGTERM，由队列关闭子进程并保留断点。
+监控日志写到数据盘，避免输出挂载点用满后连故障原因也无法记录。
+
+当前接收端的保护入口（仍须 tmux）：
+
+```bash
+bash tools/run_routervc_receiver_guarded.sh train
+bash tools/run_routervc_receiver_guarded.sh eval --wait
+bash tools/run_routervc_receiver_guarded.sh report --wait
+```
+
+旧版实验的逐帧输出可以无损 TAR 归档，但不得删除数据集或当前依赖。工具
+`tools/archive_old_frames.py` 仅允许显式列出的四个旧 run，逐文件 SHA256 验证后才
+移除散文件；码流、checkpoint、指标、日志与固定拼图不移动。每个归档在原 run 内的
+`archived_frames_20261005.tar`，内含逐文件清单；旁边同名 JSON 记录哈希和恢复命令。
+需要重跑历史逐帧分析时，先检查 inode 余量，再用记录的 `tar --skip-old-files` 命令恢复。
+归档节省的是文件条目，不应声称节省了同等字节容量；不修改历史指标或原始路径记录。
 
 建议固定以下路径：
 

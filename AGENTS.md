@@ -10,6 +10,19 @@ Before changing code or starting an experiment, read these files in order:
 
 ### Asymmetric dual Routers (2026-10-05; authorized, latest)
 
+Storage recovery override: the receiver queue did NOT finish when GPU usage
+ceased on October 5. The file store hit its 200,000-entry inode quota with ample
+byte capacity left. Its checkpoint is epoch 0 / cursor 42 / 42 paired updates.
+Resume the same pinned experiment; do not start R_s or call this a quality failure.
+Use `bash tools/run_routervc_receiver_guarded.sh train`, `eval --wait`, and
+`report --wait` in tmux. The external guard preserves >=5,000 file entries and
+the original 80% byte limit, recording resources on the fast disk. Do not edit
+the pinned training files to add monitoring. Older numbered frame PNGs in four
+allowlisted pre-scalable runs are being losslessly archived, not discarded;
+see their `archived_frames_20261005.json` for verified TAR hashes and restoration.
+Datasets, current dependencies, metrics, bitstreams, models and figures stay put.
+Check current progress/Notion rather than treating this recovery snapshot as live.
+
 The user approved implementing the updated two-network plan after the completed
 03.21 training. First audit idle RAM and modestly clean obsolete file-store
 artifacts, never datasets. That maintenance is complete: high RAM was reclaimable

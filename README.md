@@ -29,9 +29,9 @@
 # 长任务在 tmux 中执行；同命令恢复，先烟测再正式训练。
 bash demo/run_routervc_receiver.sh test
 bash demo/run_routervc_receiver.sh smoke
-bash demo/run_routervc_receiver.sh train
+bash tools/run_routervc_receiver_guarded.sh train
 # 全部训练结束后只读核验
-bash demo/run_routervc_receiver.sh verify
+bash tools/run_routervc_receiver_guarded.sh verify
 ```
 
 正式目录 `/root/autodl-fs/DCVC/runs/routervc_receiver_20261005`；
@@ -44,9 +44,14 @@ core/halo 是两个接收端输入候选，不是发送／接收两端；UF/E/G 
 训练后固定E评价与CPU出图已可自动接续（等待时不占GPU）：
 
 ```bash
-bash demo/run_routervc_receiver_evaluate.sh run --wait
-bash demo/run_routervc_receiver_evaluate.sh report --wait
+bash tools/run_routervc_receiver_guarded.sh eval --wait
+bash tools/run_routervc_receiver_guarded.sh report --wait
 ```
+
+保护入口在原队列外监控三盘容量与 inode（文件条目）余量，不修改锁定的研究源码或
+恢复点。默认保留至少5,000个文件条目、字节使用率低于80%；触发后同命令续跑。
+详细存储检查、旧输出无损归档与恢复见
+[`CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
 
 独立发送端实现与显式选定R_g后的启动说明见
 [03.22.2 发送端](https://app.notion.com/p/3f08b22ebd8d8164a6b2cd6061dd3fcb)。

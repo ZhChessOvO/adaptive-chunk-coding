@@ -18,7 +18,30 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：混合画面 Router 训练
+## 当前运行入口：非对称双 Router，先接通接收端 R_g
+
+整体计划见[03.22 双 Router](https://app.notion.com/p/3ef8b22ebd8d81e39a48efa151655a0f)，
+执行状态见[03.22.1 接收端](https://app.notion.com/p/3f08b22ebd8d8141a824faf4872bc9e2)。
+发送端 R_s 将读取原片并分配补包；接收端 R_g 只读实际重建并选择生成，两端不是同一个模型。
+先训练 G 专用 R_g，再固定它训练独立 R_s；当前入口不代表发送端已完成训练。
+
+```bash
+# 长任务在 tmux 中执行；同命令恢复，先烟测再正式训练。
+bash demo/run_routervc_receiver.sh test
+bash demo/run_routervc_receiver.sh smoke
+bash demo/run_routervc_receiver.sh train
+# 全部训练结束后只读核验
+bash demo/run_routervc_receiver.sh verify
+```
+
+正式目录 `/root/autodl-fs/DCVC/runs/routervc_receiver_20261005`；
+`formal/router/progress.json` 记录真实更新，`formal/router/resume.pt` 为权威恢复点。
+core/halo 是两个接收端输入候选，不是发送／接收两端；UF/E/G 固定。
+数据盘紧凑缓存最多驻留8窗于内存，单卡互斥、30秒心跳、逐区域标签与逐窗口检查点。
+新接收格式 RVRC/v1 只需 R_g，不需要 R_s、原片或未收候选；不发送动作mask。
+真实RD与固定画面仍需训练后评价，结果仅在Notion记录。
+
+## 已完成入口：混合画面 Router 训练
 
 方案与进度只记录于[03.21 混合画面 Router](https://app.notion.com/p/3ef8b22ebd8d8136941ad2d5b7c1cf43)。
 UF/E/G固定；三组等容量Router分别使用孤立区域、真实混合重建、混合重建＋生成邻域。
@@ -35,7 +58,8 @@ bash demo/run_routervc_mixed.sh verify
 正式目录`/root/autodl-fs/DCVC/runs/routervc_mixed_router_20261004`；`formal/router/progress.json`
 记录真实更新步数，`formal/router/resume.pt`包含全部三组模型、优化器和轮内位置。
 各组保留`best.pt`与`last.pt`；第一轮逐段测标签后训练，后续复用固定标签。
-新模型使用独立输入格式，不能直接传入旧接收器；真实码流评价在下一次会话接续。
+三组120轮已完成，作为旧共享对照和新R_g初始化／标签来源，不代表双Router已完成。
+新模型使用独立输入格式，不能直接传入旧接收器；真实码流评价另行接续。
 紧凑缓存放数据盘，不下载新数据、不发送动作mask、不训练内容保护。
 
 ## 最新完成入口：轻补包 Router 适配

@@ -8,7 +8,70 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Mixed-reconstruction Router continuation (2026-10-04; authorized, latest)
+### Asymmetric dual Routers (2026-10-05; authorized, latest)
+
+The user approved implementing the updated two-network plan after the completed
+03.21 training. First audit idle RAM and modestly clean obsolete file-store
+artifacts, never datasets. That maintenance is complete: high RAM was reclaimable
+page cache, not zombies; the exact eleven-file, 1.532 GiB cleanup is recorded in
+`/root/autodl-fs/DCVC/runs/maintenance_20261005/cleanup_manifest.json`.
+Do not drop caches or kill idle tmux shells to claim a memory improvement.
+
+Authoritative design: https://app.notion.com/p/3ef8b22ebd8d81e39a48efa151655a0f.
+Execution: https://app.notion.com/p/3f08b22ebd8d8141a824faf4872bc9e2.
+Keep research prose/results in Notion, not duplicate Git reports. Continue useful
+implementation/evaluation work after tmux launch unless the user requests a
+handoff or a material decision requires discussion; old exit-on-start directions
+below describe previous sessions, not this authorization.
+
+R_g is a lightweight, independent receiver-only G utility model with three
+trained outputs. Its only inputs are decoded B, actual received Y and packet
+coverage. Remove old E and untrained semantic outputs. R_s will be a DIFFERENT
+source-aware, multiscale spatiotemporal network using all frames of the current
+window, original/reconstruction differences, candidate packets and actual bytes.
+No shared parameters or old expert branches. The sender's measured final-gain
+labels must rerun fixed R_g after adding a packet, not sum isolated E/G gains.
+First train/evaluate R_g with fixed E, then R_s, then one measured on-policy
+alternation. Freeze UF/E/G and retain qE=2 during this routing study.
+
+Current receiver entry: `bash demo/run_routervc_receiver.sh test`, `smoke`,
+`train`, and completion-only `verify`. Long jobs require tmux and the single-GPU
+mutex. Root: `/root/autodl-fs/DCVC/runs/routervc_receiver_20261005`; compact cache:
+`/root/autodl-tmp/DCVC/cache/routervc_receiver_20261005`. Keep the 90 REDS resized
+full views + 30 existing UVG crops, 96/24 sequence split; no downloads. Reuse E0
+and old E4/E8 measured G targets, newly measure E2/E12/E16, all REGION counts,
+not byte fractions. Six states, core/halo equal-capacity R_g candidates, same
+mixed_core best initialization, 120 epochs, G-only Huber + within-view ranking.
+Core/halo are candidate input ablations, not sender/receiver or two experts.
+The data LRU is bounded at eight windows. Atomic checkpoints preserve both
+optimizers and within-epoch position; final export reconstructs JSON history
+from the authoritative checkpoint even after a last-epoch crash.
+
+New source-free receiver uses RVRC/v1, only R_g identity, zero E/G/protection
+masks, and measured header/packet bytes. G-off needs no R_g/G assets and no-E
+needs no E asset. Do not modify any pinned old source or silently change an old
+profile. Future R_s is not a receiver dependency. True prefix ordering must be
+fixed independently of later truncation budgets. Local G regret is not whole-
+video RD or semantic protection; fixed-E fresh decode and whole-view comparison
+remain necessary before promotion. Preserve B/E/G/EG options and negative gains.
+
+03.21 is verified complete (120 epochs per arm, 3,840 measured mixed G labels);
+keep its best/last/control models and labels. It is historical shared-model
+training, not a completed asymmetric system. Only the first interrupted receiver
+smoke attempt is archived as `routervc_receiver_20261005_smoke_attempt_before_finalization_fix`;
+it was stopped for a final-checkpoint export fix, not for quality failure.
+
+Receiver launch verified at 2026-10-05 15:14 Beijing: the final two-window smoke
+completed 96 new and 96 reused G labels, exact GPU model/AdamW resume, and 14
+fresh/teacher checks (six actually run G). New RVRC headers measure 310 bytes.
+All 354 RouterVC CPU regressions passed. `routervc_receiver_train` tmux is running
+formal core/halo optimization; both optimizer steps advanced and the saved
+weights reload finite and changed. Inspect `formal/router/progress.json` and
+`formal/router/resume.pt`, not GPU utilization alone. Labels are prepared lazily
+and later epochs replay them. Sender architecture GPU smoke is synthetic only,
+not completed sender training. Fixed-E receiver evaluation is the next stage.
+
+### Mixed-reconstruction Router continuation (2026-10-04; completed, historical)
 
 The user approved the next objective after 03.20 and requests session handoff
 once formal optimization is demonstrably running. Freeze UF/E/G and retain qE=2.

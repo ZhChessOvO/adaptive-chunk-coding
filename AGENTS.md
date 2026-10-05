@@ -71,6 +71,35 @@ weights reload finite and changed. Inspect `formal/router/progress.json` and
 and later epochs replay them. Sender architecture GPU smoke is synthetic only,
 not completed sender training. Fixed-E receiver evaluation is the next stage.
 
+Fixed-E evaluation and CPU reporting are queued in `routervc_receiver_eval` and
+`routervc_receiver_report`; waiting does not hold the GPU mutex. Resume via
+`bash demo/run_routervc_receiver_evaluate.sh run --wait` / `report --wait`.
+Reuse 39 authenticated 03.20 points, fresh-decode core/halo on the exact same
+E0/E25/E50 packets (78 new points + eight checks), then generate separate REDS/UVG
+curves and all 13 fixed visualizations. These remain diagnostic windows, not a
+full independent benchmark. Keep old seed 20261003 for that matched comparison.
+
+Source-aware R_s implementation/preparation is tracked at
+https://app.notion.com/p/3f08b22ebd8d8164a6b2cd6061dd3fcb.
+Its 142,897-parameter 3D network passed synthetic GPU exact resume; 430 combined
+RouterVC CPU tests pass, but REAL sender smoke/training has not run. The new
+`run_routervc_sender.sh` supports `test`, `smoke`, `train`, `verify`. First launch
+requires explicit `--receiver`, `--receiver-sha256`, and for formal training
+`--receiver-complete`; subsequent same-stage launches resume recorded bindings.
+Do not launch it before selecting completed R_g from the fixed-E comparison.
+Smoke and formal sender stages must bind the SAME R_g/G. A preliminary smoke
+using temporary receiver weights must use a separate output root, never weaken
+the matching check or overwrite the immutable final-root protocol.
+
+Sender root/cache: `runs/routervc_sender_20261005` on fs and
+`DCVC/cache/routervc_sender_20261005` on tmp. Complete the fixed final labels
+before fitting TRAIN-only scales or optimizing either source/zero_source arm.
+Keep the LRU bound of two; do not save all formal full-RGB renderings. The
+conditional encoder reuses authenticated q2 candidates and a saved budget-
+independent order; cache reuse is not fresh encoding time. On smoke recovery
+reuse `plan.json` rather than regenerating its timing-bearing payload. Recipe,
+limits and next-stage decisions live in Notion, not a second Git research log.
+
 ### Mixed-reconstruction Router continuation (2026-10-04; completed, historical)
 
 The user approved the next objective after 03.20 and requests session handoff

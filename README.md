@@ -41,6 +41,18 @@ core/halo 是两个接收端输入候选，不是发送／接收两端；UF/E/G 
 新接收格式 RVRC/v1 只需 R_g，不需要 R_s、原片或未收候选；不发送动作mask。
 真实RD与固定画面仍需训练后评价，结果仅在Notion记录。
 
+训练后固定E评价与CPU出图已可自动接续（等待时不占GPU）：
+
+```bash
+bash demo/run_routervc_receiver_evaluate.sh run --wait
+bash demo/run_routervc_receiver_evaluate.sh report --wait
+```
+
+独立发送端实现与显式选定R_g后的启动说明见
+[03.22.2 发送端](https://app.notion.com/p/3f08b22ebd8d8164a6b2cd6061dd3fcb)。
+入口 `bash demo/run_routervc_sender.sh test|smoke|train|verify`；实际使用时选一个子命令。
+R_s真实训练尚未开始，不能把结构烟测或旧共享模型当作完整双Router结果。
+
 ## 已完成入口：混合画面 Router 训练
 
 方案与进度只记录于[03.21 混合画面 Router](https://app.notion.com/p/3ef8b22ebd8d8136941ad2d5b7c1cf43)。

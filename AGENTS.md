@@ -17,11 +17,16 @@ Resume the same pinned experiment; do not start R_s or call this a quality failu
 Use `bash tools/run_routervc_receiver_guarded.sh train`, `eval --wait`, and
 `report --wait` in tmux. The external guard preserves >=5,000 file entries and
 the original 80% byte limit, recording resources on the fast disk. Do not edit
-the pinned training files to add monitoring. Older numbered frame PNGs in four
-allowlisted pre-scalable runs are being losslessly archived, not discarded;
+the pinned training files to add monitoring. All 35,889 older numbered frame PNGs
+in four allowlisted pre-scalable runs are now losslessly archived, not discarded;
 see their `archived_frames_20261005.json` for verified TAR hashes and restoration.
 Datasets, current dependencies, metrics, bitstreams, models and figures stay put.
 Check current progress/Notion rather than treating this recovery snapshot as live.
+Recovery verified: the same binding advanced beyond update 42 with both model
+weights changed and both AdamW states advancing. Training, fixed-E evaluation
+and reporting are supervised in their original tmux sessions; R_g is NOT yet
+complete and R_s still must wait. Formal maintenance evidence is under
+`maintenance_20261005/inode_recovery`; dataset entry counts remain unchanged.
 
 The user approved implementing the updated two-network plan after the completed
 03.21 training. First audit idle RAM and modestly clean obsolete file-store

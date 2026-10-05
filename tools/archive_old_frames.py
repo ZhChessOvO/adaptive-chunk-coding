@@ -10,6 +10,7 @@ are retired first to permit creating the archive on the file store.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import fcntl
 import hashlib
 import io
@@ -60,15 +61,21 @@ def frame_path(root, name):
 
 
 def inventory(root):
-    entries = []
-    for path in sorted(root.rglob('im*.png')):
-        if not re.fullmatch(r'im\d+\.png', path.name):
-            continue
+    paths = [p for p in sorted(root.rglob('im*.png')) if re.fullmatch(r'im\d+\.png', p.name)]
+    def inspect(path):
         path = frame_path(root, str(path.relative_to(root)))
         info = path.lstat()
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
             raise ValueError('only unlinked regular frames may be compacted: ' + str(path))
-        entries.append(dict(path=str(path.relative_to(root)), bytes=info.st_size, sha256=sha(path)))
+        return dict(path=str(path.relative_to(root)), bytes=info.st_size, sha256=sha(path))
+    entries = []
+    # Hide per-file network latency with bounded read-only workers. map retains
+    # sorted order, so a restart creates the same deterministic manifest.
+    with ThreadPoolExecutor(max_workers=8) as workers:
+        for i, item in enumerate(workers.map(inspect, paths)):
+            entries.append(item)
+            if (i + 1) % 1000 == 0:
+                print(f'INVENTORY {root.name} {i+1}/{len(paths)}', flush=True)
     if not entries:
         raise ValueError('no old numbered frames found')
     return dict(format='old_frames_lossless_tar_v1', root=str(root), files=entries,

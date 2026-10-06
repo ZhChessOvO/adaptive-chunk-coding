@@ -79,6 +79,18 @@ bash demo/run_routervc_sender_evaluate.sh verify
 固定同一R_g/G策略，比较旧E选择、source和zero_source；候选真实熵编码包复用，
 不将缓存选包耗时称为完整编码耗时。曲线、数字与方法讨论继续只放Notion。
 
+补包标签的CPU诊断入口（在tmux中运行）：
+
+```bash
+python -m tools.plot_routervc_sender_targets \
+  --stage /root/autodl-fs/DCVC/runs/routervc_sender_20261005/formal \
+  --output /root/autodl-fs/DCVC/runs/routervc_sender_20261005/target_diagnostics --wait
+```
+
+它等待全部标签落盘，只读取已有分数和码流；不生成新标签、不更新模型、不选择权重。
+TRAIN／验证与REDS／UVG分别统计。最终收益与直接重建收益的差值还包括G选区和噪声
+分配的变化，不能单独当作“生成协同增益”。完成后重入只核验，不重画或改写结果。
+
 ## 已完成入口：混合画面 Router 训练
 
 方案与进度只记录于[03.21 混合画面 Router](https://app.notion.com/p/3ef8b22ebd8d8136941ad2d5b7c1cf43)。

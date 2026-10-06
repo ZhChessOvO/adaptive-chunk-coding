@@ -144,6 +144,14 @@ Only old entropy packets are reused: allocation time is NOT full encoding time.
 Same E caps are not necessarily equal realized rates. No automatic sender
 promotion/on-policy adaptation; inspect results and discuss meaningful choices.
 
+`routervc_sender_targets` is a CPU-only label diagnostic waiting for ALL formal
+labels. Entry: `python -m tools.plot_routervc_sender_targets --stage <formal>
+--output <separate-output> --wait` inside tmux. It has seven unit checks plus
+real-smoke render/read-only replay coverage. It uses saved metrics/streams only,
+never changes labels, training or selection. Direct-Y and final-R_g/G marginal
+differences include changed G inputs, selected regions AND ordinal noise; do not
+call them an isolated generation-synergy estimate. Keep TRAIN/validation apart.
+
 ### Mixed-reconstruction Router continuation (2026-10-04; completed, historical)
 
 The user approved the next objective after 03.20 and requests session handoff

@@ -10,23 +10,34 @@ Before changing code or starting an experiment, read these files in order:
 
 ### Asymmetric dual Routers (2026-10-05; authorized, latest)
 
-Storage recovery override: the receiver queue did NOT finish when GPU usage
-ceased on October 5. The file store hit its 200,000-entry inode quota with ample
-byte capacity left. Its checkpoint is epoch 0 / cursor 42 / 42 paired updates.
-Resume the same pinned experiment; do not start R_s or call this a quality failure.
-Use `bash tools/run_routervc_receiver_guarded.sh train`, `eval --wait`, and
-`report --wait` in tmux. The external guard preserves >=5,000 file entries and
-the original 80% byte limit, recording resources on the fast disk. Do not edit
-the pinned training files to add monitoring. All 35,889 older numbered frame PNGs
-in four allowlisted pre-scalable runs are now losslessly archived, not discarded;
-see their `archived_frames_20261005.json` for verified TAR hashes and restoration.
-Datasets, current dependencies, metrics, bitstreams, models and figures stay put.
-Check current progress/Notion rather than treating this recovery snapshot as live.
-Recovery verified: the same binding advanced beyond update 42 with both model
-weights changed and both AdamW states advancing. Training, fixed-E evaluation
-and reporting are supervised in their original tmux sessions; R_g is NOT yet
-complete and R_s still must wait. Formal maintenance evidence is under
-`maintenance_20261005/inode_recovery`; dataset entry counts remain unchanged.
+October 6 continuation: both R_g arms finished 120 epochs, and fixed-E evaluation
+and reporting are complete. Inspect `formal/router/complete.json`,
+`evaluation/complete.json`, and `report/complete.json` together: pending fields
+in earlier-stage receipts are historical, not reasons to rerun inference.
+Results/figures: https://app.notion.com/p/3f18b22ebd8d81639ef5d4fd3989e8c9.
+The user explicitly selected core and authorized continuing R_s. Bind
+`runs/routervc_receiver_20261005/formal/router/core/best.pt`, SHA256
+`53b5b5fb9a8b5ee0c834e8af3cfbdf7c95a0e031c8c55a1dc882bb541deaca02`;
+the completed training receipt is in the same `formal/router` directory.
+The real R_s smoke passed: 16 final renderings / 12 marginals, exact paired
+model/AdamW/RNG resume, eight actual-G teacher/fresh checks, four sender-prefix
+checks (12 prefix pairs plus eight G-on/off fresh decodes). Formal queue started
+October 6 15:21 Beijing in `routervc_sender_train`: first prepare all labels,
+then optimize both arms; do not equate teacher rendering with optimizer steps.
+Use `bash tools/run_routervc_sender_guarded.sh` with `smoke`, `train`, or
+completion-only `verify`. Core is not a claim of a major RD gain; retain old
+shared and halo controls. CPU regression: 443 RouterVC + 20 maintenance/plot tests.
+
+October 5 maintenance is historical: inode exhaustion interrupted R_g at paired
+update 42; verified frame TAR archival and an external storage guard recovered
+the original experiment. The user SUBSEQUENTLY authorized permanent retirement
+of the listed obsolete runs, including those four TARs and their JSONs. They
+are no longer restorable from server archives; no downloaded backup exists.
+Exact deletion/completion receipts: `runs/maintenance_20261005/retirement/`.
+Datasets, current dependencies, and the retained sample ledgers were preserved.
+Do not rerun retirement or assume old Notion/local artifact paths still exist.
+The guard preserves >=5,000 free file entries and the original 80% byte limit;
+resource logs stay on the fast disk. Never edit pinned research code to add it.
 
 The user approved implementing the updated two-network plan after the completed
 03.21 training. First audit idle RAM and modestly clean obsolete file-store
@@ -75,22 +86,23 @@ remain necessary before promotion. Preserve B/E/G/EG options and negative gains.
 
 03.21 is verified complete (120 epochs per arm, 3,840 measured mixed G labels);
 keep its best/last/control models and labels. It is historical shared-model
-training, not a completed asymmetric system. Only the first interrupted receiver
-smoke attempt is archived as `routervc_receiver_20261005_smoke_attempt_before_finalization_fix`;
-it was stopped for a final-checkpoint export fix, not for quality failure.
+training, not a completed asymmetric system. The first interrupted receiver
+smoke attempt was stopped for a final-checkpoint export fix, not quality failure;
+its obsolete directory was subsequently retired with the user's authorization.
 
-Receiver launch verified at 2026-10-05 15:14 Beijing: the final two-window smoke
+Historical receiver launch verification at 2026-10-05 15:14 Beijing: the two-window smoke
 completed 96 new and 96 reused G labels, exact GPU model/AdamW resume, and 14
 fresh/teacher checks (six actually run G). New RVRC headers measure 310 bytes.
-All 354 RouterVC CPU regressions passed. `routervc_receiver_train` tmux is running
-formal core/halo optimization; both optimizer steps advanced and the saved
+All 354 RouterVC CPU regressions passed. Formal core/halo optimization started
+in `routervc_receiver_train`; both optimizer steps advanced and the saved
 weights reload finite and changed. Inspect `formal/router/progress.json` and
 `formal/router/resume.pt`, not GPU utilization alone. Labels are prepared lazily
 and later epochs replay them. Sender architecture GPU smoke is synthetic only,
-not completed sender training. Fixed-E receiver evaluation is the next stage.
+not completed sender training. Receiver training and its evaluation are now complete.
 
-Fixed-E evaluation and CPU reporting are queued in `routervc_receiver_eval` and
-`routervc_receiver_report`; waiting does not hold the GPU mutex. Resume via
+Fixed-E evaluation and CPU reporting completed in `routervc_receiver_eval` and
+`routervc_receiver_report`; waiting never held the GPU mutex. Read-only completion
+checks are preferred; the existing idempotent entries are
 `bash demo/run_routervc_receiver_evaluate.sh run --wait` / `report --wait`.
 Reuse 39 authenticated 03.20 points, fresh-decode core/halo on the exact same
 E0/E25/E50 packets (78 new points + eight checks), then generate separate REDS/UVG
@@ -100,7 +112,8 @@ full independent benchmark. Keep old seed 20261003 for that matched comparison.
 Source-aware R_s implementation/preparation is tracked at
 https://app.notion.com/p/3f08b22ebd8d8164a6b2cd6061dd3fcb.
 Its 142,897-parameter 3D network passed synthetic GPU exact resume; 430 combined
-RouterVC CPU tests pass, but REAL sender smoke/training has not run. The new
+RouterVC CPU tests passed before launch; real sender smoke is now complete,
+and the formal sender teacher/training queue has started. The new
 `run_routervc_sender.sh` supports `test`, `smoke`, `train`, `verify`. First launch
 requires explicit `--receiver`, `--receiver-sha256`, and for formal training
 `--receiver-complete`; subsequent same-stage launches resume recorded bindings.
@@ -117,6 +130,19 @@ conditional encoder reuses authenticated q2 candidates and a saved budget-
 independent order; cache reuse is not fresh encoding time. On smoke recovery
 reuse `plan.json` rather than regenerating its timing-bearing payload. Recipe,
 limits and next-stage decisions live in Notion, not a second Git research log.
+
+Sender evaluation and CPU report wait in `routervc_sender_eval` and
+`routervc_sender_report`, holding no GPU mutex while waiting. Entry:
+`bash demo/run_routervc_sender_evaluate.sh run --wait`, `report --wait`, or
+completion-only `verify`. Evaluation pins new code only when formal R_s finishes;
+do not alter it once `evaluation/protocol.json` exists. It compares source,
+zero_source and fixed old E selections with the EXACT training R_g/G policy
+(seed 20261005), so old E is re-decoded rather than reusing 20261003 scores.
+117 fresh points, 13 source-free full-E candidate decodes, eight checks, and 78
+literal prefix pairs precede separate REDS/UVG curves and all 13 fixed visuals.
+Only old entropy packets are reused: allocation time is NOT full encoding time.
+Same E caps are not necessarily equal realized rates. No automatic sender
+promotion/on-policy adaptation; inspect results and discuss meaningful choices.
 
 ### Mixed-reconstruction Router continuation (2026-10-04; completed, historical)
 

@@ -18,15 +18,18 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：非对称双 Router，先接通接收端 R_g
+## 当前运行入口：非对称双 Router，接收端已完成，继续发送端
 
 整体计划见[03.22 双 Router](https://app.notion.com/p/3ef8b22ebd8d81e39a48efa151655a0f)，
 执行状态见[03.22.1 接收端](https://app.notion.com/p/3f08b22ebd8d8141a824faf4872bc9e2)。
 发送端 R_s 将读取原片并分配补包；接收端 R_g 只读实际重建并选择生成，两端不是同一个模型。
-先训练 G 专用 R_g，再固定它训练独立 R_s；当前入口不代表发送端已完成训练。
+两版 R_g 的120轮训练、固定E评价和图表均已完成；不要重复跑已完成的推理。
+用户已选定 core 最佳模型，下一阶段为独立 R_s；结果和完整图集见
+[接收端结果](https://app.notion.com/p/3f18b22ebd8d81639ef5d4fd3989e8c9)。
+当前入口不代表发送端已完成训练。
 
 ```bash
-# 长任务在 tmux 中执行；同命令恢复，先烟测再正式训练。
+# 历史接收端入口：长任务在 tmux 中执行，已完成任务优先只读核验。
 bash demo/run_routervc_receiver.sh test
 bash demo/run_routervc_receiver.sh smoke
 bash tools/run_routervc_receiver_guarded.sh train
@@ -39,9 +42,9 @@ bash tools/run_routervc_receiver_guarded.sh verify
 core/halo 是两个接收端输入候选，不是发送／接收两端；UF/E/G 固定。
 数据盘紧凑缓存最多驻留8窗于内存，单卡互斥、30秒心跳、逐区域标签与逐窗口检查点。
 新接收格式 RVRC/v1 只需 R_g，不需要 R_s、原片或未收候选；不发送动作mask。
-真实RD与固定画面仍需训练后评价，结果仅在Notion记录。
+真实RD与固定画面已完成，研究结果仅在Notion记录。
 
-训练后固定E评价与CPU出图已可自动接续（等待时不占GPU）：
+训练后固定E评价与CPU出图已完成，以下入口支持核验完成状态（不会重复推理）：
 
 ```bash
 bash tools/run_routervc_receiver_guarded.sh eval --wait
@@ -50,13 +53,31 @@ bash tools/run_routervc_receiver_guarded.sh report --wait
 
 保护入口在原队列外监控三盘容量与 inode（文件条目）余量，不修改锁定的研究源码或
 恢复点。默认保留至少5,000个文件条目、字节使用率低于80%；触发后同命令续跑。
-详细存储检查、旧输出无损归档与恢复见
+详细存储检查、已授权旧输出清理及当前可恢复范围见
 [`CLOUD_STORAGE_AND_UPLOAD.md`](docs/CLOUD_STORAGE_AND_UPLOAD.md)。
 
 独立发送端实现与显式选定R_g后的启动说明见
 [03.22.2 发送端](https://app.notion.com/p/3f08b22ebd8d8164a6b2cd6061dd3fcb)。
-入口 `bash demo/run_routervc_sender.sh test|smoke|train|verify`；实际使用时选一个子命令。
-R_s真实训练尚未开始，不能把结构烟测或旧共享模型当作完整双Router结果。
+CPU入口 `bash demo/run_routervc_sender.sh test`；长任务使用带三盘／inode保护的
+`bash tools/run_routervc_sender_guarded.sh smoke|train|verify`，实际选一个子命令。
+10月6日真实烟测已通过；15:21正式队列在 `routervc_sender_train` tmux启动。
+首次启动需要显式 `--receiver`、`--receiver-sha256`，正式阶段另加
+`--receiver-complete`；准确绑定见 `AGENTS.md`。同阶段恢复可省略已记录绑定参数。
+正式训练先准备全部固定标签，再更新source／zero_source两组权重；不能把标签准备
+或结构烟测写成已经开始正式优化，也不能把旧共享模型当作完整双Router结果。
+
+训练后评价和CPU报告已排队，等待时不持GPU互斥锁：
+
+```bash
+bash demo/run_routervc_sender_evaluate.sh test
+bash demo/run_routervc_sender_evaluate.sh run --wait
+bash demo/run_routervc_sender_evaluate.sh report --wait
+# 完成后的只读核验，不重跑推理
+bash demo/run_routervc_sender_evaluate.sh verify
+```
+
+固定同一R_g/G策略，比较旧E选择、source和zero_source；候选真实熵编码包复用，
+不将缓存选包耗时称为完整编码耗时。曲线、数字与方法讨论继续只放Notion。
 
 ## 已完成入口：混合画面 Router 训练
 

@@ -79,12 +79,19 @@ bash tools/run_routervc_receiver_guarded.sh eval --wait
 bash tools/run_routervc_receiver_guarded.sh report --wait
 ```
 
-旧版实验的逐帧输出可以无损 TAR 归档，但不得删除数据集或当前依赖。工具
-`tools/archive_old_frames.py` 仅允许显式列出的四个旧 run，逐文件 SHA256 验证后才
-移除散文件；码流、checkpoint、指标、日志与固定拼图不移动。每个归档在原 run 内的
-`archived_frames_20261005.tar`，内含逐文件清单；旁边同名 JSON 记录哈希和恢复命令。
-需要重跑历史逐帧分析时，先检查 inode 余量，再用记录的 `tar --skip-old-files` 命令恢复。
-归档节省的是文件条目，不应声称节省了同等字节容量；不修改历史指标或原始路径记录。
+10月5日曾用 `tools/archive_old_frames.py` 将四个旧 run 的逐帧PNG无损TAR归档，
+恢复 inode 配额。**用户随后放弃下载备份，并授权永久删除已列出的旧输出；这四个
+`archived_frames_20261005.tar` 及同名JSON也已删除，没有备份，旧恢复命令已不适用。**
+精确删除与完成凭据在 `/root/autodl-fs/DCVC/runs/maintenance_20261005/retirement/`。
+数据集、当前双Router依赖、当前模型和两个样本账本保留；Notion历史叙述与已上传图
+仍在，但不保证历史页列出的服务器产物仍存在。不得据此再次执行删除或自动重建旧结果。
+
+当前发送端也使用外层保护，研究源码和模型绑定不改动（须tmux）：
+
+```bash
+bash tools/run_routervc_sender_guarded.sh smoke  # 首次须显式接收端绑定，见AGENTS.md
+bash tools/run_routervc_sender_guarded.sh train  # 仅在匹配绑定的真实烟测成功后
+```
 
 建议固定以下路径：
 

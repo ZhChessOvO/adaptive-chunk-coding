@@ -10,6 +10,17 @@ Before changing code or starting an experiment, read these files in order:
 
 ### Asymmetric dual Routers (2026-10-05; authorized, latest)
 
+October 7 continuation: R_s source/zero_source training, 117 fresh evaluation
+points, prefix/repeat checks, and both CPU reports are complete. The user now
+prioritizes consolidating the current system's RD, qualitative comparisons and
+resource use, not designing another training run. Do not automatically start
+on-policy alternation. Current result hub:
+https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae.
+Supplemental CPU entry: `python -m tools.plot_routervc_overview` in tmux;
+completed runs verify inputs/artifacts without redrawing. Preserve all pinned
+training/evaluation/report code. The October 6 launch descriptions below are
+historical; earlier-stage pending flags do not override later completion files.
+
 October 6 continuation: both R_g arms finished 120 epochs, and fixed-E evaluation
 and reporting are complete. Inspect `formal/router/complete.json`,
 `evaluation/complete.json`, and `report/complete.json` together: pending fields
@@ -60,8 +71,8 @@ source-aware, multiscale spatiotemporal network using all frames of the current
 window, original/reconstruction differences, candidate packets and actual bytes.
 No shared parameters or old expert branches. The sender's measured final-gain
 labels must rerun fixed R_g after adding a packet, not sum isolated E/G gains.
-First train/evaluate R_g with fixed E, then R_s, then one measured on-policy
-alternation. Freeze UF/E/G and retain qE=2 during this routing study.
+R_g with fixed E and then R_s are complete; measured on-policy alternation is
+a possible later step, not the current task. Freeze UF/E/G and retain qE=2.
 
 Current receiver entry: `bash demo/run_routervc_receiver.sh test`, `smoke`,
 `train`, and completion-only `verify`. Long jobs require tmux and the single-GPU

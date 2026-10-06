@@ -13,20 +13,22 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [04 当前整体结果：RD、画面和显存](https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae)
 - [03 实验导航：所有版本、曲线与固定画面](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)
 
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：非对称双 Router，接收端已完成，继续发送端
+## 当前运行入口：非对称双 Router，训练和首轮评价已完成
 
 整体计划见[03.22 双 Router](https://app.notion.com/p/3ef8b22ebd8d81e39a48efa151655a0f)，
 执行状态见[03.22.1 接收端](https://app.notion.com/p/3f08b22ebd8d8141a824faf4872bc9e2)。
-发送端 R_s 将读取原片并分配补包；接收端 R_g 只读实际重建并选择生成，两端不是同一个模型。
+发送端 R_s 读取原片并分配补包；接收端 R_g 只读实际重建并选择生成，两端不是同一个模型。
 两版 R_g 的120轮训练、固定E评价和图表均已完成；不要重复跑已完成的推理。
-用户已选定 core 最佳模型，下一阶段为独立 R_s；结果和完整图集见
+用户已选定 core 最佳模型；接收端阶段的结果和完整图集见
 [接收端结果](https://app.notion.com/p/3f18b22ebd8d81639ef5d4fd3989e8c9)。
-当前入口不代表发送端已完成训练。
+发送端两版120轮及117点整链路评价也已完成。10月7日起先整理整体结果，不自动启动新训练
+或交替适配。研究结论与完整图集统一看上方04结果页，仍不是全测试集评价。
 
 ```bash
 # 历史接收端入口：长任务在 tmux 中执行，已完成任务优先只读核验。
@@ -60,13 +62,13 @@ bash tools/run_routervc_receiver_guarded.sh report --wait
 [03.22.2 发送端](https://app.notion.com/p/3f08b22ebd8d8164a6b2cd6061dd3fcb)。
 CPU入口 `bash demo/run_routervc_sender.sh test`；长任务使用带三盘／inode保护的
 `bash tools/run_routervc_sender_guarded.sh smoke|train|verify`，实际选一个子命令。
-10月6日真实烟测已通过；15:21正式队列在 `routervc_sender_train` tmux启动。
+10月6日真实烟测及正式队列已完成；优先使用 `verify`，不要重复训练。
 首次启动需要显式 `--receiver`、`--receiver-sha256`，正式阶段另加
 `--receiver-complete`；准确绑定见 `AGENTS.md`。同阶段恢复可省略已记录绑定参数。
 正式训练先准备全部固定标签，再更新source／zero_source两组权重；不能把标签准备
 或结构烟测写成已经开始正式优化，也不能把旧共享模型当作完整双Router结果。
 
-训练后评价和CPU报告已排队，等待时不持GPU互斥锁：
+训练后评价和CPU报告已完成；下列入口支持读取完成凭据而不重复推理：
 
 ```bash
 bash demo/run_routervc_sender_evaluate.sh test
@@ -78,6 +80,17 @@ bash demo/run_routervc_sender_evaluate.sh verify
 
 固定同一R_g/G策略，比较旧E选择、source和zero_source；候选真实熵编码包复用，
 不将缓存选包耗时称为完整编码耗时。曲线、数字与方法讨论继续只放Notion。
+
+当前方法与原生UF的汇总图、全部13窗固定帧／中心细节及资源图，可从已完成测量重建：
+
+```bash
+# CPU-only，仍需在tmux中运行；不更新模型，不重新执行生成。
+CUDA_VISIBLE_DEVICES='' python -m tools.plot_routervc_overview
+python -m unittest tools.test_plot_routervc_overview
+```
+
+输出到发送端结果目录的 `overview_20261007`；包含实际字节、原图来源与产物校验。
+UF画面仅按最近实际码率选择，图上标明码率差；历史基线计时与当前测量分开说明。
 
 补包标签的CPU诊断入口（在tmux中运行）：
 

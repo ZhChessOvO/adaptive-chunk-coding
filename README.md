@@ -8,18 +8,54 @@
 
 ## 文档入口
 
-当前主线是 **共享低码率基础层＋可追加区域增强＋可选生成协作**。
+当前主线是 **同一次高质量 UF 表示的粗基础层＋区域细化补包＋可选生成协作**。
+新 B 是高质量表示的粗版本，不是重新编码的 QP8；当前暂关 G 仅为隔离验证新 E。
 方法、实验状态、结果与可视化只在 Notion 维护，不在 Git 另写研究报告：
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
-- [04 当前整体结果：RD、画面和显存](https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae)
+- [1007 新 E：已授权计划](https://app.notion.com/p/3f28b22ebd8d8143b641c38667998b54)
+- [1007.1 新 E：实施、真实字节和画面](https://app.notion.com/p/3f28b22ebd8d81489980feaa14ceae3c)
+- [04 旧 E 完整系统结果：RD、画面和显存](https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae)
 - [03 实验导航：所有版本、曲线与固定画面](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)
 
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：非对称双 Router，训练和首轮评价已完成
+## 当前运行入口：冻结 UF 的 latent 粗细分层
+
+核心原型在 `routervc/latent/`，运行和检查在 `tools/`；不覆盖历史代码、模型或已安装的
+CUDA 扩展。`native_bridge.cpp` 是绑定本机二进制／头文件的私有研究接口，尚非通用部署API。
+实际模型身份、数值路径、样本和配置由各阶段 `protocol.json` 及码流头绑定。
+G 与双 Router 最终仍保留；当前先检查 width=3 的省码和区域补发，不启动新训练。
+
+```bash
+# 项目Python环境中的CPU回归
+python -m unittest tools.test_latent_split tools.test_latent_stream \
+  tools.test_latent_chain tools.test_latent_regional tools.test_latent_reports
+
+# 长任务必须在tmux中；相同命令支持断点恢复。
+# 阶段A/B/C已完成时优先用verify，不重复推理。
+bash tools/run_latent_probe.sh verify
+bash tools/run_latent_stream.sh verify
+bash tools/run_latent_chain.sh verify
+bash tools/run_latent_baseline.sh verify
+# 区域阶段也已完成；新诊断目录首次／恢复才用run
+bash tools/run_latent_regional.sh verify
+
+# CPU图表（同样在tmux）；完成后重入只核验，不重画。
+CUDA_VISIBLE_DEVICES='' python -m tools.plot_latent_probe
+CUDA_VISIBLE_DEVICES='' python -m tools.plot_latent_diagnostics --wait
+CUDA_VISIBLE_DEVICES='' python -m tools.plot_latent_regional --wait
+```
+
+正式目录 `/root/autodl-fs/DCVC/runs/routervc_latent_20261007`。新运行入口使用同一GPU互斥锁、
+三盘／inode保护和逐样本原子保存。代码／模型／输入改变时拒绝混入既有目录；新配置需新目录。
+RVL1 是单P8两层流，RVLC1 是连续B参考检查，RVLR1 是单P8区域包原型；它们不冒充互通格式。
+区域计数不等于字节比例，完整E端点一致不等于任意局部像素独立或RD优于UF。研究解释、
+曲线和所有失败／成功观察只在上方Notion页面维护。
+
+## 已完成旧 E 入口：非对称双 Router
 
 整体计划见[03.22 双 Router](https://app.notion.com/p/3ef8b22ebd8d81e39a48efa151655a0f)，
 执行状态见[03.22.1 接收端](https://app.notion.com/p/3f08b22ebd8d8141a824faf4872bc9e2)。
@@ -27,8 +63,8 @@
 两版 R_g 的120轮训练、固定E评价和图表均已完成；不要重复跑已完成的推理。
 用户已选定 core 最佳模型；接收端阶段的结果和完整图集见
 [接收端结果](https://app.notion.com/p/3f18b22ebd8d81639ef5d4fd3989e8c9)。
-发送端两版120轮及117点整链路评价也已完成。10月7日起先整理整体结果，不自动启动新训练
-或交替适配。研究结论与完整图集统一看上方04结果页，仍不是全测试集评价。
+发送端两版120轮及117点整链路评价也已完成；整体图集在上方04旧版结果页，仍不是全测试集评价。
+该阶段已结束，当前转入1007新E研究；不要据以下历史入口自动启动旧训练或交替适配。
 
 ```bash
 # 历史接收端入口：长任务在 tmux 中执行，已完成任务优先只读核验。

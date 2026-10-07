@@ -8,6 +8,38 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Frozen-UF latent scalability (2026-10-07; authorized, latest)
+
+The user authorized the 1007 plan after the completed dual-Router result review:
+https://app.notion.com/p/3f28b22ebd8d8143b641c38667998b54.
+Build B and one E from ONE high-quality UF encoding at fixed q*: B is its coarse
+representation, NOT another QP8 stream. Preserve frozen UF weights and its native
+decoder. First verify symbols and the native-full-same-context endpoint, then
+real entropy streams/fresh decode, B-only reference continuity, and regional E.
+G/Router are OFF ONLY for isolation of this first E probe. Final scope still
+includes sender-selected regional E, receiver-selected G and B/E/G/EG states.
+Do not remove them, restore old feature-delta enhancement, or retrain them now.
+Keep all historical pinned modules/models/results unchanged; use separate
+`routervc/latent/` and `tools/` modules/profiles. The native inspection bridge is
+version-bound research instrumentation, not a change to the installed extension.
+Long builds/evaluation require tmux, global GPU exclusion, atomic resume,
+three-mount/inode heartbeats and real byte accounting. Continue useful work
+after tmux launch; discuss substantive choices. Research records only in Notion.
+All older "latest", pending and automatic-handoff paragraphs are historical.
+
+October 7 execution: A, B, C and the matched native-QP anchors are complete in
+`runs/routervc_latent_20261007`; use their `verify` entries, not repeated inference.
+The user accepts width3's blur and prioritizes measured savings / regional E,
+not a stricter coarse-picture quality gate. RVLR1 tests width3/q*=48, one P8,
+fixed center-out 4x4 latent tiles and E0/4/8/12/16; this is NOT trained routing or
+byte-percentage allocation. Regional evaluation (28 fresh decodes) and its CPU
+report are complete; inspect their completion receipts. No new training, G or UF updates are authorized by
+these diagnostics. Region packets locate themselves, no extra action mask.
+Entropy packets are independently decodable from B; native synthesis remains
+spatially coupled. Do not claim received-tile pixels match the full endpoint.
+Preserve the completed source/profile hashes, including the new sidecar modules.
+Results hub: https://app.notion.com/p/3f28b22ebd8d81489980feaa14ceae3c.
+
 ### Asymmetric dual Routers (2026-10-05; authorized, latest)
 
 October 7 continuation: R_s source/zero_source training, 117 fresh evaluation

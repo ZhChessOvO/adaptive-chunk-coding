@@ -8,7 +8,46 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Frozen-UF latent scalability (2026-10-07; authorized, latest)
+### Compact packets and G reconnection (2026-10-08; latest authorization)
+
+The user approved: reduce small-packet overhead, check continuous regional E,
+then reconnect existing frozen G for a bounded paired comparison. Keep width3
+and frozen UF; do NOT start B-clarity optimization, new G/Router training, or
+deploy old Routers as if they had been adapted to the new latent representation.
+This supersedes the October 7 G-off boundary for the new diagnostic only.
+Research evidence and progress live in Notion:
+https://app.notion.com/p/3f38b22ebd8d8139b98aeb3f79198e02.
+
+New files `compact_entropy.py`, `compact_rans.cpp`, `packet_format.py`,
+`packet_codec.py`, and `generation.py` under `routervc/latent/` leave October 7
+profiles unchanged. RVLPACK2 uses the SAME conditional CDFs in one rANS state
+per region, with addressed `(chunk, region)` packets. Its inner B is unchanged.
+The separate RVLGEN01 envelope declares a shared fixed-center G4 diagnostic,
+not a learned receiver Router; geometry and noise are paired across E prefixes.
+Every header is charged, no action/protection mask is sent. G-off must not read
+G model assets. G display never enters the B reference loop.
+
+Results root: `runs/routervc_latent_20261008`. tmux entrypoints:
+`tools/run_latent_packets.sh run|verify --mode single --limit 4` and
+`--mode continuous --limit 6`; `tools/run_latent_generate.sh run|verify`;
+`tools/run_latent_followup.sh native run|verify` for matched 17-frame UF anchors.
+`run_latent_followup.sh wait` waits for continuous completion before G smoke,
+the frozen G comparison and native anchors; it never trains models. Same
+commands resume artifact-checked samples. Read completion receipts first.
+All builds and GPU work use the configured environment, tmux, shared native
+lock and three-mount/inode protection. New long REDS windows are 41/38 frames;
+UVG remains existing crops. These are reused diagnostics, not full benchmarks.
+CPU reports: `python -m tools.plot_latent_followup --wait` and
+`python -m tools.plot_latent_resources`, also in tmux. Counter resets inside G
+require maximum memory across ALL calls; fresh loading time is not throughput.
+
+The October 8 packet, continuity, frozen-G and matched-native stages are now
+complete and independently verified. Reports are in `report/` and `resources/`
+under that run root. Do not restart completed inference or infer authority for
+new training from this entry; consult the Notion result and the user's next
+decision before adapting the two Routers to the new B/E distribution.
+
+### Frozen-UF latent scalability (2026-10-07; prior isolation stage)
 
 The user authorized the 1007 plan after the completed dual-Router result review:
 https://app.notion.com/p/3f28b22ebd8d8143b641c38667998b54.

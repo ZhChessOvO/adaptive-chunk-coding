@@ -9,12 +9,13 @@
 ## 文档入口
 
 当前主线是 **同一次高质量 UF 表示的粗基础层＋区域细化补包＋可选生成协作**。
-新 B 是高质量表示的粗版本，不是重新编码的 QP8；当前暂关 G 仅为隔离验证新 E。
+新 B 是高质量表示的粗版本，不是重新编码的 QP8；隔离新 E 的首轮检查后，继续优化小包并接回冻结 G。
 方法、实验状态、结果与可视化只在 Notion 维护，不在 Git 另写研究报告：
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
 - [1007 新 E：已授权计划](https://app.notion.com/p/3f28b22ebd8d8143b641c38667998b54)
+- [1008 小包优化、连续区域与 G 接回](https://app.notion.com/p/3f38b22ebd8d8139b98aeb3f79198e02)
 - [1007.1 新 E：实施、真实字节和画面](https://app.notion.com/p/3f28b22ebd8d81489980feaa14ceae3c)
 - [04 旧 E 完整系统结果：RD、画面和显存](https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae)
 - [03 实验导航：所有版本、曲线与固定画面](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)
@@ -24,10 +25,34 @@
 
 ## 当前运行入口：冻结 UF 的 latent 粗细分层
 
+最新入口保持width3、UF和既有G权重不变，不训练新模型。`RVLPACK2`把每个区域内部的
+多个细化熵流合为一条，概率表不变，包编号含chunk和区域。`RVLGEN01`使用预共享的固定
+中心四区域G策略进行成对诊断，不是新条件下已训练的Router；必要profile头仍计费。
+所有长任务在tmux内执行，同命令恢复；完成后优先`verify`，不重复已完成推理：
+
+```bash
+bash tools/run_latent_packets.sh test
+bash tools/run_latent_packets.sh run --mode single --limit 4
+bash tools/run_latent_packets.sh run --mode continuous --limit 6
+# 连续检查完成后依次运行G烟测、G比较和同17帧UF锚点；没有训练步骤
+bash tools/run_latent_followup.sh wait
+# 完成后只读核验
+bash tools/run_latent_packets.sh verify --mode single --limit 4
+bash tools/run_latent_packets.sh verify --mode continuous --limit 6
+bash tools/run_latent_generate.sh verify
+bash tools/run_latent_followup.sh native verify
+# tmux中的CPU图表，复用接收像素，不重新推理
+CUDA_VISIBLE_DEVICES='' python -m tools.plot_latent_followup --wait
+CUDA_VISIBLE_DEVICES='' python -m tools.plot_latent_resources
+```
+
+正式目录`/root/autodl-fs/DCVC/runs/routervc_latent_20261008`。新格式与下方已完成的
+RVL1/RVLC1/RVLR1并存；不要修改已绑定源码后继续写入旧实验目录。
+
 核心原型在 `routervc/latent/`，运行和检查在 `tools/`；不覆盖历史代码、模型或已安装的
 CUDA 扩展。`native_bridge.cpp` 是绑定本机二进制／头文件的私有研究接口，尚非通用部署API。
 实际模型身份、数值路径、样本和配置由各阶段 `protocol.json` 及码流头绑定。
-G 与双 Router 最终仍保留；当前先检查 width=3 的省码和区域补发，不启动新训练。
+G 与双 Router 最终仍保留；下面是10月7日隔离检查的复现入口，不启动新训练。
 
 ```bash
 # 项目Python环境中的CPU回归

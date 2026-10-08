@@ -9,13 +9,14 @@
 ## 文档入口
 
 当前主线是 **同一次高质量 UF 表示的粗基础层＋区域细化补包＋可选生成协作**。
-新 B 是高质量表示的粗版本，不是重新编码的 QP8；隔离新 E 的首轮检查后，继续优化小包并接回冻结 G。
+新 B 是高质量表示的粗版本，不是重新编码的 QP8；小包优化和冻结 G 检查之后，适配新 B/E 上的独立双 Router。
 方法、实验状态、结果与可视化只在 Notion 维护，不在 Git 另写研究报告：
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
 - [1007 新 E：已授权计划](https://app.notion.com/p/3f28b22ebd8d8143b641c38667998b54)
 - [1008 小包优化、连续区域与 G 接回](https://app.notion.com/p/3f38b22ebd8d8139b98aeb3f79198e02)
+- [1008.1 新 B/E 双 Router：标签、训练与接收端对照](https://app.notion.com/p/3f38b22ebd8d81b9a240f004b5f22c81)
 - [1007.1 新 E：实施、真实字节和画面](https://app.notion.com/p/3f28b22ebd8d81489980feaa14ceae3c)
 - [04 旧 E 完整系统结果：RD、画面和显存](https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae)
 - [03 实验导航：所有版本、曲线与固定画面](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)
@@ -23,9 +24,34 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：冻结 UF 的 latent 粗细分层
+## 当前运行入口：新 B/E 接收端适配
 
-最新入口保持width3、UF和既有G权重不变，不训练新模型。`RVLPACK2`把每个区域内部的
+保持 width3、UF 和现有 G 权重不变，重新测量实际 latent 补包画面的 G 收益。
+先适配独立 core R_g，再经对照选择接收端，为不同结构的发送端 R_s 准备最终收益标签。
+不要用旧 E 标签、RGB 区域粘贴或旧 Router 的预测冒充新监督。
+
+```bash
+# 必须在 tmux 中。all = 真实烟测 → 120 窗新标签 → 120 轮 core R_g。
+bash tools/run_latent_routers.sh tests
+bash tools/run_latent_routers.sh all
+# 同命令恢复；独立阶段也可 smoke / train，完成后 verify。
+bash tools/run_latent_routers.sh verify
+# 深层只读核验：真实包、每条实测标签、压缩张量、优化器终态与最佳模型。
+python -m tools.verify_latent_routers /root/autodl-fs/DCVC/runs/routervc_latent_routers_20261008/formal
+# 另一个 tmux 等待正式接收端完成，再自动对照，不启动发送端训练。
+bash tools/run_latent_receiver_review.sh --wait
+```
+
+正式产物 `/root/autodl-fs/DCVC/runs/routervc_latent_routers_20261008`；无损压缩的
+Router 输入缓存 `/root/autodl-tmp/DCVC/cache/routervc_latent_routers_20261008`。
+`RVLRG001` 是新的接收策略封装：只含必要模型身份与共享控制，无动作图；G 按区域编号
+固定噪声，每个生成区都只读同一个未生成 Y。独立接收进程不读原片、未发送包或发送端模型。
+按区域保存 teacher 进度，按训练更新原子保存模型／优化器／随机状态；三盘及 inode 保护
+触发后先检查空间，再原命令恢复。完成收据和状态优先于 tmux 窗口是否仍存在。
+
+## 已完成入口：冻结 UF 的 latent 粗细分层
+
+下面这些已完成诊断保持width3、UF和既有G权重不变，不训练新模型。`RVLPACK2`把每个区域内部的
 多个细化熵流合为一条，概率表不变，包编号含chunk和区域。`RVLGEN01`使用预共享的固定
 中心四区域G策略进行成对诊断，不是新条件下已训练的Router；必要profile头仍计费。
 所有长任务在tmux内执行，同命令恢复；完成后优先`verify`，不重复已完成推理：

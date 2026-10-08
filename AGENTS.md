@@ -8,7 +8,40 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Compact packets and G reconnection (2026-10-08; latest authorization)
+### New-latent dual-Router adaptation (2026-10-08; latest authorization)
+
+The user approved the next step after compact E and frozen-G diagnostics:
+re-measure labels on new width3 B/E, adapt independent core R_g, then bind that
+receiver to new final-marginal labels for source-aware R_s. This supersedes the
+previous no-new-Router-training boundary, not the frozen UF/E/G weights.
+Preserve asymmetric networks, the 90 REDS resized full views + 30 UVG crops
+and existing 96/24 Router sequence split. Do not use old feature-patch labels
+or paste full-E RGB cells onto B: each mixed Y must be entropy-decoded from
+the actual latent packets. First actions are two-P8 region bundles; I has no
+new-E packet. No extra E/G/protection masks or untrained semantic heads.
+
+New modules: `routervc/latent/{routing,router_data,receiver_fit}.py`;
+new tools: `latent_router_queue.py`, `latent_router_worker.py`, and
+`run_latent_routers.sh`. RVLRG001 has a separate receiver/G identity envelope;
+region-addressed noise and ungenerated Y condition every selected G core.
+Long jobs require tmux, shared native lock, byte/inode guard, per-cell atomic
+teacher journals and optimizer/RNG checkpoints. Run `bash
+tools/run_latent_routers.sh smoke|train|all|verify` inside tmux; `tests` runs
+the focused CPU contracts. `all` runs verified smoke, 120-window teacher,
+then 120 epochs of core-only R_g. It does NOT automatically start R_s before
+reviewing receiver results. Reuse completed receipts, never rerun blindly.
+Formal outputs: `runs/routervc_latent_routers_20261008`; losslessly compressed
+Router input cache: `/root/autodl-tmp/DCVC/cache/routervc_latent_routers_20261008`.
+Research plan/progress: https://app.notion.com/p/3f38b22ebd8d81b9a240f004b5f22c81.
+Only operational instructions belong here; research tables/figures in Notion.
+`bash tools/run_latent_receiver_review.sh --wait` in a separate tmux waits for
+formal R_g completion and compares old/new core plus G-off on the existing
+13 diagnostic views, with identical fixed E prefixes and actual header bytes.
+It never starts R_s or promotes a receiver automatically. Source and model
+bindings are explicit; new profile results must not be mixed with RVLGEN01's
+fixed-center G4 diagnostic. Figures and training traces are generated on finish.
+
+### Compact packets and G reconnection (2026-10-08; completed prior stage)
 
 The user approved: reduce small-packet overhead, check continuous regional E,
 then reconnect existing frozen G for a bounded paired comparison. Keep width3

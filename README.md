@@ -24,7 +24,37 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：新 B/E 接收端适配
+## 当前运行入口：新 B/E 发送端适配
+
+接收端适配与固定E对照已完成；具体曲线和画面见上方1008.1。固定经复核选定的core R_g，
+为不同结构、能看原片的R_s重新测量最终补包收益；UF、width3和G保持不变。
+研究说明与实际进度只维护在
+[1009.1 新发送端](https://app.notion.com/p/3f48b22ebd8d81ec8328e21aa31f4192)。
+
+```bash
+# tmux中：tests先做CPU合同，smoke含真实新标签、精确断点和独立接收。
+bash tools/run_latent_sender.sh tests
+bash tools/run_latent_sender.sh smoke
+# 匹配烟测通过后，120窗新标签 → 两组独立R_s各120轮；相同命令续跑。
+bash tools/run_latent_sender.sh train
+bash tools/run_latent_sender.sh verify
+# 另一个tmux：等待发送端完成再做真实字节整链路对照；等待时不占GPU锁。
+bash tools/run_latent_system_review.sh --wait
+# 独立评价链路烟测，以及完成后的只读核验。
+bash tools/run_latent_system_review.sh --smoke --wait
+bash tools/run_latent_system_review.sh --verify-only
+```
+
+正式目录为`/root/autodl-fs/DCVC/runs/routervc_latent_sender_20261009`；本轮紧凑输入缓存
+也放该目录的`input_cache/`，不给接近容量保护线的数据盘继续加压。接收头和E包均按真实
+文件大小收费，不发送动作mask。每次选择后都实际解码混合latent，不能使用RGB区域粘贴。
+实际运行阶段以`teacher.progress.json`、`router/progress.json`及完成收据为准；标签制备
+不等于参数优化已开始。不要修改已绑定源码后强行混入原目录。
+整链路评价保存在同目录的`evaluation/`：原片可见／去原片R_s、固定补包顺序、关G，
+以及原生UF的I32／P0至P48锚点。补包预算按候选E总字节的比例截取，不是区域数量；
+13个历史诊断窗口不当作完整测试集。评价逐点保存，可用相同命令续跑。
+
+## 已完成入口：新 B/E 接收端适配
 
 保持 width3、UF 和现有 G 权重不变，重新测量实际 latent 补包画面的 G 收益。
 先适配独立 core R_g，再经对照选择接收端，为不同结构的发送端 R_s 准备最终收益标签。

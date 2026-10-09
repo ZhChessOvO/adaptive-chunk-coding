@@ -8,6 +8,56 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### New-latent source-aware sender continuation (2026-10-09)
+
+The new-latent core R_g teacher, 120-epoch fit and 156-point fixed-E review are
+complete. Do not repeat them. The independent read-only audit is in
+`runs/routervc_latent_routers_20261008/receiver_audit_20261009`; its entry is
+`python -m tools.latent_receiver_audit` in tmux. Keep pinned receiver code intact.
+The adapted core was selected from the completed review for the already approved
+R_s continuation, including its REDS full-E LPIPS exception. Exact checkpoint:
+`routervc_latent_routers_20261008/formal/router/core/best.pt`, SHA256
+`62f02fe9a1d0fe008c0f93c5c6bf0747c7a470cf2d8eba90633795cf0bb7fe7b`.
+Notion results and all fixed views:
+https://app.notion.com/p/3f38b22ebd8d81b9a240f004b5f22c81.
+Sender implementation and progress:
+https://app.notion.com/p/3f48b22ebd8d81ec8328e21aa31f4192.
+
+New `routervc/latent/sender*.py` modules reuse the independent multiscale R_s
+architecture and paired optimizer engine, never old feature-patch labels or
+RGB pasting. Every parent/child Y is decoded from real latent packets, fixed
+R_g reruns, then frozen G produces final whole-picture marginal labels. Two
+states and three measured additions per state give eight renderings and six
+signed labels per window. Unknown candidates stay masked. Preserve 90/30
+REDS/UVG views and the 96/24 grouped split. Fit source/zero_source for 120 epochs
+from paired random R_s initialization; do not share R_g weights or scales.
+
+Use `bash tools/run_latent_sender.sh tests|smoke|train|all|verify` in tmux;
+`all` requires and verifies the real smoke before preparing formal labels and
+fitting. Check completion receipts before resuming. Output and compact cache
+are both in `runs/routervc_latent_sender_20261009` because the data disk is near
+its 80% guard. No datasets or previous outputs are deleted. Teacher saves each
+whole received state; fitting saves both optimizers/RNG after each paired update.
+Native GPU mutex, 30-second resources and byte/inode guards remain mandatory.
+R_s plans a budget-independent conditional ordering using actual mixed decodes,
+without executing G; budgets truncate complete two-P8 bundles. No I E packet,
+extra E/G/protection mask, source feature or sender model is transmitted.
+Keep width3, UF, E format, G and selected R_g frozen. Adaptive width and further
+fusion/joint training in the user's `1008交流` note are future discussion items,
+not authority to silently change this experiment. Do not end merely at launch.
+
+The automatic post-fit review is `bash tools/run_latent_system_review.sh --wait`
+in a separate tmux; it waits without the GPU mutex, then verifies the completed
+sender before GPU evaluation. Validate that path with `--smoke --wait` first.
+It compares source/zero_source/fixed-order/source-G-off at four actual E-byte
+caps with native UF I32/P0..48 on the same 13 reused diagnostics. Formal output
+is `evaluation/` under the sender root; `--verify-only` audits completed files.
+Do not confuse E-byte fractions with E-region counts or this diagnostic with
+full benchmarks. No model is promoted or trained by the evaluator. Resource
+timings include fresh-process setup/saving; sender order timings exclude bank
+preparation. CPU entropy tests need the established environment PATH and
+`TORCH_EXTENSIONS_DIR`, not a new extension build under the system disk.
+
 ### New-latent dual-Router adaptation (2026-10-08; latest authorization)
 
 The user approved the next step after compact E and frozen-G diagnostics:

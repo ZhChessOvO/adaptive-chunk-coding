@@ -76,11 +76,18 @@ def summarize(points,ratios,qps,sample_count):
     return groups
 
 
-def plots(root,points,groups,rows,ratios,qps):
+def panel_label(point):
+    # comparison_image reserves one title line per panel; a newline gets covered.
+    return f'{point["arm"]} | {point["bpp"]:.4f} bpp | L {point["quality"]["lpips_alex"]:.3f}'
+
+
+def plots(root,points,groups,rows,ratios,qps,*,figure_root=None,smoke=False):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from tools.plot_latent_diagnostics import comparison_image
+    figure_root=Path(figure_root or root);figure_root.mkdir(parents=True,exist_ok=True)
+    caption='SMOKE: two-epoch sender; workflow check only\n' if smoke else ''
     fig,axes=plt.subplots(2,2,figsize=(12,8),constrained_layout=True)
     styles={'source':'s-','zero_source':'o--','fixed_order':'^:','source_Goff':'x--','UF':'k.-'}
     for i,dataset in enumerate(('REDS','UVG')):
@@ -91,9 +98,9 @@ def plots(root,points,groups,rows,ratios,qps):
                 ax.plot([v['bpp'] for v in vals],[v[metric] for v in vals],style,label=arm)
             ax.set_title('REDS resized full views' if dataset=='REDS' else 'UVG existing crops')
             ax.set_xlabel('Actual whole-stream bpp');ax.set_ylabel(metric);ax.legend(fontsize=8);ax.grid(alpha=.2)
-    fig.suptitle('New-latent RouterVC: independent sender + adapted receiver, frozen UF/G\n'
+    fig.suptitle(caption+'New-latent RouterVC: independent sender + adapted receiver, frozen UF/G\n'
                  f'{len(rows)} reused diagnostics, not full benchmarks; UF I32 with own P reference; G <= 8')
-    fig.savefig(root/'system_rd.png',dpi=160);plt.close(fig)
+    fig.savefig(figure_root/'system_rd.png',dpi=160);plt.close(fig)
     fig,axes=plt.subplots(1,2,figsize=(12,4),constrained_layout=True)
     for ax,key,label in zip(axes,('max_GiB','mean_fresh_seconds'),('Max CUDA allocated GiB','Mean fresh process seconds')):
         labels=[];values=[]
@@ -105,8 +112,8 @@ def plots(root,points,groups,rows,ratios,qps):
         ax.bar(range(len(values)),values)
         for i,v in enumerate(values):ax.text(i,v,f'{v:.2f}',ha='center',va='bottom',fontsize=8)
         ax.set_xticks(range(len(values)),labels,fontsize=8);ax.set_ylabel(label);ax.set_ylim(0,max(values)*1.18)
-    fig.suptitle('All-call process peaks, not total device memory; loading and saving included, not realtime FPS')
-    fig.savefig(root/'resources.png',dpi=160);plt.close(fig)
+    fig.suptitle(caption+'All-call process peaks, not total device memory; loading and saving included, not realtime FPS')
+    fig.savefig(figure_root/'resources.png',dpi=160);plt.close(fig)
     for row in rows:
         sid=row['sample_id'];folder=root/'samples'/sid
         with np.load(row['source_path'],allow_pickle=False) as f:source=f['source'][8].copy()
@@ -118,8 +125,10 @@ def plots(root,points,groups,rows,ratios,qps):
         for arm,budget,dest in cases:
             measured=next(p for p in points if p['sample_id']==sid and p['arm']==arm and p['budget']==budget)
             with np.load(dest/'receive/pixels.npz',allow_pickle=False) as f:rgb=f['reconstruction'][8].copy()
-            panels.append((f'{arm}\n{measured["bpp"]:.5f} bpp | LPIPS {measured["quality"]["lpips_alex"]:.4f}',rgb))
-        comparison_image(panels,folder/'fixed_frame.png',title=sid+' | half E-byte cap; nearest UF rate, NOT matched exactly')
+            panels.append((panel_label(measured),rgb))
+        dest=figure_root/'samples'/sid;dest.mkdir(parents=True,exist_ok=True)
+        comparison_image(panels,dest/'fixed_frame.png',title=('SMOKE | ' if smoke else '')+sid+
+                         ' | half E-byte cap; nearest UF rate, NOT matched exactly')
 
 
 def review(args,run):
@@ -208,7 +217,7 @@ def review(args,run):
             points.append(point(dest,row,'UF',qp,received,source,metric))
     groups=summarize(points,ratios,qps,len(rows))
     save(args.output/'summary.json',dict(points=points,groups=groups,scope=binding))
-    plots(args.output,points,groups,rows,ratios,qps)
+    plots(args.output,points,groups,rows,ratios,qps,smoke=args.smoke)
     names=['summary.json','system_rd.png','resources.png',*(f'samples/{r["sample_id"]}/fixed_frame.png' for r in rows)]
     save(args.output/'complete.json',dict(complete=True,points=len(points),fresh_decodes=len(points)+repeat_checks,
         repeats=repeat_checks,literal_prefix_pairs=prefix_pairs,protocol=digest(args.output/'protocol.json'),
@@ -231,6 +240,25 @@ def verify_completed(root,check=lambda:None):
     return done
 
 
+def replot(root,destination,run):
+    """Render saved scores/pixels to a NEW directory; never change completed results."""
+    root,destination=Path(root),Path(destination)
+    if destination.resolve().is_relative_to(root.resolve()):
+        raise ValueError('replot destination must be outside completed results')
+    verify_completed(root,run.check)
+    binding=dict(source_complete=digest(root/'complete.json'),code=digest(Path(__file__)),
+                 scores_recomputed=False,inference_executed=False)
+    immutable(destination/'protocol.json',binding)
+    if (destination/'complete.json').exists():
+        verify_artifacts(destination,read(destination/'complete.json')['artifacts']);return
+    summary=read(root/'summary.json');p=summary['scope']
+    plots(root,summary['points'],summary['groups'],p['rows'],p['ratios'],p['qps'],
+          figure_root=destination,smoke=p['smoke'])
+    names=['system_rd.png','resources.png',*(f'samples/{r["sample_id"]}/fixed_frame.png' for r in p['rows'])]
+    save(destination/'complete.json',dict(complete=True,**binding,
+        artifacts={n:digest(destination/n) for n in names}))
+
+
 def main():
     from demo.chunk_enhancement_experiment import Run
     from demo.chunk_enhancement_evaluate import exclusive_native_evaluation
@@ -240,6 +268,7 @@ def main():
     p.add_argument('--smoke',action='store_true')
     p.add_argument('--wait',action='store_true')
     p.add_argument('--verify-only',action='store_true')
+    p.add_argument('--replot-to',type=Path,help='CPU-only figures from completed results into a new directory')
     args=p.parse_args()
     if not os.environ.get('TMUX'):raise RuntimeError('tmux required')
     args.output=args.output or args.root/('evaluation_smoke' if args.smoke else 'evaluation')
@@ -250,7 +279,8 @@ def main():
         while not complete.exists():
             if not args.wait:raise RuntimeError('sender not complete')
             run.update(phase='wait_sender_no_GPU_lock');run.check();time.sleep(20)
-        if args.verify_only:verify_completed(args.output,run.check)
+        if args.replot_to:replot(args.output,args.replot_to,run)
+        elif args.verify_only:verify_completed(args.output,run.check)
         else:
             with exclusive_native_evaluation(run):review(args,run)
         run.update(phase='system_review_complete')

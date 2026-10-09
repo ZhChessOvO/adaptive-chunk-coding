@@ -57,6 +57,14 @@ full benchmarks. No model is promoted or trained by the evaluator. Resource
 timings include fresh-process setup/saving; sender order timings exclude bank
 preparation. CPU entropy tests need the established environment PATH and
 `TORCH_EXTENSIONS_DIR`, not a new extension build under the system disk.
+Both real smokes have passed (18 sender fresh decodes and 22 system-review
+fresh decodes); the formal queue started on October 9 at 10:05 Asia/Shanghai.
+Read `formal/teacher.progress.json` before assuming optimization has begun.
+The evaluator was restarted only while waiting, to load a figure-only caption
+fix; its queue has an explicit intentional-restart receipt. The sender was not
+interrupted. Original smoke images remain untouched; the CPU-only redraw is
+in `evaluation_smoke_layout/`. Replot finished measurements with
+`--replot-to /absolute/new/output`, never overwrite completed artifacts.
 
 ### New-latent dual-Router adaptation (2026-10-08; latest authorization)
 

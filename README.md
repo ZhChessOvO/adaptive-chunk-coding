@@ -53,6 +53,8 @@ bash tools/run_latent_system_review.sh --verify-only
 整链路评价保存在同目录的`evaluation/`：原片可见／去原片R_s、固定补包顺序、关G，
 以及原生UF的I32／P0至P48锚点。补包预算按候选E总字节的比例截取，不是区域数量；
 13个历史诊断窗口不当作完整测试集。评价逐点保存，可用相同命令续跑。
+仅修图表排版时，可在tmux用评价入口的`--replot-to /absolute/new/output`从已保存
+像素／指标重画到新目录；不重跑推理、不覆盖已完成结果。烟测重画另加`--smoke`。
 
 ## 已完成入口：新 B/E 接收端适配
 

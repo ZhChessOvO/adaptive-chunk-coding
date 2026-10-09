@@ -1,11 +1,19 @@
 import copy
 import unittest
 
-from tools.latent_system_review import summarize
+from tools.latent_system_review import summarize, panel_label
 from tools.latent_receiver_audit import paired_summary
 
 
 class SystemReviewTests(unittest.TestCase):
+    def test_panel_label_fits_single_header_line(self):
+        point=dict(arm='zero_source',bpp=.030123,quality={'lpips_alex':.23456})
+        label=panel_label(point)
+        self.assertNotIn('\n',label)
+        self.assertIn('0.0301 bpp',label)
+        self.assertIn('L 0.235',label)
+        self.assertLess(len(label),48)
+
     def points(self):
         return [dict(sample_id=d,dataset=d,arm=arm,budget=b,bpp=.03,actual_bytes=300,
                 quality=dict(lpips_alex=.2,psnr_db=30.,temporal_delta_mae=5.),

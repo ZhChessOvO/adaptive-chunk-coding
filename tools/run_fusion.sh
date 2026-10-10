@@ -23,6 +23,7 @@ case "$action" in
   prepare) module=tools.fusion_prepare ;;
   train) module=tools.fusion_train ;;
   visuals) export CUDA_VISIBLE_DEVICES=''; module=tools.fusion_visuals ;;
+  review) module=tools.fusion_review ;;
   *) echo "unknown action: $action" >&2; exit 2 ;;
 esac
 python -m tools.storage_guard --log /root/autodl-tmp/DCVC/tmp/fusion_guard.jsonl --min-inodes 5000 -- python -m "$module" "$@"

@@ -9,7 +9,6 @@ from demo.chunk_enhancement_experiment import Run
 from demo.chunk_enhancement_evaluate import exclusive_native_evaluation
 from demo.chunk_enhancement_codec import configure_torch
 from demo.routervc_fullview_probe import save
-from routervc.fusion.training import fit
 from tools.latent_boundary_report import ROOT
 
 
@@ -27,6 +26,9 @@ def main():
             if (args.data/'last_failure.json').exists(): raise RuntimeError('data preparation needs attention')
             run.check(); run.update(phase='waiting_for_frozen_policy_data'); time.sleep(5)
         with exclusive_native_evaluation(run):
+            # Load the recipe only when work starts, not hours earlier in the
+            # waiting launcher. Checkpoint hashes must describe executed code.
+            from routervc.fusion.training import fit
             configure_torch()
             if not (args.output/'resume_verified.json').exists():
                 import gc

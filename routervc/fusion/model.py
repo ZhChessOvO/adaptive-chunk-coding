@@ -35,7 +35,10 @@ class PrecisionFusion(nn.Module):
         rec = .02*torch.tanh(self.rec(torch.cat([b, y, e, eb], 1)))*eb
         feature = self.stem(torch.cat([y, c, m, b[:, 3:6], e, gs, gb, eb], 1))
         low = self.low(F.avg_pool2d(feature, 2))
-        low = F.interpolate(low, size=feature.shape[-2:], mode='bilinear', align_corners=False)
+        # CUDA bilinear backward is nondeterministic in the installed PyTorch.
+        # Nearest upsampling followed by the 3x3 fusion convolution keeps exact
+        # per-update resume without changing the frozen G/codec paths.
+        low = F.interpolate(low, size=feature.shape[-2:], mode='nearest')
         pred = torch.tanh(self.head(torch.cat([feature, low], 1)))
         delta = m[:, 3:6]-c[:, 3:6]
         smooth = F.conv2d(F.pad(delta, (4, 4, 4, 4), mode='replicate'), self.blur, groups=3)

@@ -8,6 +8,35 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Approved boundary/fusion continuation (2026-10-10; latest authorization)
+
+The user approved the three-module roadmap and requested implementation. Start
+with P0 boundary diagnostics, then a bounded P1 paired fusion pilot at width3;
+keep the completed UF, E format, source R_s, core R_g and G checkpoints frozen.
+Do not silently start cooperative Router retraining or adaptive-width work.
+Inspect E/non-E, G/non-G and independently generated G/G boundaries separately.
+Reuse completed measurements; retain pinned source files and original outputs.
+New modules belong in `routervc/fusion` and entrypoints in `tools`, not demo.
+Research prose/results stay in Notion, under the approved roadmap page
+https://app.notion.com/p/3f58b22ebd8d81f787c8c1173d43306a.
+New outputs/caches go on file storage: the data disk is near its 80% guard.
+Long jobs require tmux, native GPU mutex when applicable, resumable receipts,
+30-second resources and disk/inode guards. Do not stop merely because tmux starts.
+Generated content remains inside locally chosen G regions. A deterministic
+B/Y-only correction may touch the narrow E boundary band on either side;
+far-away interiors and the pure full-E/G-off codec endpoint stay unchanged.
+No extra spatial/protection mask is sent. Any new shared fusion profile/header
+must be counted explicitly before calling a result a fresh decoded codec point.
+Entry: `bash tools/run_fusion.sh tests|p0|controls|prepare|train|visuals`.
+Output root: `runs/routervc_fusion_20261010`; queue stages have separate tmux
+sessions and wait without the GPU lock. `p1_data` is a 60-window half-sized
+grouped pilot (48/12), not another full Router label job. `p1_fit` saves every
+optimizer update and verifies direct/resumed model/optimizer/RNG equality first.
+Read progress phase before saying training started. The isolated `RVLFUS01`
+receiver profile charges 77 extra global bytes and no maps; it remains pending
+real fresh-decoder checks until those receipts are present. Never mix offline
+same-payload controls with verified new-profile measurements.
+
 ### Completed new-latent system review (2026-10-10; latest instruction)
 
 The user requested result verification and Notion updates only, then discussion.

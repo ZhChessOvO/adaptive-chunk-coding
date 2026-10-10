@@ -15,6 +15,7 @@
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
 - [1010 P0–P1 边界诊断与轻量融合](https://app.notion.com/p/3f58b22ebd8d81f3a8f9e70f8988576f)
+- [1010 P1 已完成结果：融合对照、全部画面与资源](https://app.notion.com/p/3f58b22ebd8d81ddb1cddeb27ed16863)
 - [1010 新版完整结果：RD、发送端消融、画面与资源](https://app.notion.com/p/3f58b22ebd8d8145a663d10ffabeb5c7)
 - [1007 新 E：已授权计划](https://app.notion.com/p/3f28b22ebd8d8143b641c38667998b54)
 - [1008 小包优化、连续区域与 G 接回](https://app.notion.com/p/3f38b22ebd8d8139b98aeb3f79198e02)
@@ -28,15 +29,17 @@
 
 ## 已完成入口：新 B/E 发送端适配与整链路评价
 
-2026-10-10已完成结果复核与Notion整理；用户随后授权固定width3的P0–P1边界融合试跑。
+2026-10-10已完成新B/E发送端结果复核；随后授权的固定width3 P0–P1融合试跑也已全部完成。
 以下训练命令保留用于复现，不表示任务仍在运行；优先查看`evaluation/complete.json`。
 阶段完成文件中历史`evaluation_pending`字段不代表后续评价未完成。
 
-当前融合入口为 `bash tools/run_fusion.sh tests|p0|controls|prepare|train|visuals|review|boundary-quality|finish`。
+融合复现入口为 `bash tools/run_fusion.sh tests|p0|controls|prepare|train|visuals|review|boundary-quality|finish|report`。
 除短单元测试外，均需在tmux中执行；prepare等待controls完成，train等待数据准备完成，
 review等待训练完成，finish等待review并追加边界LPIPS与合并汇总。各阶段可分别在tmux排队，
 不依赖当前会话或联网；异常会停止下游，不自动更换模型或启动下一阶段研究。
 全部完成的标志为`p1_handoff/complete.json`；`p1_handoff/summary.json`汇总结果与固定图片路径。
+完成后优先运行CPU-only的`report`：只读核对既有字节/凭据，图表另存`report_20261010`；
+同命令重入仅核验完成文件，不重复推理或改原结果。融合方案待讨论，不自动启动P2训练。
 输出/断点在`/root/autodl-fs/DCVC/runs/routervc_fusion_20261010`，各子目录的
 `*.progress.json`区分排队、数据准备与实际训练；同命令续跑。原UF/G/双Router源码与
 checkpoint不修改。研究配方、结果与取舍只在上方Notion页面维护。

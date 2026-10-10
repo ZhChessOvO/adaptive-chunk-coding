@@ -51,5 +51,13 @@ class FusionModelTest(unittest.TestCase):
         self.assertGreater(model.head[-1].weight.grad.abs().sum().item(), 0)
         self.assertGreater(model.rec[-1].weight.grad.abs().sum().item(), 0)
 
+    def test_multiband_is_representable_without_double_taper(self):
+        v = self.inputs(); model = PrecisionFusion()
+        permitted = (v['g_band'] > 0)*v['g_support']
+        target = (v['current'][:, 3:6] + .05*permitted).clamp(0, 1)
+        v['multiband'][:, 3:6] = target
+        with torch.no_grad(): model.head[-1].bias[0] = 20.
+        torch.testing.assert_close(model(v), target, atol=1e-7, rtol=0)
+
 
 if __name__ == '__main__': unittest.main()

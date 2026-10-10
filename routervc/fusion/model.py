@@ -42,6 +42,9 @@ class PrecisionFusion(nn.Module):
         pred = torch.tanh(self.head(torch.cat([feature, low], 1)))
         delta = m[:, 3:6]-c[:, 3:6]
         smooth = F.conv2d(F.pad(delta, (4, 4, 4, 4), mode='replicate'), self.blur, groups=3)
-        generated = pred[:, :1]*smooth + pred[:, 1:2]*(delta-smooth) + .02*pred[:, 2:]
-        # gb already tapers to zero both outside G and away from the boundary.
-        return (c[:, 3:6] + rec + gb*gs*generated).clamp(0, 1)
+        # The cheap candidate already has its own smooth boundary taper. Do not
+        # taper it a second time: this head must be able to reproduce multiband,
+        # as well as the initial current output. Only *additional* detail/RGB
+        # corrections need the explicit soft band taper.
+        generated = (gb > 0)*pred[:, :1]*delta + gb*(pred[:, 1:2]*(delta-smooth) + .02*pred[:, 2:])
+        return (c[:, 3:6] + rec + gs*generated).clamp(0, 1)

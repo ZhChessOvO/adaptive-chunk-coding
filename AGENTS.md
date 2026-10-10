@@ -33,6 +33,12 @@ training. Formal completion stops the queue, without automatic model promotion.
 
 Session: `routervc_cooperation_review_1011`; main log:
 `/root/autodl-tmp/DCVC/tmp/cooperation_review_1011.log`.
+Verified handoff: four CPU tests and all eight G8 startup processes passed;
+formal paired evaluation began 2026-10-11 01:29 Beijing. The two startup pairs
+are actual best-checkpoint points, not the earlier two-step training smoke.
+Old-policy selection and prior multiband pixels match; repeats are exact and
+G-off requires no Router/G model. The active queue proceeds automatically to
+reports, then stops. Completion is `complete.json`, not an idle GPU snapshot.
 Per-point receipts permit restart; all new output is on file storage, with the
 GPU mutex, 30-second GPU/disk/inode/container-memory observations and storage
 guards. Review code is protocol-bound; do not change it silently during a run.

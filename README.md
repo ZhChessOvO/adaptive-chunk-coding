@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1010 P2 接收端协同适配与当前任务](https://app.notion.com/p/3f58b22ebd8d8186bc69d26bcc99c16a)
 - [1010 P0–P1 边界诊断与轻量融合](https://app.notion.com/p/3f58b22ebd8d81f3a8f9e70f8988576f)
 - [1010 P1 已完成结果：融合对照、全部画面与资源](https://app.notion.com/p/3f58b22ebd8d81ddb1cddeb27ed16863)
 - [1010 新版完整结果：RD、发送端消融、画面与资源](https://app.notion.com/p/3f58b22ebd8d8145a663d10ffabeb5c7)
@@ -27,6 +28,27 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
+## 当前入口：固定多频带的 P2 接收端适配
+
+用户已确认固定多频带，先适配 R_g，后续复核再适配 R_s；UF、width3、R_s 和 G 不变。
+新实现位于 `routervc/cooperation/`，不修改历史绑定模块；研究配方与进度见上方 P2 页面。
+
+```bash
+bash tools/run_cooperative_receiver.sh tests
+# 在 tmux 中：真实烟测、精确断点、独立接收检查 → 按需标签与 120 轮 R_g。
+bash tools/run_cooperative_receiver.sh all
+# 完成后只读验证；中断后使用相同 all 命令续跑。
+bash tools/run_cooperative_receiver.sh verify
+```
+
+输出和缓存都在 `/root/autodl-fs/DCVC/runs/routervc_cooperation_20261010`。
+`cooperation.progress.json` 给出当前实际阶段，`router/progress.json` 记录已完成的参数更新；
+首轮可能在更新之间准备下一个窗口的标签，不等于 GPU 连续训练中。
+`router/resume.pt` 每次更新原子保存模型、优化器、随机状态及游标；
+`smoke/complete.json` 记录真实断点与独立接收检查，`complete.json` 代表整轮训练完成。
+队列完成后停止，不自动训练 R_s 或更改 width。使用单 GPU 互斥、30 秒资源日志与容量保护。
+服务器重启后需重新进入 tmux 启动相同命令；tmux 只防连接中断，不跨服务器重启自动运行。
+
 ## 已完成入口：新 B/E 发送端适配与整链路评价
 
 2026-10-10已完成新B/E发送端结果复核；随后授权的固定width3 P0–P1融合试跑也已全部完成。
@@ -39,7 +61,7 @@ review等待训练完成，finish等待review并追加边界LPIPS与合并汇总
 不依赖当前会话或联网；异常会停止下游，不自动更换模型或启动下一阶段研究。
 全部完成的标志为`p1_handoff/complete.json`；`p1_handoff/summary.json`汇总结果与固定图片路径。
 完成后优先运行CPU-only的`report`：只读核对既有字节/凭据，图表另存`report_20261010`；
-同命令重入仅核验完成文件，不重复推理或改原结果。融合方案待讨论，不自动启动P2训练。
+同命令重入仅核验完成文件，不重复推理或改原结果。P2 使用上方独立入口，不重启 P1。
 输出/断点在`/root/autodl-fs/DCVC/runs/routervc_fusion_20261010`，各子目录的
 `*.progress.json`区分排队、数据准备与实际训练；同命令续跑。原UF/G/双Router源码与
 checkpoint不修改。研究配方、结果与取舍只在上方Notion页面维护。

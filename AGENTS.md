@@ -8,7 +8,24 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Approved boundary/fusion continuation (2026-10-10; latest authorization)
+### Approved P2 receiver cooperation (2026-10-10; latest authorization)
+
+The user approved fixed multiband fusion and continuing P2, with handoff only
+after genuine formal optimizer updates have started in tmux. First adapt R_g
+to frozen R_s's actual E prefixes and conditional, final fused-picture G gains.
+Keep UF, width3 E, R_s and G frozen; do not train F or adaptive width now.
+R_g may observe its own local G-selection state; it never receives source,
+sender weights or an extra transmitted spatial/protection mask. Preserve the
+asymmetric independent Router architectures and all previous pinned sources.
+New implementation belongs in `routervc/cooperation` and `tools`; outputs and
+caches go in `runs/routervc_cooperation_20261010` on file storage. Real smoke,
+source-free receiver checks and exact optimizer/RNG restart must precede formal
+updates. Labels may be prepared lazily with per-candidate receipts; distinguish
+label preparation from optimizer progress. Update Notion and commit/push code
+before the requested handoff. R_s's subsequent adaptation follows review of R_g;
+do not silently begin a second training stage when this receiver run completes.
+
+### Completed boundary/fusion continuation (2026-10-10; historical scope)
 
 The approved P0 boundary diagnostics and bounded P1 width3 fusion pilot are now
 complete, including fit, paired evaluation, fresh receiver checks and handoff.

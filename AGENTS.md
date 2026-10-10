@@ -8,6 +8,22 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Completed new-latent system review (2026-10-10; latest instruction)
+
+The user requested result verification and Notion updates only, then discussion.
+Do not start another training run or promote/change models. The sender's formal
+labels, paired 120-epoch fits and `evaluation/complete.json` are complete; old
+stage-local `evaluation_pending` flags are historical, not a reason to rerun.
+Sender and system `verify` commands passed. A separate CPU-only report is in
+`routervc_latent_sender_20261009/report_20261010`; the reproduction entry is
+`python -m tools.latent_sender_report` under `tools.storage_guard` in tmux.
+It checks prefixes, same-stream G-off, repeats, and summarizes existing records;
+it never runs inference or changes completed measurement artifacts. Keep all
+previously pinned sources intact. Unit tests: `tools.test_latent_sender_report`.
+Current results, resources, training plots and the complete 13-view gallery:
+https://app.notion.com/p/3f58b22ebd8d8145a663d10ffabeb5c7.
+Only operational handoff belongs in Git; research conclusions stay in Notion.
+
 ### New-latent source-aware sender continuation (2026-10-09)
 
 The new-latent core R_g teacher, 120-epoch fit and 156-point fixed-E review are

@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1010 新版完整结果：RD、发送端消融、画面与资源](https://app.notion.com/p/3f58b22ebd8d8145a663d10ffabeb5c7)
 - [1007 新 E：已授权计划](https://app.notion.com/p/3f28b22ebd8d8143b641c38667998b54)
 - [1008 小包优化、连续区域与 G 接回](https://app.notion.com/p/3f38b22ebd8d8139b98aeb3f79198e02)
 - [1008.1 新 B/E 双 Router：标签、训练与接收端对照](https://app.notion.com/p/3f38b22ebd8d81b9a240f004b5f22c81)
@@ -24,7 +25,11 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前运行入口：新 B/E 发送端适配
+## 已完成入口：新 B/E 发送端适配与整链路评价
+
+2026-10-10已完成结果复核与Notion整理，当前等待讨论，不启动下一轮训练。
+以下训练命令保留用于复现，不表示任务仍在运行；优先查看`evaluation/complete.json`。
+阶段完成文件中历史`evaluation_pending`字段不代表后续评价未完成。
 
 接收端适配与固定E对照已完成；具体曲线和画面见上方1008.1。固定经复核选定的core R_g，
 为不同结构、能看原片的R_s重新测量最终补包收益；UF、width3和G保持不变。
@@ -55,6 +60,14 @@ bash tools/run_latent_system_review.sh --verify-only
 13个历史诊断窗口不当作完整测试集。评价逐点保存，可用相同命令续跑。
 仅修图表排版时，可在tmux用评价入口的`--replot-to /absolute/new/output`从已保存
 像素／指标重画到新目录；不重跑推理、不覆盖已完成结果。烟测重画另加`--smoke`。
+此次只读报告在`report_20261010/`，包含真实前缀、同流关G、重复解码收据复核及训练图。
+需要复核报告时，在tmux中运行以下CPU命令；不启动codec/G推理或训练：
+
+```bash
+/root/autodl-tmp/DCVC/envs/dcvcuf/bin/python -m tools.storage_guard \
+  --log /root/autodl-tmp/DCVC/tmp/latent_sender_report_guard.jsonl --min-inodes 5000 -- \
+  /root/autodl-tmp/DCVC/envs/dcvcuf/bin/python -m tools.latent_sender_report
+```
 
 ## 已完成入口：新 B/E 接收端适配
 

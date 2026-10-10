@@ -21,13 +21,14 @@ Research prose/results stay in Notion, under the approved roadmap page
 https://app.notion.com/p/3f58b22ebd8d81f787c8c1173d43306a.
 New outputs/caches go on file storage: the data disk is near its 80% guard.
 Long jobs require tmux, native GPU mutex when applicable, resumable receipts,
-30-second resources and disk/inode guards. Do not stop merely because tmux starts.
+30-second resources and disk/inode guards. The user's latest handoff request is
+to arrange automatic downstream work and end the session while these jobs run.
 Generated content remains inside locally chosen G regions. A deterministic
 B/Y-only correction may touch the narrow E boundary band on either side;
 far-away interiors and the pure full-E/G-off codec endpoint stay unchanged.
 No extra spatial/protection mask is sent. Any new shared fusion profile/header
 must be counted explicitly before calling a result a fresh decoded codec point.
-Entry: `bash tools/run_fusion.sh tests|p0|controls|prepare|train|visuals`.
+Entry: `bash tools/run_fusion.sh tests|p0|controls|prepare|train|visuals|review|boundary-quality|finish`.
 Output root: `runs/routervc_fusion_20261010`; queue stages have separate tmux
 sessions and wait without the GPU lock. `p1_data` is a 60-window half-sized
 grouped pilot (48/12), not another full Router label job. `p1_fit` saves every
@@ -36,6 +37,14 @@ Read progress phase before saying training started. The isolated `RVLFUS01`
 receiver profile charges 77 extra global bytes and no maps; it remains pending
 real fresh-decoder checks until those receipts are present. Never mix offline
 same-payload controls with verified new-profile measurements.
+The unattended P1 chain is prepare -> train -> review -> finish (separate tmux
+sessions; downstream stages wait). Review runs paired diagnostics and fresh
+receiver checks; finish computes learned boundary LPIPS and writes
+`p1_handoff/complete.json` plus a combined summary. It stops on upstream failure,
+does not automatically promote a model or start P2, and needs no network.
+The shared wrapper and finish entry are not part of pinned codec/training code.
+Do not reboot just to clear file cache: this container has a 120 GiB cgroup limit;
+inspect cgroup RSS/cache/failcnt rather than interpreting host-wide free(1).
 
 ### Completed new-latent system review (2026-10-10; latest instruction)
 

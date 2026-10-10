@@ -13,7 +13,7 @@ cd "$repo"
 action=${1:-tests}
 shift || true
 if [[ "$action" == tests ]]; then
-  python -m unittest tools.test_fusion_boundaries tools.test_fusion_blend tools.test_fusion_model tools.test_fusion_stream tools.test_fusion_metrics "$@"
+  python -m unittest tools.test_fusion_boundaries tools.test_fusion_blend tools.test_fusion_model tools.test_fusion_stream tools.test_fusion_metrics tools.test_fusion_finish "$@"
   exit
 fi
 [[ -n ${TMUX:-} ]] || { echo 'tmux required' >&2; exit 2; }
@@ -25,6 +25,7 @@ case "$action" in
   visuals) export CUDA_VISIBLE_DEVICES=''; module=tools.fusion_visuals ;;
   review) module=tools.fusion_review ;;
   boundary-quality) export CUDA_VISIBLE_DEVICES=''; module=tools.fusion_boundary_quality ;;
+  finish) export CUDA_VISIBLE_DEVICES=''; module=tools.fusion_finish ;;
   *) echo "unknown action: $action" >&2; exit 2 ;;
 esac
 python -m tools.storage_guard --log /root/autodl-tmp/DCVC/tmp/fusion_guard.jsonl --min-inodes 5000 -- python -m "$module" "$@"

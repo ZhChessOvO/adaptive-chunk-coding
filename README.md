@@ -32,8 +32,11 @@
 以下训练命令保留用于复现，不表示任务仍在运行；优先查看`evaluation/complete.json`。
 阶段完成文件中历史`evaluation_pending`字段不代表后续评价未完成。
 
-当前融合入口为 `bash tools/run_fusion.sh tests|p0|controls|prepare|train|visuals`。
-除短单元测试外，均需在tmux中执行；prepare等待controls完成，train等待数据准备完成。
+当前融合入口为 `bash tools/run_fusion.sh tests|p0|controls|prepare|train|visuals|review|boundary-quality|finish`。
+除短单元测试外，均需在tmux中执行；prepare等待controls完成，train等待数据准备完成，
+review等待训练完成，finish等待review并追加边界LPIPS与合并汇总。各阶段可分别在tmux排队，
+不依赖当前会话或联网；异常会停止下游，不自动更换模型或启动下一阶段研究。
+全部完成的标志为`p1_handoff/complete.json`；`p1_handoff/summary.json`汇总结果与固定图片路径。
 输出/断点在`/root/autodl-fs/DCVC/runs/routervc_fusion_20261010`，各子目录的
 `*.progress.json`区分排队、数据准备与实际训练；同命令续跑。原UF/G/双Router源码与
 checkpoint不修改。研究配方、结果与取舍只在上方Notion页面维护。

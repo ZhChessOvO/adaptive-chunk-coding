@@ -8,7 +8,38 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### Approved P2 receiver cooperation (2026-10-10; latest authorization)
+### P2 paired picture review (2026-10-11; latest authorization)
+
+The user requested continuation after the completed task and handoff once the
+next training or long task genuinely starts. P2 R_g fitting has completed all
+120 epochs / 5760 updates; use its preselected epoch-108 `router/best.pt`.
+Training/validation regret is not an actual LPIPS or RD improvement. Preserve
+all pinned training sources. Do not automatically start R_s training or change
+UF, width3 E, G, the sender, or multiband fusion before paired picture review.
+
+The new review entry is `bash tools/run_cooperative_review.sh all` in tmux;
+`tests`, `smoke`, and completion-only `verify` are separate commands. Output is
+`/root/autodl-fs/DCVC/runs/routervc_cooperation_review_20261011`.
+The bounded chain runs eight G8 source-free startup processes, then 128 old/new
+receiver points (13 reused diagnostic windows x four E-byte caps, plus 12
+checkpoint-selection validation states), followed by automatic RD/quality/
+resource figures and fixed views. Do not call these full or independent test
+sets. Old core is converted without fitting to the same 121-byte profile and
+fixed multiband; every input checks original-vs-converted selection equivalence.
+Both arms send identical inner B/E, equal total bytes and no additional masks.
+Old native UF/G-off/feather curves are authenticated and reused, not retrained.
+Do not attribute the removal of P1's 77-byte experiment-switch header to Router
+training. Formal completion stops the queue, without automatic model promotion.
+
+Session: `routervc_cooperation_review_1011`; main log:
+`/root/autodl-tmp/DCVC/tmp/cooperation_review_1011.log`.
+Per-point receipts permit restart; all new output is on file storage, with the
+GPU mutex, 30-second GPU/disk/inode/container-memory observations and storage
+guards. Review code is protocol-bound; do not change it silently during a run.
+Results/status belong in Notion, not a new Git research report:
+https://app.notion.com/p/3f58b22ebd8d817f8ef9d998abd7c0e9.
+
+### Approved P2 receiver cooperation (2026-10-10; completed training scope)
 
 The user approved fixed multiband fusion and continuing P2, with handoff only
 after genuine formal optimizer updates have started in tmux. First adapt R_g

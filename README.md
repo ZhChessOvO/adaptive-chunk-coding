@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1011 P2 新旧接收端画面对照与当前任务](https://app.notion.com/p/3f58b22ebd8d817f8ef9d998abd7c0e9)
 - [1010 P2 接收端协同适配与当前任务](https://app.notion.com/p/3f58b22ebd8d8186bc69d26bcc99c16a)
 - [1010 P0–P1 边界诊断与轻量融合](https://app.notion.com/p/3f58b22ebd8d81f3a8f9e70f8988576f)
 - [1010 P1 已完成结果：融合对照、全部画面与资源](https://app.notion.com/p/3f58b22ebd8d81ddb1cddeb27ed16863)
@@ -28,7 +29,26 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：固定多频带的 P2 接收端适配
+## 当前入口：P2 完成后的同码流画面对照
+
+P2 接收端训练已完成；先做固定发送端、固定多频带的新旧 R_g 对照，不自动继续训练。
+新旧两边使用同一内部 B/E 与等长 121 字节接收头。旧 core 只作免训练兼容转换，
+每个输入都核对选区一致；不把训练诊断当作实际 RD 收益。研究状态与图表见上方 1011 页面。
+
+```bash
+bash tools/run_cooperative_review.sh tests
+# 以下须在 tmux 内执行，断开连接后可用同一命令逐点续跑：
+bash tools/run_cooperative_review.sh all
+# 完成后只核验已有产物，不重跑：
+bash tools/run_cooperative_review.sh verify
+```
+
+正式目录为 `output/routervc_cooperation_review_20261011`。队列先完成两种视野的
+真实接收、重复与无 G 检查，再跑 128 点对照并自动输出曲线、定性图和资源统计。
+13 个既有诊断窗口与 12 个内部验证状态分开汇报，不冒充完整测试集。原始 UF 和旧
+曲线复用已验证结果。输出均在文件存储；保留 GPU 互斥、三盘字节／inode 保护及断点。
+
+## 已完成入口：固定多频带的 P2 接收端适配
 
 用户已确认固定多频带，先适配 R_g，后续复核再适配 R_s；UF、width3、R_s 和 G 不变。
 新实现位于 `routervc/cooperation/`，不修改历史绑定模块；研究配方与进度见上方 P2 页面。

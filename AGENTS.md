@@ -24,6 +24,15 @@ updates. Labels may be prepared lazily with per-candidate receipts; distinguish
 label preparation from optimizer progress. Update Notion and commit/push code
 before the requested handoff. R_s's subsequent adaptation follows review of R_g;
 do not silently begin a second training stage when this receiver run completes.
+The queue `routervc_cooperation_1010` has passed six unit tests, actual A800
+direct/resumed optimizer/model/RNG equality and six source-free fresh/repeat/
+G-off decodes. Formal 120-epoch fitting started on 2026-10-10 at 19:07 Beijing;
+the handoff checkpoint has two genuine updates. Epoch one measures remaining
+labels lazily between updates; CPU-only metric phases can leave the GPU idle.
+Resume with `bash tools/run_cooperative_receiver.sh all` inside tmux; verify
+with the same entry's `verify` command only once complete. The new sources are
+now pinned: do not modify them and silently resume into this run. Operational
+and scientific handoff: https://app.notion.com/p/3f58b22ebd8d8186bc69d26bcc99c16a.
 
 ### Completed boundary/fusion continuation (2026-10-10; historical scope)
 

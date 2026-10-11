@@ -47,6 +47,16 @@ Update Notion and hand off once the next long task is safely running, as asked.
 Research figures/status live in
 https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30.
 
+Handoff: at 19:38 Beijing, all eight actual startup checks passed and
+`formal_started.json` was written. Formal evaluation is running, not fitting.
+Twenty-three CPU regressions passed. A controlled startup pause corrected
+only the E plot's (chunk, region) indexing; the original protocol is retained
+as `protocol.startup_plot_v1.json`, with `startup_plot_fix.json` explaining it.
+All models, cases, streams, decode/scoring and 42 bound training dependencies
+are unchanged; completed pixels were reused. Any old InterruptedError in the
+queue log at 19:32 is this recorded pause, not a later unhandled failure.
+Evaluation implementation is `5d7e3b8`; do not edit its pinned sources in flight.
+
 ### P2b sender cooperation (2026-10-11; completed, launch history below)
 
 The user requested continuation after the completed task. P2's 128-point

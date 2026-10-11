@@ -8,7 +8,23 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### P2b actual-stream sender review (2026-10-11; current continuation)
+### P2b actual-stream review completed (2026-10-12; current handoff)
+
+The planned sender review finished normally at 2026-10-11 22:20 Beijing.
+`complete.json` records 192 logical points: 103 newly decoded main points,
+89 verified identical-stream reuses, plus four repeat/G-off checks. The
+completion-only `verify` command passed again at 2026-10-12 01:22 Beijing,
+without new inference. No training or review queue remains active.
+
+RD, byte/quality deltas, resource plots and all 25 fixed-view/selection pairs
+are published in the review Notion page below, split into four galleries.
+Scientific interpretation and the proposed P3 width work stay in Notion, not
+a second Git report. Preserve all preselected models, controls and pinned
+sources. No automatic promotion, repeated fitting or width campaign: discuss
+the next stage with the user first. No new downloads or deletions were needed.
+The following launch/handoff text is historical, not a running task.
+
+### P2b actual-stream sender review (2026-10-11; completed launch history)
 
 P2b sender fitting completed normally at 18:23 Beijing, and a separate
 completion-only audit passed for smoke and formal artifacts. The user's new
@@ -38,7 +54,7 @@ review output cap. No new datasets, downloads or deletions. The user offered
 full UVG, but it is not required for this bounded review; do not assert crops
 caused the mixed validation result without a matched test.
 
-Current tmux: `routervc_cooperative_sender_review_1011`, launched 19:27 Beijing.
+Historical tmux: `routervc_cooperative_sender_review_1011`, launched 19:27 Beijing.
 Log: `/root/autodl-tmp/DCVC/tmp/cooperative_sender_review_1011.log`.
 `queue/sender_review.progress.json` records the actual phase. `smoke.json`
 means real startup checks passed; `formal_started.json` means formal evaluation
@@ -47,7 +63,7 @@ Update Notion and hand off once the next long task is safely running, as asked.
 Research figures/status live in
 https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30.
 
-Handoff: at 19:38 Beijing, all eight actual startup checks passed and
+Original handoff: at 19:38 Beijing, all eight actual startup checks passed and
 `formal_started.json` was written. Formal evaluation is running, not fitting.
 Twenty-three CPU regressions passed. A controlled startup pause corrected
 only the E plot's (chunk, region) indexing; the original protocol is retained

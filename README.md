@@ -31,17 +31,20 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：P2b 新旧发送端实际码流评价
+## 最新已完成入口：P2b 新旧发送端实际码流评价
 
 发送端两臂协同训练及完成核验均已结束。固定预选 checkpoint、P2 接收端、UF、width3、G
-与多频带，仅比较旧发送端、新主臂及 zero-source。研究结果与图表见上方 Notion 入口。
+与多频带，仅比较旧发送端、新主臂及 zero-source。实际评价也已于 10 月 11 日 22:20
+（北京时间）正常结束，10 月 12 日完成只读复核：192 个逻辑点、103 次新增主解码，
+另有 4 次重复／关闭 G 检查。RD、25 窗固定图册与资源只在上方 Notion 入口维护。
+当前没有运行中的训练／评价，不自动升任模型或开启下一轮；先讨论后续 width 验证。
 
 ```bash
 bash tools/run_cooperative_sender_review.sh tests
-# tmux 中：真实启动检查 → 三版本对照 → 自动图表 → 停止，不追加训练。
-bash tools/run_cooperative_sender_review.sh all
-# 完成后仅核验；中断后用同一 all 逐点恢复：
+# 此轮已完成；只核验，不重新生成结果（仍在 tmux 中执行）：
 bash tools/run_cooperative_sender_review.sh verify
+# 仅用于复现或真正中断后的逐点恢复：
+# bash tools/run_cooperative_sender_review.sh all
 ```
 
 输出：`/root/autodl-fs/DCVC/runs/routervc_cooperative_sender_review_20261011`。

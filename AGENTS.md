@@ -8,7 +8,46 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### P2b sender cooperation (2026-10-11; current continuation)
+### P2b actual-stream sender review (2026-10-11; current continuation)
+
+P2b sender fitting completed normally at 18:23 Beijing, and a separate
+completion-only audit passed for smoke and formal artifacts. The user's new
+continuation authorizes the planned actual-stream review, not more fitting.
+Preserve the preselected source epoch 8 and zero-source epoch 2, plus the old
+source sender as the baseline. Candidate-validation scores are not RD gains.
+Do not reselect checkpoints after looking at this review.
+
+Entry: `bash tools/run_cooperative_sender_review.sh tests|smoke|all|verify`.
+`training-report` makes the completed training audit/figure without inference.
+Long actions require tmux. Output:
+`/root/autodl-fs/DCVC/runs/routervc_cooperative_sender_review_20261011`.
+The queue checks two actual new sender arms, repeat/G-off source-free decode,
+and literal prefixes, then compares 192 logical points: 13 reused diagnostic
+windows x four E-byte caps x three senders, plus 12 internal selection windows
+x three senders. Fixed P2 epoch-108 R_g, width3, UF, G and multiband. Old P2
+receiver-review pixels may be reused only for identical verified streams;
+logical points must not be described as that many new decodes. Same E cap does
+not imply equal actual bpp. No action masks; all required header/packet bytes
+remain charged. Native UF anchors are verified and reused, not rerun.
+
+Automatically generate RD, resources and fixed pictures, then stop without
+promotion or another adaptation/width campaign. Preserve pinned training and
+review source files after launch. Keep the GPU mutex, atomic per-point restart,
+30-second resource/cgroup logs, three-mount 80%/5000-inode guards and 8 GiB
+review output cap. No new datasets, downloads or deletions. The user offered
+full UVG, but it is not required for this bounded review; do not assert crops
+caused the mixed validation result without a matched test.
+
+Current tmux: `routervc_cooperative_sender_review_1011`, launched 19:27 Beijing.
+Log: `/root/autodl-tmp/DCVC/tmp/cooperative_sender_review_1011.log`.
+`queue/sender_review.progress.json` records the actual phase. `smoke.json`
+means real startup checks passed; `formal_started.json` means formal evaluation
+started (not optimization); `complete.json` is the final completion receipt.
+Update Notion and hand off once the next long task is safely running, as asked.
+Research figures/status live in
+https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30.
+
+### P2b sender cooperation (2026-10-11; completed, launch history below)
 
 The user requested continuation after the completed task. P2's 128-point
 paired picture review and completion-only audit have passed. Keep epoch-108

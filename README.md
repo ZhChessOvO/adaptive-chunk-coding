@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1011 P2b 实际码流评价：新旧发送端、RD、画面与资源](https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30)
 - [1011 P2b 发送端协同适配与当前任务](https://app.notion.com/p/3f68b22ebd8d81c29e6ee4ef7efd515d)
 - [1011 P2 新旧接收端已完成结果与全部画面](https://app.notion.com/p/3f58b22ebd8d817f8ef9d998abd7c0e9)
 - [1010 P2 接收端协同适配与当前任务](https://app.notion.com/p/3f58b22ebd8d8186bc69d26bcc99c16a)
@@ -30,7 +31,28 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：P2b 发送端协同适配
+## 当前入口：P2b 新旧发送端实际码流评价
+
+发送端两臂协同训练及完成核验均已结束。固定预选 checkpoint、P2 接收端、UF、width3、G
+与多频带，仅比较旧发送端、新主臂及 zero-source。研究结果与图表见上方 Notion 入口。
+
+```bash
+bash tools/run_cooperative_sender_review.sh tests
+# tmux 中：真实启动检查 → 三版本对照 → 自动图表 → 停止，不追加训练。
+bash tools/run_cooperative_sender_review.sh all
+# 完成后仅核验；中断后用同一 all 逐点恢复：
+bash tools/run_cooperative_sender_review.sh verify
+```
+
+输出：`/root/autodl-fs/DCVC/runs/routervc_cooperative_sender_review_20261011`。
+`queue/sender_review.progress.json` 是实时阶段，`smoke.json` 是真实检查完成收据，
+`formal_started.json` 表示正式评价已开始，`complete.json` 表示评价与全部图表完成。
+同 E 字节上限不一定同实际码率；完整码流计费、接收端不读取原片或发送端权重。
+已有相同码流的接收结果及 UF 曲线核验后复用，不把逻辑点数误写成新解码次数。
+保留 GPU 互斥、30 秒资源／cgroup 记录、三盘 80%／5000 inode 和本轮 8 GiB 保护。
+无下载、无删除；服务器重启后仍需在 tmux 重新启动同一入口。
+
+## 已完成入口：P2b 发送端协同适配
 
 P2 接收端训练和真实配对评价均已完成。固定预选接收端、多频带、UF、width3 与 G，
 重新测量补包后接收端重新选 G、生成并融合的最终收益，再适配发送端。

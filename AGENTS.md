@@ -40,6 +40,16 @@ Do not edit bound sources after launch. Scientific results/plans live in
 https://app.notion.com/p/3f68b22ebd8d81c29e6ee4ef7efd515d,
 not an additional Git research report.
 
+Launch handoff: `routervc_cooperative_sender_1011` started the `all` queue at
+2026-10-11 11:57 Beijing; log is
+`/root/autodl-tmp/DCVC/tmp/cooperative_sender_1011.log`. Six sender tests and
+ten receiver/review regression tests passed. The first real G8 teacher state
+was saved, the intentional one-state stop succeeded, and the queue entered
+`smoke_labels` recovery at 11:58. This is startup validation, NOT formal
+optimizer progress; 18 fresh decodes and CUDA exact-resume still gate formal
+labels/fit. The automatic chain remains active. Code is pinned at `2fa6260`;
+do not interpret the historical completed review session as the new task.
+
 ### P2 paired picture review (2026-10-11; completed)
 
 Completion: 64 pairs / 128 main fresh decodes plus four repeat/G-off checks;

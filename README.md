@@ -14,7 +14,8 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
-- [1011 P2 新旧接收端画面对照与当前任务](https://app.notion.com/p/3f58b22ebd8d817f8ef9d998abd7c0e9)
+- [1011 P2b 发送端协同适配与当前任务](https://app.notion.com/p/3f68b22ebd8d81c29e6ee4ef7efd515d)
+- [1011 P2 新旧接收端已完成结果与全部画面](https://app.notion.com/p/3f58b22ebd8d817f8ef9d998abd7c0e9)
 - [1010 P2 接收端协同适配与当前任务](https://app.notion.com/p/3f58b22ebd8d8186bc69d26bcc99c16a)
 - [1010 P0–P1 边界诊断与轻量融合](https://app.notion.com/p/3f58b22ebd8d81f3a8f9e70f8988576f)
 - [1010 P1 已完成结果：融合对照、全部画面与资源](https://app.notion.com/p/3f58b22ebd8d81ddb1cddeb27ed16863)
@@ -29,9 +30,31 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：P2 完成后的同码流画面对照
+## 当前入口：P2b 发送端协同适配
 
-P2 接收端训练已完成；先做固定发送端、固定多频带的新旧 R_g 对照，不自动继续训练。
+P2 接收端训练和真实配对评价均已完成。固定预选接收端、多频带、UF、width3 与 G，
+重新测量补包后接收端重新选 G、生成并融合的最终收益，再适配发送端。
+这属于双端协同的后半步，不是路线图中 P3 的 width 自适应；研究结果与取舍见 Notion。
+
+```bash
+bash tools/run_cooperative_sender.sh tests
+# tmux 中：真实烟测与精确断点 → 正式标签 → 两臂热启动拟合 → 停止。
+bash tools/run_cooperative_sender.sh all
+# 同一 all 入口恢复；全部完成后仅核验：
+bash tools/run_cooperative_sender.sh verify
+```
+
+输出及缓存：`/root/autodl-fs/DCVC/runs/routervc_cooperative_sender_20261011`。
+`formal/teacher.progress.json` 区分标签进度，`formal/router/progress.json` 记录实际更新；
+全部 60 窗标签完成后才拟合两臂，各 120 轮。两臂均从同一已训练 source R_s 初始化，
+重置 AdamW；zero_source 仅去掉原片相关输入，独立更新。`formal/router/resume.pt`
+每个配对更新原子保存两臂模型、优化器、随机状态与游标；`formal/complete.json` 表示完成。
+保留 GPU 互斥、30 秒资源日志、80%/5000 inode 保护及本轮 8 GiB 上限，不自动开展下一轮。
+tmux 防连接中断；服务器重启后仍需重新启动相同入口。全部标签、训练输出不进 Git。
+
+## 已完成入口：P2 同码流画面对照
+
+P2 接收端训练与固定发送端、固定多频带的新旧 R_g 对照均已完成，不重复运行推理。
 新旧两边使用同一内部 B/E 与等长 121 字节接收头。旧 core 只作免训练兼容转换，
 每个输入都核对选区一致；不把训练诊断当作实际 RD 收益。研究状态与图表见上方 1011 页面。
 

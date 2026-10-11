@@ -8,7 +8,46 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### P2 paired picture review (2026-10-11; latest authorization)
+### P2b sender cooperation (2026-10-11; current continuation)
+
+The user requested continuation after the completed task. P2's 128-point
+paired picture review and completion-only audit have passed. Keep epoch-108
+R_g as a bounded research candidate, not a universally superior replacement;
+old checkpoints and controls remain intact. Continue the already planned
+sender adaptation with fixed P2 R_g, multiband, width3, UF and G. This is P2b,
+not the roadmap's P3 adaptive-width stage. Do not train F, UF, E or G now.
+
+New entry: `bash tools/run_cooperative_sender.sh tests|smoke|train|all|verify`.
+Long actions require tmux. Output and compact inputs are in
+`/root/autodl-fs/DCVC/runs/routervc_cooperative_sender_20261011`.
+The bounded chain verifies actual source-free G8 decode, true byte prefixes,
+label restart and exact CUDA model/AdamW/RNG restart before formal work.
+Then prepare 60 grouped windows (48/12, REDS full views + existing UVG crops),
+480 logical final renderings / 360 signed E marginals, and fit independent
+source/zero_source arms for 120 epochs / 5760 paired updates. Both start from
+the SAME trained source sender weights with reset AdamW; do not claim random
+initialization or old optimizer continuation. Every child reruns P2 R_g and
+G on its own actual decoded Y before fixed fusion and final LPIPS scoring.
+Old-policy predictions propose candidates only, never stand in for labels.
+
+All labels precede formal optimization; report the actual phase truthfully.
+Atomic receipts and paired optimizer checkpoints allow restart. Keep the GPU
+mutex, 30-second resources/cgroup logs, three-mount 80%/5000-inode guards and
+8 GiB pilot output limit. No downloads or deletions. Stop after fitting; do
+not auto-promote models or start another adaptation/evaluation campaign.
+Once the next real long task starts, update Notion and hand off as requested.
+Do not edit bound sources after launch. Scientific results/plans live in
+https://app.notion.com/p/3f68b22ebd8d81c29e6ee4ef7efd515d,
+not an additional Git research report.
+
+### P2 paired picture review (2026-10-11; completed)
+
+Completion: 64 pairs / 128 main fresh decodes plus four repeat/G-off checks;
+the queue finished 2026-10-11 03:35 Beijing. Completion-only verification also
+passed. Do not restart the historical queue for new measurements. Its
+`review.progress.json` may say completed=0 after verification: this is the
+verification process counter; the authoritative receipt is `complete.json`.
+The following launch record is historical, not a currently running job.
 
 The user requested continuation after the completed task and handoff once the
 next training or long task genuinely starts. P2 R_g fitting has completed all

@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1012 P3 小范围精度选择：width3/5/7 与真实预算回放](https://app.notion.com/p/3f78b22ebd8d817d84bfc6ab14d87410)
 - [1011 P2b 实际码流评价：新旧发送端、RD、画面与资源](https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30)
 - [1011 P2b 发送端协同适配与当前任务](https://app.notion.com/p/3f68b22ebd8d81c29e6ee4ef7efd515d)
 - [1011 P2 新旧接收端已完成结果与全部画面](https://app.notion.com/p/3f58b22ebd8d817f8ef9d998abd7c0e9)
@@ -31,13 +32,29 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
+## 当前入口：P3 小范围 width 验证
+
+用户已批准继续，并将 width 探索限制在 2～8；首轮仅支持零中心奇数档 3/5/7。
+独立新格式不改动已固定的旧源码或模型。长任务与测试均在 tmux 中运行：
+
+```bash
+bash tools/run_precision.sh tests
+bash tools/run_precision.sh all    # 启动检查 → 校准 → 评价 → 图表；逐项断点恢复
+bash tools/run_precision.sh verify # 完成后只核验，不重新推理
+```
+
+输出：`/root/autodl-fs/DCVC/runs/routervc_precision_20261012`。
+`queue/precision.progress.json`、`smoke.json`、`formal_started.json`、`complete.json`
+分别记录实时进度、启动检查、正式评价开始和最终完成。固定模型，不启动新训练；
+保留 GPU 互斥、30 秒资源日志、三盘空间/inode 与 8 GiB 保护。方法和图表见上方 Notion。
+
 ## 最新已完成入口：P2b 新旧发送端实际码流评价
 
 发送端两臂协同训练及完成核验均已结束。固定预选 checkpoint、P2 接收端、UF、width3、G
 与多频带，仅比较旧发送端、新主臂及 zero-source。实际评价也已于 10 月 11 日 22:20
 （北京时间）正常结束，10 月 12 日完成只读复核：192 个逻辑点、103 次新增主解码，
 另有 4 次重复／关闭 G 检查。RD、25 窗固定图册与资源只在上方 Notion 入口维护。
-当前没有运行中的训练／评价，不自动升任模型或开启下一轮；先讨论后续 width 验证。
+该轮已结束，不自动升任模型；后续已获批准的 width 验证见上方 P3 入口。
 
 ```bash
 bash tools/run_cooperative_sender_review.sh tests

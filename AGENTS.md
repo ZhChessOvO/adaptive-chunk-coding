@@ -8,6 +8,43 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### P3 bounded precision selection (2026-10-12; current authorization)
+
+The user approved the proposed P3 continuation, then restricted widths to
+roughly 2..8 because larger bins harm clarity. Use ONLY 3/5/7 in this first
+zero-centred odd-bin profile; do not test 9 or teens. New isolated modules in
+`routervc/precision` preserve every pinned historical latent/cooperation file.
+Freeze P2b source epoch 8, P2 R_g epoch 108, UF, G and multiband. Width5/7 are
+zero-shot transfer of width3-trained Routers, NOT newly adapted models.
+
+Entry: `bash tools/run_precision.sh tests|smoke|all|verify` in tmux. Output:
+`/root/autodl-fs/DCVC/runs/routervc_precision_20261012`. Eight training windows
+calibrate a small nearest-neighbour table; six internal evaluation windows
+compare three widths and four E-cap grid points (168 logical main points).
+Select those windows before reading their new results; this is not a full
+benchmark or independent test. No new downloads, deletions or fitting.
+
+Each width gets its OWN real B reference chain. Width3 must exactly match old
+payloads, byte counts, B references and paired final G pixels. B/full/G-off,
+repeat and source/sender-free fresh decode precede formal evaluation. Each
+fixed-width E sequence is a literal complete-bundle prefix; different widths
+are not mutual prefixes. Necessary headers count; no action/width maps.
+
+The selector only uses training calibration and sender-visible features/real
+bytes. Save evaluation choices BEFORE scoring their final pixels. Four-point
+cap-grid hindsight oracle is a reference, never a deployable result. Report
+unaffordable B separately and quality on common delivered windows. Include
+three-candidate preparation time; do not claim a realtime implementation.
+
+Keep GPU mutex, atomic per-job restart, 30-second GPU/disk/cgroup monitoring,
+three-mount 80%/5000-inode guards and 8 GiB output limit. Do not change bound
+sources after launch. Finish figures and stop without promotion or new fitting.
+Scientific records live only in Notion:
+https://app.notion.com/p/3f78b22ebd8d817d84bfc6ab14d87410.
+`queue/precision.progress.json`, `smoke.json`, `formal_started.json` and
+`complete.json` distinguish preparation, verified startup, formal evaluation
+and finished results. Server reboot requires relaunching the same tmux entry.
+
 ### P2b actual-stream review completed (2026-10-12; current handoff)
 
 The planned sender review finished normally at 2026-10-11 22:20 Beijing.

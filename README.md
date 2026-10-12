@@ -14,7 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
-- [1012 P3 小范围精度选择：width3/5/7 与真实预算回放](https://app.notion.com/p/3f78b22ebd8d817d84bfc6ab14d87410)
+- [1012 P3 精度选择：width3/5/7，追加9与真实预算回放](https://app.notion.com/p/3f78b22ebd8d817d84bfc6ab14d87410)
 - [1011 P2b 实际码流评价：新旧发送端、RD、画面与资源](https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30)
 - [1011 P2b 发送端协同适配与当前任务](https://app.notion.com/p/3f68b22ebd8d81c29e6ee4ef7efd515d)
 - [1011 P2 新旧接收端已完成结果与全部画面](https://app.notion.com/p/3f58b22ebd8d817f8ef9d998abd7c0e9)
@@ -34,7 +34,7 @@
 
 ## 当前入口：P3 小范围 width 验证
 
-用户已批准继续，并将 width 探索限制在 2～8；首轮仅支持零中心奇数档 3/5/7。
+首轮按 2～8 的范围使用零中心奇数档 3/5/7；看过 width7 的画面后，用户追加批准 9。
 独立新格式不改动已固定的旧源码或模型。长任务与测试均在 tmux 中运行：
 
 ```bash
@@ -47,6 +47,19 @@ bash tools/run_precision.sh verify # 完成后只核验，不重新推理
 `queue/precision.progress.json`、`smoke.json`、`formal_started.json`、`complete.json`
 分别记录实时进度、启动检查、正式评价开始和最终完成。固定模型，不启动新训练；
 保留 GPU 互斥、30 秒资源日志、三盘空间/inode 与 8 GiB 保护。方法和图表见上方 Notion。
+
+追加 9 使用独立入口，不修改正在运行的 3/5/7：
+
+```bash
+bash tools/run_precision9.sh tests tools.test_precision9_report
+bash tools/run_precision9.sh all    # 等原轮完成并核验 → 只补测9 → 合并四档图表
+bash tools/run_precision9.sh verify # 完成后只核验
+```
+
+输出：`/root/autodl-fs/DCVC/runs/routervc_precision9_20261012`。
+同样14个窗口、4档E预算，只增加56个逻辑点；旧168点核验复用，不复制大像素文件。
+`queue/precision9.progress.json` 中的 waiting 阶段仅为排队，不是 width9 正式开始。
+仍不扩到十几，不追加模型训练；Notion保留原三档与追加四档的不同实验范围。
 
 ## 最新已完成入口：P2b 新旧发送端实际码流评价
 

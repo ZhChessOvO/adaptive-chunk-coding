@@ -8,11 +8,37 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### P3 bounded precision selection (2026-10-12; current authorization)
+### P3 width9 append (2026-10-12; latest authorization)
+
+After viewing the width7 B preview, the user explicitly approved trying 9.
+This supersedes the earlier no-9 limit below, but does NOT authorize teens.
+Keep the active 3/5/7 queue and all its bound sources unchanged. Isolated
+`routervc/precision9` extends the checked entropy alphabet to 9 with the same
+framing sizes; it preserves the original profile as a distinct implementation.
+No fitting, new downloads, deletions or checkpoint promotion.
+
+Entry in tmux: `bash tools/run_precision9.sh tests|smoke|all|verify`.
+Output: `/root/autodl-fs/DCVC/runs/routervc_precision9_20261012`.
+The queue waits for verified original completion BEFORE acquiring the GPU,
+then checks REDS/UVG width9 B/full/G-off and repeat fresh decode, adds only
+56 new logical points (same 14 windows x four caps), and reuses 168 verified
+original points without copying their pixels. Four-width calibration uses
+training windows only; evaluation choices precede new width9 final scoring.
+Original three-width choices/results remain preserved. This is zero-shot
+transfer of the same frozen width3-trained Rs/Rg/G/F, not multiwidth training.
+
+Automatic output includes four-width RD/budget/resource panels, the same
+fixed-frame galleries and startup B previews. Completion stops for discussion.
+Keep GPU mutex, per-point restart, three-mount/inode monitoring and separate
+8 GiB output guard. `queue/precision9.progress.json` distinguishes waiting,
+startup and formal work; a waiting queue is NOT a running width9 evaluation.
+
+### P3 bounded precision selection (2026-10-12; original 3/5/7 queue)
 
 The user approved the proposed P3 continuation, then restricted widths to
 roughly 2..8 because larger bins harm clarity. Use ONLY 3/5/7 in this first
-zero-centred odd-bin profile; do not test 9 or teens. New isolated modules in
+zero-centred odd-bin profile; width9 is now separately authorized above, not
+an in-flight change to this original protocol. New isolated modules in
 `routervc/precision` preserve every pinned historical latent/cooperation file.
 Freeze P2b source epoch 8, P2 R_g epoch 108, UF, G and multiband. Width5/7 are
 zero-shot transfer of width3-trained Routers, NOT newly adapted models.

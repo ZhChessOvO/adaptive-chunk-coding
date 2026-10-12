@@ -32,8 +32,10 @@ class PrecisionCodec(ChainCodec):
         torch.cuda.set_stream(self.codec.stream)
         with torch.inference_mode():
             i = self.codec.i_net.compress(tensor_from_rgb(source[0], self.codec.device), 32, pad_b, pad_r)
-            iframe = i['x_hat'].clone(); proxy = self.codec.p_net.proxy
+            iframe = i['x_hat'].clone()
             self.codec.p_net.add_ref_feature_from_frame(iframe, apply_feature_adaptor=False)
+            # UF constructs its native proxy lazily on the first reference.
+            proxy = self.codec.p_net.proxy
             decoder_state = self.bridge.context(proxy)
             self.codec.p_net.add_ref_feature_from_frame(iframe)
             ready = self.bridge.context(proxy)

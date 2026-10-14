@@ -8,7 +8,26 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### P3 width9 append (2026-10-12; latest authorization)
+### G periodic-texture repair (2026-10-14; latest authorization)
+
+The user approved a paired G-only LoRA repair pilot after the raw-G artifact
+diagnosis. Freeze UF, latent B/E, both Routers, fusion, base DiT and VAE. Keep
+production checkpoints unchanged; compare the original G loss with paired
+LPIPS-view shift/scale plus source-referenced 8/16px phase-error regularization.
+New implementation lives in `routervc/generation` and `tools/texture_repair*`;
+do not edit historical protocol-bound trainers/receivers to run this pilot.
+Tmux entry: `bash tools/run_texture_repair.sh`; output is
+`/root/autodl-fs/DCVC/runs/routervc_texture_repair_20261014`.
+The queue requires both arms' exact 6-step versus 3+3 restart smoke, then runs
+400 steps per arm on the existing 36 REDS + 12 UVG training windows, and paired
+milestone ROI evaluation. The initial CUDA-resize smoke failure is preserved
+under `smoke`; the deterministic implementation uses `smoke_v2`. Checkpoint,
+optimizer and RNG resume are mandatory, as are GPU mutex and three-disk/inode
+and cgroup monitoring. No new downloads, dataset deletion or model promotion.
+Scientific results/limitations and images belong in the Notion texture-repair
+page, not a duplicate Git report. Raw-G ROI results are not whole-system RD.
+
+### P3 width9 append (2026-10-12; earlier authorization)
 
 After viewing the width7 B preview, the user explicitly approved trying 9.
 This supersedes the earlier no-9 limit below, but does NOT authorize teens.

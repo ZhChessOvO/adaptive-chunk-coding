@@ -8,7 +8,7 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
-### G periodic-texture repair (2026-10-14; latest authorization)
+### G periodic-texture repair (2026-10-15; completion handoff)
 
 The user now authorized a fresh-initialization paired LoRA experiment and asks
 for handoff once formal optimizer updates are verified in tmux. Visible absence
@@ -36,22 +36,23 @@ protocol also pins its sources after launch. Research plans/results only in
 Notion. After verified formal startup, update Notion/Git and end the session as
 requested; leave the offline automatic chain running. No downloads/deletions.
 
-Launch handoff: `routervc_texture_clean_1014` is running the automatic chain;
-log `/root/autodl-tmp/DCVC/tmp/texture_clean_1014.log`. Thirty-two CPU tests,
-both exact 6 versus 3+3 checks, two zero-init/original-bypass checks and two
-candidate-reload checks passed. Fifteen step0 references/figures are complete.
-Formal phase-only optimization began at 2026-10-14 14:21 Beijing; at handoff it
-passed 40 updates and the step25 resume reload verified finite, changed weights,
-82 populated AdamW states and CPU/CUDA/Python RNG. Control follows automatically.
-The parent writes `formal_started.json` after its first 100-step segment; before
-that, the live step journal/resume checkpoint are authoritative, not its absence.
-Median step time is about 1.99 seconds; estimated remaining queue 2.5-3 hours.
-Implementation is pinned at `2ee7b53`; do not modify its bound files in flight.
-Notion plan, startup evidence, step0 image and result locations:
+Completion handoff: both arms reached 2000 steps and the automatic chain exited
+normally at 2026-10-14 16:51 Beijing. All 135 new ROI outputs and 15 authenticated
+historical references, milestone figures and temporal diagnostics are complete.
+The completion-only tmux audit passed again at 2026-10-15 00:38 Beijing; log:
+`/root/autodl-tmp/DCVC/tmp/texture_clean_verify_1015.log`. Both final resumes
+contain finite, updated weights, 82 AdamW states at step2000 and CPU/CUDA/Python
+RNG. Earlier 32 CPU tests, exact restarts, zero-init bypass and reload checks
+also passed. No training or evaluation queue is running; production is unchanged.
+Implementation remains pinned at `2ee7b53`; preserve all protocol-bound files.
+Full results, fixed images, three slow previews and resource evidence are in
+Notion, not a duplicate Git research report:
 https://app.notion.com/p/3f98b22ebd8d81c8bd43e98994406e13.
-The user requested session exit after this verified formal start. On return,
-inspect progress/completion before acting; do not automatically extend, promote
-or retrain Routers. Completed comparisons still need human texture/detail review.
+The original launch instructions above are historical. The agreed queue stops
+after review: do not automatically extend, promote, or retrain Routers. Texture
+and detail tradeoffs still require discussion; the Notion page distinguishes
+completed evidence from the proposed next diagnosis. No new fitting is approved
+by this completion handoff. Same entry now verifies rather than retrains.
 
 The user now approved the follow-up two-factor loss ablation. Add only
 `augmentation_only` and `phase_only`, 400 steps each from the SAME initial

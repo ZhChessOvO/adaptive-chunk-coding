@@ -10,6 +10,21 @@ Before changing code or starting an experiment, read these files in order:
 
 ### G periodic-texture repair (2026-10-14; latest authorization)
 
+The user now approved the follow-up two-factor loss ablation. Add only
+`augmentation_only` and `phase_only`, 400 steps each from the SAME initial
+LoRA and frozen training schedule. Reuse authenticated control/combined
+results after exact six-step numerical replay of both historical arms.
+New arms must separately pass exact 6 versus 3+3 resume checks. Keep all
+historical protocol-bound files unchanged; isolated implementation is
+`routervc/generation/texture_ablation.py` and `tools/texture_ablation*`.
+Tmux entry: `bash tools/run_texture_ablation.sh`; output:
+`/root/autodl-fs/DCVC/runs/routervc_texture_loss_ablation_20261014`.
+Queue automatically compares 120 new ROI outputs with 135 authenticated
+old points, creates four-arm figures and per-frame phase diagnostics, then
+stops without promotion or another fitting campaign. All previous freeze,
+resume, mutex, storage/inode and monitoring rules below remain in force.
+Scientific records and actual images belong in the Notion repair subpages.
+
 The user approved a paired G-only LoRA repair pilot after the raw-G artifact
 diagnosis. Freeze UF, latent B/E, both Routers, fusion, base DiT and VAE. Keep
 production checkpoints unchanged; compare the original G loss with paired
@@ -26,9 +41,9 @@ optimizer and RNG resume are mandatory, as are GPU mutex and three-disk/inode
 and cgroup monitoring. No new downloads, dataset deletion or model promotion.
 Scientific results/limitations and images belong in the Notion texture-repair
 page, not a duplicate Git report. Raw-G ROI results are not whole-system RD.
-This pilot has completed both 400-step arms, 135 paired raw-G outputs and the
-per-frame phase audit. Follow-up loss ablations are recommendations, not an
-active queue; production checkpoints have not been promoted.
+The original pilot completed both 400-step arms, 135 paired raw-G outputs
+and the per-frame phase audit. The follow-up is authorized above; production
+checkpoints have not been promoted.
 
 ### P3 width9 append (2026-10-12; earlier authorization)
 

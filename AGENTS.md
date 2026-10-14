@@ -36,6 +36,23 @@ protocol also pins its sources after launch. Research plans/results only in
 Notion. After verified formal startup, update Notion/Git and end the session as
 requested; leave the offline automatic chain running. No downloads/deletions.
 
+Launch handoff: `routervc_texture_clean_1014` is running the automatic chain;
+log `/root/autodl-tmp/DCVC/tmp/texture_clean_1014.log`. Thirty-two CPU tests,
+both exact 6 versus 3+3 checks, two zero-init/original-bypass checks and two
+candidate-reload checks passed. Fifteen step0 references/figures are complete.
+Formal phase-only optimization began at 2026-10-14 14:21 Beijing; at handoff it
+passed 40 updates and the step25 resume reload verified finite, changed weights,
+82 populated AdamW states and CPU/CUDA/Python RNG. Control follows automatically.
+The parent writes `formal_started.json` after its first 100-step segment; before
+that, the live step journal/resume checkpoint are authoritative, not its absence.
+Median step time is about 1.99 seconds; estimated remaining queue 2.5-3 hours.
+Implementation is pinned at `2ee7b53`; do not modify its bound files in flight.
+Notion plan, startup evidence, step0 image and result locations:
+https://app.notion.com/p/3f98b22ebd8d81c8bd43e98994406e13.
+The user requested session exit after this verified formal start. On return,
+inspect progress/completion before acting; do not automatically extend, promote
+or retrain Routers. Completed comparisons still need human texture/detail review.
+
 The user now approved the follow-up two-factor loss ablation. Add only
 `augmentation_only` and `phase_only`, 400 steps each from the SAME initial
 LoRA and frozen training schedule. Reuse authenticated control/combined

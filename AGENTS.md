@@ -10,6 +10,32 @@ Before changing code or starting an experiment, read these files in order:
 
 ### G periodic-texture repair (2026-10-14; latest authorization)
 
+The user now authorized a fresh-initialization paired LoRA experiment and asks
+for handoff once formal optimizer updates are verified in tmux. Visible absence
+of the grid is a priority; a lower LPIPS/phase statistic alone is NOT a repair.
+Use `bash tools/run_texture_clean.sh` in tmux; `--smoke-only` and completion-only
+`--verify-only` are available. Output:
+`/root/autodl-fs/DCVC/runs/routervc_texture_clean_20261014`.
+Fresh FP32 rank-8 A tensors are resampled; B tensors start at zero. The old LoRA
+supplies shapes only, never learned values. Use the existing uploaded BF16 DiT
+(community conversion of the released model), not a new FP32 download. Freeze
+base DiT/VAE, UF/B/E, both Routers and fusion; only 2,822,656 LoRA parameters fit.
+Same 48 training windows and received width3 RGB, two arms (`control`,
+`phase_only`), 2000 steps each, phase weight 1, original LPIPS view. Keep a fixed
+2000-step warmup/cosine horizon across stops. Both arms must pass exact 6 versus
+3+3 restart, zero-init original-output equality and candidate reload checks.
+Automatic queue: startup -> step0 references -> both arms 100/400/1000/2000,
+with paired 15-ROI reviews at each milestone -> curves, fixed details, slow
+previews and per-frame diagnostics -> stop without model promotion. This is
+local raw G, not a new full-system RD benchmark. Check `clean_queue.progress.json`
+and `formal/<arm>/progress.json`; `formal_started.json` records verified real
+updates, not only model loading. Same command resumes checkpoints/AdamW/RNG and
+completed evaluation points. Maintain mutex, 30-second resources/cgroup and
+three-disk/inode guards. All old protocol-bound sources stay unchanged; the new
+protocol also pins its sources after launch. Research plans/results only in
+Notion. After verified formal startup, update Notion/Git and end the session as
+requested; leave the offline automatic chain running. No downloads/deletions.
+
 The user now approved the follow-up two-factor loss ablation. Add only
 `augmentation_only` and `phase_only`, 400 steps each from the SAME initial
 LoRA and frozen training schedule. Reuse authenticated control/combined

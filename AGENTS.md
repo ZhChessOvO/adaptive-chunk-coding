@@ -8,6 +8,27 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### G field-of-view follow-up (2026-10-15; current authorization)
+
+The user approved checking overly local G inputs BEFORE changing loss weights.
+First run the isolated, frozen 256/512 native-context comparison at one common
+128px core, with actual spatially paired noise and full-view location figures.
+`bash tools/run_texture_context.sh probe|verify` in tmux; `tests` is separate.
+Output: `/root/autodl-fs/DCVC/runs/routervc_texture_context_20261015`.
+Keep all historical bound sources and completed results unchanged. This is raw
+G diagnosis, not a new codec RD result. REDS existing views are resized full
+frames; UVG remains 512px crops. No new downloads or Router/UF/fusion changes.
+User authorizes a targeted short G-only training follow-up based on this check,
+without another routine permission request. Verify real optimizer updates and
+exact restart first; update Notion, then end the session with tmux running.
+After formal training starts, the user additionally authorizes removal of
+obsolete, unused run intermediates. Audit exact dependencies first: names such
+as encoded/received do NOT make files expendable. Preserve datasets, active
+inputs/resumes, current models, useful final evidence and reproducibility
+metadata; record exact deletion targets, reasons and reclaimed bytes. Do not
+break running jobs or their queued evaluation. Scientific records stay in Notion:
+https://app.notion.com/p/3f98b22ebd8d8152b19aefb792d13993.
+
 ### G periodic-texture repair (2026-10-15; completion handoff)
 
 The user now authorized a fresh-initialization paired LoRA experiment and asks

@@ -26,6 +26,9 @@ optimizer and RNG resume are mandatory, as are GPU mutex and three-disk/inode
 and cgroup monitoring. No new downloads, dataset deletion or model promotion.
 Scientific results/limitations and images belong in the Notion texture-repair
 page, not a duplicate Git report. Raw-G ROI results are not whole-system RD.
+This pilot has completed both 400-step arms, 135 paired raw-G outputs and the
+per-frame phase audit. Follow-up loss ablations are recommendations, not an
+active queue; production checkpoints have not been promoted.
 
 ### P3 width9 append (2026-10-12; earlier authorization)
 

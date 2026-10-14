@@ -59,9 +59,30 @@ class AblationTests(unittest.TestCase):
                 path=root/(name+'.npz');atomic_npz(path,pixels=source)
                 results[name]=dict(output_path=str(path),quality=dict(lpips_alex=.1,psnr_db=30.))
             case=dict(sample_id='SYNTHETIC FIXTURE',region=0,crop=[0,0,128,128],core=[0,0,128,128],
-                      evaluation_group='internal_validation')
+                      evaluation_group='known_artifact')
             draw(root,case,source,results)
             self.assertGreater((root/'comparison.png').stat().st_size,1000)
+            self.assertGreater((root/'temporal_contact.png').stat().st_size,1000)
+            import subprocess,json
+            probe=json.loads(subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0',
+                '-show_entries','stream=nb_frames,width','-of','json',str(root/'comparison.mp4')]))
+            self.assertEqual(int(probe['streams'][0]['nb_frames']),17)
+            self.assertEqual(probe['streams'][0]['width'],1536)
+
+    def test_resource_plot_uses_device_units_and_all_mounts(self):
+        import json
+        from tools.texture_ablation_detail import resource_figure
+        with tempfile.TemporaryDirectory(prefix='texture-resource-test-') as directory:
+            root=Path(directory)
+            disks={m:dict(used_percent=v) for m,v in
+                   [('/root',28),('/root/autodl-tmp',76),('/root/autodl-fs',74)]}
+            events=[dict(elapsed_seconds=t,gpu=f'0, A800, {mem}, 81920, 99',disks=disks)
+                    for t,mem in [(0,0),(60,28672)]]
+            (root/'heartbeat.jsonl').write_text('\n'.join(json.dumps(e) for e in events)+'\n')
+            result=resource_figure(root,root)
+            self.assertEqual(result['sampled_gpu_peak_gib'],28)
+            self.assertEqual(result['queue_minutes'],1)
+            self.assertEqual(result['last_disks'],disks)
 
 
 if __name__=='__main__':unittest.main()

@@ -29,6 +29,30 @@ metadata; record exact deletion targets, reasons and reclaimed bytes. Do not
 break running jobs or their queued evaluation. Scientific records stay in Notion:
 https://app.notion.com/p/3f98b22ebd8d8152b19aefb792d13993.
 
+Verified handoff: frozen probe completed 108 points, two historical exact replays
+and two repeats. Both training arms passed exact 6 versus 3+3 resume and eight
+actual reload/repeat outputs. Formal mixed-view checkpoint25 was verified at
+2026-10-15 01:34 Beijing: 82 changed finite tensors and 82 AdamW step25 states.
+Tmux `routervc_context_train_1015` runs `bash tools/run_context_training.sh`.
+Same command resumes; do not start a duplicate while this session is active.
+Automatic chain: mixed 400 -> local 400 -> 60 new paired raw-G outputs plus
+30 authenticated initial references and figures -> stop, no model promotion.
+Initial is clean phase-only2000, not the legacy production LoRA. Both arms keep
+the loss weights; mixed uses 75% native512/supervised384, 25% original256/128.
+This changes input AND supervised field of view, not only inference context.
+Output/progress/resumes are under the run's `training` directory. Freeze all
+other models. Research results and full-view figures are in the Notion page.
+
+The user broadened cleanup for a server expiring in about two days. Retain
+datasets, needed models, compact metrics/figures and live dependencies; old
+decoded videos and cheaply regenerated caches need not be archival assets.
+`tools.retire_run_caches --expanded` records exact reviewed targets and deletion
+receipts under `runs/_maintenance_20261015/expanded`. The earlier narrow plan
+was inventory only, NOT an executed deletion. Existing full-tree pixel checks
+will require cache regeneration after retirement; do not misreport this as data
+corruption or automatically repopulate old caches. Later migration packaging
+should exclude regenerable intermediates; no migration upload/pack starts now.
+
 ### G periodic-texture repair (2026-10-15; completion handoff)
 
 The user now authorized a fresh-initialization paired LoRA experiment and asks

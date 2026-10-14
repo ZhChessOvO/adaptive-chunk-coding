@@ -2,7 +2,8 @@
 
 Plan is read-only apart from its own manifest. Execution requires both an exact
 plan digest and verified formal G startup. Never remove a directory recursively.
-Datasets, source pixels, streams, labels, models and final evaluations survive.
+Datasets, source pixels, streams, labels, models and compact evaluation evidence
+survive. --expanded also retires old full decoded videos and sender caches.
 """
 import argparse
 from collections import Counter
@@ -41,6 +42,8 @@ PROTECTED = (
     'routervc_revision_20261003/mixedview_data',
     'routervc_revision_20261003/visual_evaluation_recovered', 'a800_online_eg_20261002',
 )
+PROTECTED_FILES = set()
+REASON = 'obsolete pre-latent training teachers; labels already materialized; not consumed by active G training or its queued review'
 
 
 def read(path):
@@ -79,9 +82,13 @@ def selected(path):
     """Whitelist filename AND exact subtree; source/weights/receipts never match."""
     if path.is_relative_to(REAL_RUNS):
         path = RUNS/path.relative_to(REAL_RUNS)
+    canonical = REAL_RUNS/path.relative_to(RUNS) if path.is_relative_to(RUNS) else path
+    if str(path) in PROTECTED_FILES or str(canonical) in PROTECTED_FILES:
+        return False
     if any(path.is_relative_to(RUNS / p) for p in PROTECTED):
         return False
-    return any(path.is_relative_to(RUNS / rel) and path.name in names
+    return any(path.is_relative_to(RUNS / rel) and
+               (path.name in names or ('*.npz' in names and path.suffix=='.npz'))
                for rel, names, _ in GROUPS)
 
 
@@ -141,21 +148,67 @@ def disk():
             for p in ('/root','/root/autodl-tmp','/root/autodl-fs')}
 
 
+def expanded_scope():
+    """User explicitly broadened cleanup to cheaply regenerated old evaluations.
+
+    Retain tiny streams, all metrics/figures/models, original source arrays and
+    current generation experiments. Remove old reconstructed videos and sender
+    feature caches too; these are no longer archival pixel bundles.
+    """
+    global GROUPS, PROTECTED, PROTECTED_FILES, AUDIT, REASON
+    dependencies=dependency_inventory()
+    PROTECTED_FILES=set(dependencies) | {v['resolved'] for v in dependencies.values()}
+    PROTECTED=tuple(p for p in PROTECTED if p not in (
+        'routervc_precision_20261012','routervc_precision9_20261012',
+        'routervc_revision_20261003/visual_evaluation_recovered'))
+    roots=(
+        'routervc_revision_20261003','routervc_light_router_20261004',
+        'routervc_receiver_20261005','routervc_mixed_router_20261004',
+        'a800_four_state_20261002','routervc_sender_20261005',
+        'routervc_latent_20261007','routervc_latent_20261008',
+        'routervc_latent_routers_20261008','routervc_latent_sender_20261009',
+        'routervc_cooperation_review_20261011','routervc_cooperative_sender_review_20261011',
+        'routervc_precision_20261012','routervc_precision9_20261012',
+        'routervc_efficiency_20261004','routervc_cooperative_sender_20261011',
+        'routervc_cooperation_20261010')
+    names=('pixels.npz','reconstruction.npz','generated.npz','received_E.npz',
+           'outputs.npz','candidates.npz','expected.npz','native_own.npz')
+    GROUPS=tuple((r,names,None) for r in roots)+(
+        ('routervc_latent_sender_20261009/input_cache',('*.npz',),None),
+        ('routervc_cooperative_sender_20261011/input_cache',('*.npz',),None))
+    AUDIT=RUNS/'_maintenance_20261015/expanded'
+    REASON='migration preparation authorized by user: obsolete teacher pixels, full reconstructed evaluation videos and regenerateable sender feature caches; retain compact scientific evidence and active dependencies'
+
+
 def plan():
     path = AUDIT/'plan.json'
     if path.exists():
         print(json.dumps(dict(existing_plan=str(path), sha256=digest(path)))); return
     targets, retained, receipts, totals = [], {}, {}, Counter()
+    links, alias_targets = {}, set()
+    seen=set()
     dependencies = dependency_inventory()
     for rel, names, receipt in GROUPS:
         folder = RUNS/rel
         if folder.resolve() != REAL_RUNS/rel: raise ValueError('symlinked target subtree')
-        if not read(RUNS/receipt).get('complete'): raise ValueError('unfinished old stage')
-        receipts[receipt] = digest(RUNS/receipt)
+        if receipt:
+            if not read(RUNS/receipt).get('complete'): raise ValueError('unfinished old stage')
+            receipts[receipt] = digest(RUNS/receipt)
         for parent, dirs, files in os.walk(folder, followlinks=False):
-            if any((Path(parent)/n).is_symlink() for n in dirs): raise ValueError('symlink directory')
+            for n in dirs[:]:
+                link=Path(parent)/n
+                if link.is_symlink():
+                    links[str(link)]=os.readlink(link);dirs.remove(n)
             for name in sorted(files):
                 p = Path(parent)/name
+                if str(p) in seen:continue
+                seen.add(str(p))
+                if p.is_symlink():
+                    links[str(p)]=os.readlink(p)
+                    if p.is_file():
+                        retained[str(p)]=protected_identity(p)
+                        alias_targets.add(str(p.resolve()))
+                    continue
                 if selected(p):
                     ident = identity(p)
                     targets.append(dict(path=str(p), group=rel, **ident))
@@ -163,21 +216,38 @@ def plan():
                 else:
                     # Preserve scientific metadata, streams and source arrays.
                     retained[str(p)] = protected_identity(p)
+    # Preserve any real file backing an existing retained alias (in particular
+    # source pixels). Never follow directory aliases to enlarge deletion scope.
+    filtered=[]
+    for item in targets:
+        p=Path(item['path'])
+        if str(REAL_RUNS/p.relative_to(RUNS)) in alias_targets:
+            retained[str(p)]=protected_identity(p);totals[item['group']]-=item['size']
+        else:filtered.append(item)
+    targets=filtered
     opened = open_files()
     if any(str(Path(t['path']).resolve()) in opened for t in targets): raise ValueError('target is currently open')
     data = dict(utc=now(), authorization='user: clean obsolete run intermediates after formal training starts',
         targets=targets, bytes=sum(t['size'] for t in targets), group_bytes=dict(totals),
-        retained=retained, receipts=receipts, dependencies=dependencies, disks=disk(),
-        consequences='No backup. Old raw-pixel whole-tree verification needs regeneration; labels, model weights, streams, metrics and final evaluations remain.',
-        reason='obsolete pre-latent training teachers; labels already materialized; not consumed by active G training or its queued review')
+        retained=retained, retained_links=links, receipts=receipts, dependencies=dependencies, disks=disk(),
+        consequences='No backup. Old raw-pixel whole-tree verification and new full-output plots need cache regeneration; labels, model weights, streams, metrics and published figures remain.',
+        reason=REASON)
     write(path, data)
     print(json.dumps(dict(plan=str(path),sha256=digest(path),files=len(targets),
                          gib=data['bytes']/2**30,groups=dict(totals)),ensure_ascii=False),flush=True)
 
 
 def verify_retained(data):
+    for path, target in data.get('retained_links',{}).items():
+        if not Path(path).is_symlink() or os.readlink(path)!=target:
+            raise ValueError('retained alias changed: '+path)
     for path, expected in {**data['retained'], **data['dependencies']}.items():
-        if protected_identity(Path(path)) != expected: raise ValueError('protected file changed: '+path)
+        # Target inode/device identity also authenticates preserved symlink
+        # referents; avoid resolving every immutable parent repeatedly on FUSE.
+        info=Path(path).stat()
+        actual=dict(size=info.st_size,mtime_ns=info.st_mtime_ns,inode=info.st_ino,device=info.st_dev)
+        if not stat.S_ISREG(info.st_mode) or any(actual[k]!=expected[k] for k in actual):
+            raise ValueError('protected file changed: '+path)
     for path, expected in data['receipts'].items():
         if digest(RUNS/path) != expected: raise ValueError('historical receipt changed')
     dependencies=dependency_inventory()
@@ -231,6 +301,8 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command',choices=('plan','execute'))
     parser.add_argument('--plan-sha256')
+    parser.add_argument('--expanded',action='store_true')
     args=parser.parse_args()
+    if args.expanded:expanded_scope()
     if args.command=='plan':plan()
     else:execute(args.plan_sha256)

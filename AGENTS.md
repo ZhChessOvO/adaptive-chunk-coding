@@ -53,6 +53,15 @@ will require cache regeneration after retirement; do not misreport this as data
 corruption or automatically repopulate old caches. Later migration packaging
 should exclude regenerable intermediates; no migration upload/pack starts now.
 
+Expanded cleanup completed at 2026-10-15 01:48 Beijing: 17,777 old NPZ files,
+101,538,134,113 logical bytes removed; observed filesystem reduction was
+100,993,875,968 bytes. File storage now uses about 56.25/200 GiB. All 59,810
+retained file identities and 1,259 active dependencies passed the final check;
+training continued past step100. No backup of retired pixels. Datasets, source
+arrays, model checkpoints, small streams, metrics and existing figures survive.
+Use the expanded `complete.json`/`deleted.jsonl` as the authoritative receipt,
+not the unexecuted earlier narrow plans. Thirty-six CPU regression tests passed.
+
 ### G periodic-texture repair (2026-10-15; completion handoff)
 
 The user now authorized a fresh-initialization paired LoRA experiment and asks

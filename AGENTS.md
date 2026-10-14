@@ -24,6 +24,13 @@ old points, creates four-arm figures and per-frame phase diagnostics, then
 stops without promotion or another fitting campaign. All previous freeze,
 resume, mutex, storage/inode and monitoring rules below remain in force.
 Scientific records and actual images belong in the Notion repair subpages.
+The follow-up is now complete: both 400-step new arms, 120 new/135 reused
+ROI points, per-frame diagnostics, figures and completion-only verification
+passed. Twenty-six CPU tests and both historical/restart replay checks passed.
+All GPU queues have ended. The same entry now verifies existing results;
+do not automatically promote a checkpoint or start clean-initialization fitting.
+Next-stage choices are pending discussion in the Notion loss-ablation page:
+https://app.notion.com/p/3f98b22ebd8d8114b123d91927abe942.
 
 The user approved a paired G-only LoRA repair pilot after the raw-G artifact
 diagnosis. Freeze UF, latent B/E, both Routers, fusion, base DiT and VAE. Keep

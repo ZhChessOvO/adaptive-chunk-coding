@@ -10,6 +10,23 @@ from tools.texture_repair_evaluate import aggregate, draw
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_temporal_phase_detects_cancelling_grid(self):
+        from tools.texture_repair_review import temporal_phase
+        source=np.full((4,128,128,3),128,np.float32)
+        wave=np.sin(np.arange(128,dtype=np.float32)*2*np.pi/16)[None,None,:,None]*10
+        stationary=temporal_phase(source+wave,source)
+        changing=temporal_phase(source+wave*np.array([1,-1,1,-1])[:,None,None,None],source)
+        self.assertLess(changing['stationary_rms'],1e-4)
+        self.assertGreater(changing['per_frame_rms_mean'],1)
+        self.assertAlmostEqual(changing['per_frame_rms_mean'],stationary['per_frame_rms_mean'],places=5)
+        self.assertGreater(changing['phase_frame_difference'],stationary['phase_frame_difference']+1)
+
+    def test_temporal_phase_source_identity(self):
+        from tools.texture_repair_review import temporal_phase
+        source=np.random.default_rng(12).integers(0,256,(4,128,128,3),dtype=np.uint8)
+        result=temporal_phase(source,source)
+        self.assertEqual(result['per_frame_rms_mean'],0)
+
     def test_groups_are_not_pooled(self):
         result=dict(name='initial',quality=dict(lpips_alex=.2,psnr_db=30.,temporal_delta_mae=.1),
                     error_phase16=dict(phase_rms_u8=1.),phase16=dict(phase_rms_u8=2.))

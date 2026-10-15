@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1016 G 时序对照已完成：结果、全部大图与慢放](https://app.notion.com/p/3fa8b22ebd8d8131a234fc64f7c10193)
 - [1015 G 训练目标诊断与单项配对训练](https://app.notion.com/p/3fa8b22ebd8d81ba8e73c7e52ece97f6)
 - [1015 G 大视野训练已完成：结果、全部大图与慢放](https://app.notion.com/p/3fa8b22ebd8d81c2b517e7af7b438d04)
 - [1012 P3 精度选择：width3/5/7，追加9与真实预算回放](https://app.notion.com/p/3f78b22ebd8d817d84bfc6ab14d87410)
@@ -34,20 +35,22 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：G 训练目标单项配对试验
+## 最新已完成入口：G 训练目标单项配对试验
 
-保留已完成的大视野配方，使用同一起点，仅对照RGB时序系数0.1与0.025。
-在tmux中运行，先通过精确断点与实际重载检查，再自动训练两组各400步、生成图表和慢放。
-不会自动替换正式模型或重建已清理的旧缓存。
+保留大视野配方、同一起点，仅对照RGB时序系数0.1与0.025。两组各400步及自动评价
+已正常结束并完成复核，正式模型未替换。24项相关CPU测试通过。当前只读核验与报告
+入口如下，仍在tmux中使用项目Python；不训练、不推理、不重建已清理的旧缓存。
 
 ```bash
-bash tools/run_g_objective_trial.sh
-bash tools/run_g_objective_trial.sh tests
-bash tools/run_g_objective_trial.sh --verify-only  # 完成后只核验
+bash tools/run_g_objective_trial.sh --verify-only
+python -m tools.g_objective_trial_report
+python -m unittest tools.test_g_objective_trial_report tools.test_g_objective_trial
 ```
 
 输出：`/root/autodl-fs/DCVC/runs/routervc_g_objectives_20261015/trial`。
-相同命令续跑；任务运行中不要重复启动。`formal_started.json`记录实际第25步校验，
+只读报告在其`report_20261016/`，再次运行只核对报告输入和输出，不重新测量。
+原恢复入口`bash tools/run_g_objective_trial.sh`保留作复现，不作为新的训练任务。
+`formal_started.json`记录历史第25步校验，
 `formal/<arm>/resume.pt`含模型、优化器与随机状态，`complete.json`代表两组及评价均完成。
 原128核心和新384内部区域分数分开报告，不当作完整系统RD。诊断、判断与图片只在Notion维护。
 

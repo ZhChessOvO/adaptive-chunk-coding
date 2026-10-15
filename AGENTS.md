@@ -10,6 +10,25 @@ Before changing code or starting an experiment, read these files in order:
 
 ### G objective follow-up (2026-10-15; newest authorization)
 
+Completion review (2026-10-16; supersedes the startup handoff below): both
+400-step arms and all automatic evaluation ended normally on October15 at
+19:30 Beijing. Completion-only verification passed again; 60 new outputs and
+30 authenticated references, paired samples/noise, final adapter/AdamW/RNG,
+exact smoke recovery and eight actual reload repeats are intact. The queue is
+not running. Twenty-four related CPU tests and report read-only re-entry passed.
+Additive report entry, with project Python in tmux:
+`python -m tools.g_objective_trial_report`.
+Output: `trial/report_20261016`; old protocol-bound sources are unchanged.
+Results, all15 full processing views, three slow previews and resource records:
+https://app.notion.com/p/3fa8b22ebd8d8131a234fc64f7c10193.
+No production model was changed. The proposed next step is a small frozen-chain
+G replacement comparison (legacy / starting mixed400 / control continuation),
+keeping actual256 crops, B/E, G locations and fusion fixed. This is a proposal
+awaiting discussion, NOT authorization to launch more training, promote a model
+or silently switch inference to512. No further cleanup, download or migration
+packaging occurred in the completion review. Keep current assets until an
+explicitly scoped migration/retirement step; do not regenerate retired caches.
+
 The user approved the proposed objective diagnosis and evidence-led short paired
 follow-up. They reviewed the large-view figures and consider the water-splash
 issue minor: do not make splash sharpness or exact GT droplets a repair gate.
@@ -47,13 +66,13 @@ guards and 8GiB output guard remain enabled. Completion-only `--verify-only`
 checks the trial; `tests` runs its CPU tests (21 related tests currently passed).
 Do not regenerate retired caches or automatically choose/promote a winner.
 
-Verified startup handoff (2026-10-15 17:22 Beijing): both exact-resume smokes
+Historical startup handoff (2026-10-15 17:22 Beijing): both exact-resume smokes
 and all eight actual reload/repeat outputs passed. The relaxed-RGB-temporal
 formal checkpoint25 has 82 updated finite LoRA tensors, 82 AdamW step25 states
 and CPU/CUDA/Python RNG; its SHA matches `trial/formal_started.json`.
-The same tmux queue is continuing from25 toward400, then the control400 and
-automatic evaluation. Keep it running; next session reviews the completed
-trial rather than starting a different objective. No model promotion occurred.
+At that handoff the queue continued from25 toward400, then the control400 and
+automatic evaluation. It has since completed; see the newer completion review
+above. Do not restart training or a different objective. No model promotion occurred.
 Scientific diagnostics/figures/status and current resource snapshot are on the
 linked Notion page; the assets page marks the new live dependencies. The code
 was pushed as `6302ba2`; this operational handoff is a separate documentation

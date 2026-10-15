@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1015 G 大视野训练已完成：结果、全部大图与慢放](https://app.notion.com/p/3fa8b22ebd8d81c2b517e7af7b438d04)
 - [1012 P3 精度选择：width3/5/7，追加9与真实预算回放](https://app.notion.com/p/3f78b22ebd8d817d84bfc6ab14d87410)
 - [1011 P2b 实际码流评价：新旧发送端、RD、画面与资源](https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30)
 - [1011 P2b 发送端协同适配与当前任务](https://app.notion.com/p/3f68b22ebd8d81c29e6ee4ef7efd515d)
@@ -26,13 +27,28 @@
 - [1008 小包优化、连续区域与 G 接回](https://app.notion.com/p/3f38b22ebd8d8139b98aeb3f79198e02)
 - [1008.1 新 B/E 双 Router：标签、训练与接收端对照](https://app.notion.com/p/3f38b22ebd8d81b9a240f004b5f22c81)
 - [1007.1 新 E：实施、真实字节和画面](https://app.notion.com/p/3f28b22ebd8d81489980feaa14ceae3c)
-- [04 旧 E 完整系统结果：RD、画面和显存](https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae)
+- [04 当前整体结果：RouterVC 与 DCVC-UF 的 RD、画面和显存](https://app.notion.com/p/3f18b22ebd8d81fabf9fc4ccdb4cf5ae)
 - [03 实验导航：所有版本、曲线与固定画面](https://app.notion.com/p/3e78b22ebd8d819cbad8cd249c7566b0)
 
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：P3 小范围 width 验证
+## 最新已完成入口：G 大视野训练复核
+
+两组各400步与自动评价已完成，正式模型未替换。CPU-only 汇总入口读取既有输出，
+不训练、不推理；再次运行只核对报告及其输入。在 tmux 中使用项目 Python 环境：
+
+```bash
+python -m tools.context_training_report
+python -m unittest tools.test_context_training_report tools.test_context_training tools.test_texture_context
+```
+
+报告：`/root/autodl-fs/DCVC/runs/routervc_texture_context_20261015/training/report_20261015`。
+结果、图册与下一步讨论只在上方 Notion 链接维护。原训练恢复命令保留在 `AGENTS.md`，
+当前不作为新任务启动。10月15日已按用户要求清理旧可重建像素缓存：历史全树像素核验
+可能需要先再生成对应缓存，不代表现存指标或模型损坏；不要自动重建所有旧结果。
+
+## 已完成入口：P3 小范围 width 验证
 
 首轮按 2～8 的范围使用零中心奇数档 3/5/7；看过 width7 的画面后，用户追加批准 9。
 独立新格式不改动已固定的旧源码或模型。长任务与测试均在 tmux 中运行：
@@ -61,7 +77,7 @@ bash tools/run_precision9.sh verify # 完成后只核验
 `queue/precision9.progress.json` 中的 waiting 阶段仅为排队，不是 width9 正式开始。
 仍不扩到十几，不追加模型训练；Notion保留原三档与追加四档的不同实验范围。
 
-## 最新已完成入口：P2b 新旧发送端实际码流评价
+## 已完成入口：P2b 新旧发送端实际码流评价
 
 发送端两臂协同训练及完成核验均已结束。固定预选 checkpoint、P2 接收端、UF、width3、G
 与多频带，仅比较旧发送端、新主臂及 zero-source。实际评价也已于 10 月 11 日 22:20

@@ -10,6 +10,23 @@ Before changing code or starting an experiment, read these files in order:
 
 ### G field-of-view follow-up (2026-10-15; current authorization)
 
+Completion handoff (2026-10-15): both 400-step arms and the automatic evaluation
+ended normally at 02:58 Beijing. Final weights/AdamW/RNG, paired updates, exact
+restart/reload checks, all 60 new outputs and 30 initial references were audited.
+No training/evaluation queue remains active and no production model was changed.
+The launch authorization below is now historical, not a request to repeat it.
+CPU-only report entry (project Python, in tmux):
+`python -m tools.context_training_report`.
+Output is `training/report_20261015` under the run root below; completion-only
+re-entry passed and does not fit or infer. Twelve related CPU tests passed.
+Report code is additive: historical protocol-bound sources stay untouched.
+Current figures, resources and next-step discussion are maintained only in:
+https://app.notion.com/p/3fa8b22ebd8d81c2b517e7af7b438d04.
+Do not automatically promote the candidate, extend training or regenerate the
+retired old caches. No further deletion or migration packaging occurred during
+this completion review. The next loss/detail tradeoff experiment is a proposal
+for discussion, not a newly started task.
+
 The user approved checking overly local G inputs BEFORE changing loss weights.
 First run the isolated, frozen 256/512 native-context comparison at one common
 128px core, with actual spatially paired noise and full-view location figures.
@@ -29,7 +46,7 @@ metadata; record exact deletion targets, reasons and reclaimed bytes. Do not
 break running jobs or their queued evaluation. Scientific records stay in Notion:
 https://app.notion.com/p/3f98b22ebd8d8152b19aefb792d13993.
 
-Verified handoff: frozen probe completed 108 points, two historical exact replays
+Historical startup handoff: frozen probe completed 108 points, two historical exact replays
 and two repeats. Both training arms passed exact 6 versus 3+3 resume and eight
 actual reload/repeat outputs. Formal mixed-view checkpoint25 was verified at
 2026-10-15 01:34 Beijing: 82 changed finite tensors and 82 AdamW step25 states.

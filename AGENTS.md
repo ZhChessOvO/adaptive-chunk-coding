@@ -8,6 +8,25 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### G objective follow-up (2026-10-15; newest authorization)
+
+The user approved the proposed objective diagnosis and evidence-led short paired
+follow-up. They reviewed the large-view figures and consider the water-splash
+issue minor: do not make splash sharpness or exact GT droplets a repair gate.
+Prioritize unnatural periodic texture and overall naturalness. Keep mixed-view
+training, LPIPS-primary evaluation, and fixed UF/B/E/Routers/base DiT/VAE/fusion.
+First use `bash tools/run_g_objective.sh` in tmux for eight predetermined training
+draws' weighted LoRA gradients, without an optimizer or model changes. It records
+actual parameter-space norms/angles, two repeated cases, and per-case resume.
+`--stop-after 2` permits the initial recovery check; same command without it
+continues saved cases. Existing context/repair sources remain hash-bound.
+Output: `/root/autodl-fs/DCVC/runs/routervc_g_objectives_20261015`.
+Only a supported single-target adjustment should proceed to paired training;
+local gradient conflict is not itself a causal quality result. No automatic
+promotion, new Router/fusion work, large downloads, or migration packaging.
+Research plan/progress belongs in Notion, not a duplicate Git report:
+https://app.notion.com/p/3fa8b22ebd8d81ba8e73c7e52ece97f6.
+
 ### G field-of-view follow-up (2026-10-15; current authorization)
 
 Completion handoff (2026-10-15): both 400-step arms and the automatic evaluation

@@ -14,6 +14,7 @@
 
 - [项目首页](https://app.notion.com/p/3d58b22ebd8d815483aad4e1471ee933)
 - [00 当前整体方法](https://app.notion.com/p/3e78b22ebd8d81828124c50e8e74c2ca)
+- [1015 G 训练目标诊断与下一步](https://app.notion.com/p/3fa8b22ebd8d81ba8e73c7e52ece97f6)
 - [1015 G 大视野训练已完成：结果、全部大图与慢放](https://app.notion.com/p/3fa8b22ebd8d81c2b517e7af7b438d04)
 - [1012 P3 精度选择：width3/5/7，追加9与真实预算回放](https://app.notion.com/p/3f78b22ebd8d817d84bfc6ab14d87410)
 - [1011 P2b 实际码流评价：新旧发送端、RD、画面与资源](https://app.notion.com/p/3f68b22ebd8d8179b3e1ceae1a30af30)
@@ -32,6 +33,16 @@
 
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
+
+## 当前入口：G 训练目标只读诊断
+
+固定已完成的混合视野G候选，检查各项训练目标在LoRA参数上的梯度，不更新模型。
+在tmux中运行 `bash tools/run_g_objective.sh`，逐样本保存，相同命令续跑；
+`--stop-after 2`用于首次两种视野重复及恢复检查。CPU测试：
+`bash tools/run_g_objective.sh tests`。诊断完成后可在tmux用项目Python运行
+`python -m tools.g_objective_report`，只读取已有统计生成图表。
+输出：`/root/autodl-fs/DCVC/runs/routervc_g_objectives_20261015`。
+研究判断与后续训练选择只在上方Notion维护；诊断进程不等于正式训练开始。
 
 ## 最新已完成入口：G 大视野训练复核
 

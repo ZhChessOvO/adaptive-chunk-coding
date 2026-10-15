@@ -47,6 +47,18 @@ guards and 8GiB output guard remain enabled. Completion-only `--verify-only`
 checks the trial; `tests` runs its CPU tests (21 related tests currently passed).
 Do not regenerate retired caches or automatically choose/promote a winner.
 
+Verified startup handoff (2026-10-15 17:22 Beijing): both exact-resume smokes
+and all eight actual reload/repeat outputs passed. The relaxed-RGB-temporal
+formal checkpoint25 has 82 updated finite LoRA tensors, 82 AdamW step25 states
+and CPU/CUDA/Python RNG; its SHA matches `trial/formal_started.json`.
+The same tmux queue is continuing from25 toward400, then the control400 and
+automatic evaluation. Keep it running; next session reviews the completed
+trial rather than starting a different objective. No model promotion occurred.
+Scientific diagnostics/figures/status and current resource snapshot are on the
+linked Notion page; the assets page marks the new live dependencies. The code
+was pushed as `6302ba2`; this operational handoff is a separate documentation
+change and does not alter any protocol-bound source.
+
 ### G field-of-view follow-up (2026-10-15; current authorization)
 
 Completion handoff (2026-10-15): both 400-step arms and the automatic evaluation

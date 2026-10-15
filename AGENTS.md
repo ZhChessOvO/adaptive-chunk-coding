@@ -27,12 +27,32 @@ promotion, new Router/fusion work, large downloads, or migration packaging.
 Research plan/progress belongs in Notion, not a duplicate Git report:
 https://app.notion.com/p/3fa8b22ebd8d81ba8e73c7e52ece97f6.
 
+The read-only diagnostic is complete: eight fixed draws, two exact repeats and
+actual stop/resume. Its evidence supports a narrow RGB-temporal coefficient
+trial, not a claim to have identified the cause. `tools/run_g_objective_trial.sh`
+starts/resumes the approved paired queue in tmux. Output is the diagnostic
+root's `trial/` directory; session `routervc_objective_trial_1015`. Do not launch
+a duplicate while active. Both arms start from the completed mixed-view400
+adapter and add 400 updates; only RGB temporal differs (0.1 vs 0.025), while
+phase weight remains 1. No old pinned trainer/evaluator source was edited.
+Startup chain: exact 6 vs 3+3 checkpoints/AdamW/RNG for both arms, eight actual
+reload/repeat outputs, then candidate25 cursor verification recorded in
+`formal_started.json`. Until that receipt exists, the queue is in startup, not
+verified formal training. Then candidate400 -> control400 -> paired audit ->
+60 new raw-G outputs, 30 verified initial references, wide figures/slow previews
+-> stop. Additional 384-interior scores are separate from the original common
+128-core scores. This is not system RD or a new independent dataset benchmark.
+Every25-step atomic resume, GPU mutex, 30s resources/cgroup/three-disk+inode
+guards and 8GiB output guard remain enabled. Completion-only `--verify-only`
+checks the trial; `tests` runs its CPU tests (21 related tests currently passed).
+Do not regenerate retired caches or automatically choose/promote a winner.
+
 ### G field-of-view follow-up (2026-10-15; current authorization)
 
 Completion handoff (2026-10-15): both 400-step arms and the automatic evaluation
 ended normally at 02:58 Beijing. Final weights/AdamW/RNG, paired updates, exact
 restart/reload checks, all 60 new outputs and 30 initial references were audited.
-No training/evaluation queue remains active and no production model was changed.
+That field-of-view queue is no longer active and no production model was changed.
 The launch authorization below is now historical, not a request to repeat it.
 CPU-only report entry (project Python, in tmux):
 `python -m tools.context_training_report`.
@@ -43,8 +63,8 @@ Current figures, resources and next-step discussion are maintained only in:
 https://app.notion.com/p/3fa8b22ebd8d81c2b517e7af7b438d04.
 Do not automatically promote the candidate, extend training or regenerate the
 retired old caches. No further deletion or migration packaging occurred during
-this completion review. The next loss/detail tradeoff experiment is a proposal
-for discussion, not a newly started task.
+this completion review. The loss/detail proposal recorded at that handoff has
+since been approved; the newer objective-follow-up section above takes priority.
 
 The user approved checking overly local G inputs BEFORE changing loss weights.
 First run the isolated, frozen 256/512 native-context comparison at one common

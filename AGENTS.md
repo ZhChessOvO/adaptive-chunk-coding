@@ -10,19 +10,25 @@ Before changing code or starting an experiment, read these files in order:
 
 ### Backup-reserving G fine-tuning finish (2026-10-16; newest authorization)
 
-Startup handoff (2026-10-16 13:06 Beijing): direct6 versus3+3 restart matched
-all model/AdamW/RNG values. Formal25 was independently checked:82 finite changed
-LoRA tensors,82 AdamW step25 states, complete RNG and receipt SHA match.
-`formal_started.json` is present; tmux `routervc_g_finish_1016` has resumed
-beyond25 toward400. Do not start a duplicate. Training allocated peak30.36GiB;
-container charged usage sampled up to105.7/120GiB with CPU activation offload,
-and fell to20.3GiB after the25-step worker exited. failcnt remained41; do not
-clear caches or reboot on that number alone. Expected combined finish is
-15:30-16:00 Beijing, not guaranteed;16:30 remains the save/stop deadline.
-Notion results/figures/actual status:
+Completion handoff (2026-10-16): all800 steps and both six-case reviews ended
+normally at15:24 Beijing, before the16:30 deadline. Completion-only verification,
+12 main outputs,2 actual reloads, unchanged B/E bytes/non-G pixels/conditions,
+82 final LoRA/AdamW states, exact smoke restart and report read-only re-entry
+passed. No training/evaluation remains queued and no model was promoted.
+Twenty-seven related CPU tests passed. CPU-only report entry in tmux with the
+project Python: `python -m tools.g_bounded_finish_report`; output is `report/`
+under the run root below. Old protocol-bound sources are unchanged.
+The queue took150.10min, training124.48min; allocated training peak30.36GiB,
+sampled device peak37.18GiB, container charged peak105.91/120GiB. CPU activation
+offload used substantial shmem; after exit usage returned to19-20GiB, failcnt41
+unchanged. Do not reboot/clear caches on the historical training peak alone.
+Current priorities are reviewing residual texture and reserving time for backup,
+not automatically extending this recipe or adapting Routers. Preserve starting,
+400/800 and legacy weights; discuss migration scope before packaging/deletion.
+The original launch authorization below is historical. Notion results/figures:
 https://app.notion.com/p/3fb8b22ebd8d814f9b83f711f6cf8438.
-Implementation and26 related CPU tests are recorded in8645a2f/e649bfe;
-this handoff changes only operational docs, not any bound experiment source.
+Implementation and startup are recorded in8645a2f/e649bfe/45312a5; the new
+completion report is additive and does not modify any bound experiment source.
 
 The quick selection check shows mixed mismatch: Beauty/REDS020 recover much
 of their LPIPS gap with offline GT-assisted selection, whereas REDS000 and

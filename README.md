@@ -35,26 +35,30 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：给备份留余量的 G 限时收尾
+## 最新已完成入口：给备份留余量的 G 限时收尾
 
-tmux入口：`bash tools/run_g_bounded_finish.sh`（同命令断点续跑，`tests`为CPU测试）。
+tmux完成核验入口：`bash tools/run_g_bounded_finish.sh --verify-only`，不再启动训练。
 输出：`/root/autodl-fs/DCVC/runs/routervc_g_finish_20261016`。
 仅沿用现有配方微调G的LoRA800步，在400/800步自动做六段固定链路评价，然后停止。
 `formal_started.json`表示实际25步参数/优化器更新已核验；此前只是启动与恢复检查。
 绝对截止为2026-10-16 08:30 UTC／北京时间16:30，异常可保存恢复但不自动延后截止。
 不训练Router、不下载、不自动替换正式模型。训练约两小时，启动与评价另计；
 不使用全部服务器剩余时间，后续先备份。完成后`--verify-only`只核验。
-10月16日13:06（北京时间）已核验正式25步，tmux会话`routervc_g_finish_1016`正续跑；
-不要重复启动。预计15:30–16:00完成训练和自动评价，16:30触发保存停止。
-诊断图、数据与实际交接统一见[限时收尾页](https://app.notion.com/p/3fb8b22ebd8d814f9b83f711f6cf8438)。
+10月16日15:24（北京时间），800步及两轮评价已正常结束，完成核验通过，无后续任务排队。
+12个主输出与2次实际重载、真实字节、条件/噪声和非G像素检查通过；27项相关CPU测试通过。
+全部六段并排图、原尺寸帧、慢放和资源位于该目录的`report/`。项目Python、tmux中运行
+`python -m tools.g_bounded_finish_report`只读取保存的证据，完成重入仅核验，不重新推理。
+测试：`python -m unittest tools.test_g_bounded_finish_report tools.test_g_bounded_finish`。
+保留起点、400/800步和旧正式模型，不自动推广；下一步先讨论迁移备份，不再延长训练。
+诊断、结果与判断统一见[限时收尾页](https://app.notion.com/p/3fb8b22ebd8d814f9b83f711f6cf8438)。
 
-## 前置检查入口：新 G 的快速选区检查
+## 已完成前置检查：新 G 的快速选区检查
 
 在tmux中运行 `bash tools/run_g_selection_probe.sh`，同命令可续跑；`tests`运行CPU测试。
 输出：`/root/autodl-fs/DCVC/runs/routervc_g_selection_20261016`。
 只复用六段E50结果并补齐缺失G区域；离线使用原片比较少量选区，不训练Router，
-不宣称最优或可部署结果。服务器剩余时间还需用于备份，检查后尽快决定是否短续训。
-进展仍记录在下方Notion整画面对比页，不另建Git科研报告。
+不宣称最优或可部署结果。该诊断及其后的限时续训均已完成，保留结果，不重复推理。
+进展记录在上方Notion限时收尾页，不另建Git科研报告。
 
 ## 最新已完成入口：修复 G 的冻结整链路接入对比
 

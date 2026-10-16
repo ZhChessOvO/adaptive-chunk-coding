@@ -8,6 +8,22 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Time-bounded G selection diagnosis (2026-10-16; newest authorization)
+
+The user approved a quick check of old R_g choices with the repaired G, and
+emphasized that the server has about26 hours left INCLUDING time for backup.
+Do not fill that window with experiments. First run the small cached six-case
+diagnostic in tmux: `bash tools/run_g_selection_probe.sh`. It reuses the prior
+E50 received RGB and eight selected halos, generates only the missing candidate
+regions, and compares finite GT-assisted choices with at most eight G regions.
+This is offline diagnosis, NOT a deployed oracle, an optimal-selection claim,
+new Router labels/training, or a full RD benchmark. Keep models, byte counts,
+geometry, noise and fusion fixed. Root: `runs/routervc_g_selection_20261016`.
+GPU mutex, per-region resume/replay, 30s resources and disk guards remain in
+force. Make a prompt evidence-based judgment about further G-only fine-tuning;
+do not automatically launch a long sweep or use all remaining server time.
+No new downloads, cleanup or migration packaging are part of this check.
+
 ### Frozen-chain G integration (2026-10-16; newest authorization)
 
 Completion handoff (2026-10-16 10:35 Beijing): all18 main full-picture outputs,

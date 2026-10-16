@@ -1,1 +1,1 @@
-"""Receiver-local boundary diagnostics and display-only fusion experiments."""
+"""Display-only composition and fixed multiband boundary fusion."""

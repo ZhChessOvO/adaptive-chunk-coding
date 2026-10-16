@@ -1,1 +1,1 @@
-"""RouterVC research components; historical demo profiles remain immutable."""
+"""RouterVC: scalable latent refinement and asymmetric generative routing."""

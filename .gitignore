@@ -38,7 +38,7 @@ dist/
 /doc/
 /cuda-keyring_*.deb
 
-# Third-party source trees are restored from the links in README.md.
+# Third-party source trees are restored from the migration package.
 /third_party/cutlass/
 /third_party/PnP-VCVE/
 /third_party/mmagic/
@@ -62,6 +62,7 @@ dist/
 *.bin
 *.d1s
 *.d1m
+*.rvc
 *.yuv
 *.mp4
 *.mov
@@ -86,7 +87,3 @@ dist/
 *.partial
 *.tmp
 *.json
-
-# Test descriptions are source-controlled configuration, not experiment output.
-!test_cfg/*.json
-!test_cfg/**/*.json

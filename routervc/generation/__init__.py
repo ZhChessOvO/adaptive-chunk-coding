@@ -1,1 +1,1 @@
-"""Isolated generator adaptation experiments; no production profile changes."""
+"""Shared SeedVR2 runtime, LoRA and receiver-local generation."""

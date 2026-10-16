@@ -10,6 +10,19 @@ Before changing code or starting an experiment, read these files in order:
 
 ### Frozen-chain G integration (2026-10-16; newest authorization)
 
+Completion handoff (2026-10-16 10:35 Beijing): all18 main full-picture outputs,
+six actual reload repeats and two G-off cases completed. Six legacy historical
+outputs are exact; both two-region + six-region restart checks passed. No mask
+or B/E byte increase, no G geometry/selection/noise/fusion changes. Eighteen
+related CPU tests, completion-only verification and read-only report re-entry
+passed. GPU evaluation and automatic CPU report have stopped normally. Current
+entry now verifies rather than regenerating outputs. Report: `report/` under
+the root below; all six whole pictures, native frames, slow previews, paired
+scores and resource evidence are linked in Notion. The G candidate remains
+unpromoted; no additional training, Router relabeling, cleanup or download is
+authorized by this completion handoff. Discuss the observed visual/LPIPS
+tradeoff before choosing the next study. Implementation was pushed as213d501.
+
 The user approved the proposed small integration comparison after the objective
 trial. Keep UF/B/E, both Routers, E50 packets, actual native ROI+64-halo geometry,
 G decisions, seeds/strength and multiband fusion fixed. Compare legacy production

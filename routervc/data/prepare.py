@@ -116,6 +116,7 @@ def prepare(args):
             atomic_npz(folder / "received.npz", enhanced=y)
             r = dict(
                 row,
+                E_cap=cap,
                 received=str(folder / "received.npz"),
                 received_sha256=file_hash(folder / "received.npz"),
             )

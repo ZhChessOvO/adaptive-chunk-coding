@@ -8,6 +8,29 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Backup-reserving G fine-tuning finish (2026-10-16; newest authorization)
+
+The quick selection check shows mixed mismatch: Beauty/REDS020 recover much
+of their LPIPS gap with offline GT-assisted selection, whereas REDS000 and
+ShakeNDry recover little. It does not justify spending the expiry window on
+Router training. The user wants SeedVR2 fine-tuning finished promptly and time
+left to back up. Run ONE same-objective G-only warm-start round,800 steps,
+with fixed-chain six-case reviews at400/800, then stop. Starting weights are
+the completed control continuation; fresh AdamW, unchanged mixed-view recipe,
+RGB temporal0.1 and phase1. Base DiT/VAE, UF/B/E, both Routers and fusion stay
+frozen. No new objective sweep, new labels, production promotion or cleanup.
+Entry in tmux: `bash tools/run_g_bounded_finish.sh`; root:
+`/root/autodl-fs/DCVC/runs/routervc_g_finish_20261016`.
+An absolute2026-10-16 08:30 UTC /16:30 Beijing deadline survives restarts and
+saves/stops the worker; do not silently extend it. Expected training is about
+two hours based on9.07s/step, plus startup/reviews. Every25-step resume,
+6 versus3+3 exact optimizer/RNG smoke, actual25-step formal receipt, frozen
+byte/geometry/noise checks, reload checks, GPU mutex and resource/disk guards
+remain enabled. `formal_started.json` is required before calling it formal
+training. Preserve initial,400 and800 candidates; residual grid matters and
+later checkpoints are not automatically better. Scientific updates only in
+Notion; after completion no more training is queued before backup discussion.
+
 ### Time-bounded G selection diagnosis (2026-10-16; newest authorization)
 
 The user approved a quick check of old R_g choices with the repaired G, and

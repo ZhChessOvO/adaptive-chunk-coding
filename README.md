@@ -35,7 +35,17 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 当前入口：新 G 的快速选区检查
+## 当前入口：给备份留余量的 G 限时收尾
+
+tmux入口：`bash tools/run_g_bounded_finish.sh`（同命令断点续跑，`tests`为CPU测试）。
+输出：`/root/autodl-fs/DCVC/runs/routervc_g_finish_20261016`。
+仅沿用现有配方微调G的LoRA800步，在400/800步自动做六段固定链路评价，然后停止。
+`formal_started.json`表示实际25步参数/优化器更新已核验；此前只是启动与恢复检查。
+绝对截止为2026-10-16 08:30 UTC／北京时间16:30，异常可保存恢复但不自动延后截止。
+不训练Router、不下载、不自动替换正式模型。训练约两小时，启动与评价另计；
+不使用全部服务器剩余时间，后续先备份。完成后`--verify-only`只核验。
+
+## 前置检查入口：新 G 的快速选区检查
 
 在tmux中运行 `bash tools/run_g_selection_probe.sh`，同命令可续跑；`tests`运行CPU测试。
 输出：`/root/autodl-fs/DCVC/runs/routervc_g_selection_20261016`。

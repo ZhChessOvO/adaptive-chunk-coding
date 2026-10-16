@@ -10,6 +10,20 @@ Before changing code or starting an experiment, read these files in order:
 
 ### Backup-reserving G fine-tuning finish (2026-10-16; newest authorization)
 
+Startup handoff (2026-10-16 13:06 Beijing): direct6 versus3+3 restart matched
+all model/AdamW/RNG values. Formal25 was independently checked:82 finite changed
+LoRA tensors,82 AdamW step25 states, complete RNG and receipt SHA match.
+`formal_started.json` is present; tmux `routervc_g_finish_1016` has resumed
+beyond25 toward400. Do not start a duplicate. Training allocated peak30.36GiB;
+container charged usage sampled up to105.7/120GiB with CPU activation offload,
+and fell to20.3GiB after the25-step worker exited. failcnt remained41; do not
+clear caches or reboot on that number alone. Expected combined finish is
+15:30-16:00 Beijing, not guaranteed;16:30 remains the save/stop deadline.
+Notion results/figures/actual status:
+https://app.notion.com/p/3fb8b22ebd8d814f9b83f711f6cf8438.
+Implementation and26 related CPU tests are recorded in8645a2f/e649bfe;
+this handoff changes only operational docs, not any bound experiment source.
+
 The quick selection check shows mixed mismatch: Beauty/REDS020 recover much
 of their LPIPS gap with offline GT-assisted selection, whereas REDS000 and
 ShakeNDry recover little. It does not justify spending the expiry window on

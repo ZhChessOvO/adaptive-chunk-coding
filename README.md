@@ -35,7 +35,24 @@
 下文 spatial-QP 研究叙述为历史版本，环境安装说明仍可参考。不要按旧段落自动重启历史队列；
 其运行入口、源码固定要求和复现边界见 `AGENTS.md` 及对应 Notion 实验页。
 
-## 最新已完成入口：G 训练目标单项配对试验
+## 当前入口：修复 G 的冻结整链路接入对比
+
+只比较已有三种 G 权重，不训练、不自动替换默认模型。保留原生区域＋64 halo、
+真实 B/E 字节、接收端区域选择与多频带融合；不是统一改成256或512输入。
+在tmux中运行，自动先核验历史重现、实际重载、分区域恢复和关闭G，再完成6段评价：
+
+```bash
+bash tools/run_g_integration.sh
+bash tools/run_g_integration.sh --verify-only
+python -m tools.g_integration_report --wait
+python -m unittest tools.test_g_integration tools.test_g_integration_report
+```
+
+根目录：`/root/autodl-fs/DCVC/runs/routervc_g_integration_20261016`。
+同命令逐区域续跑；完成后只核验，不重复推理。科研解释、结果与图片集中在
+[整画面对比](https://app.notion.com/p/3fb8b22ebd8d8133a07cff3fad7c4813)，不另写Git研究报告。
+
+## 已完成入口：G 训练目标单项配对试验
 
 保留大视野配方、同一起点，仅对照RGB时序系数0.1与0.025。两组各400步及自动评价
 已正常结束并完成复核，正式模型未替换。24项相关CPU测试通过。当前只读核验与报告

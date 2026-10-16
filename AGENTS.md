@@ -8,6 +8,29 @@ Before changing code or starting an experiment, read these files in order:
 
 ## Current direction override (2026-09-26)
 
+### Frozen-chain G integration (2026-10-16; newest authorization)
+
+The user approved the proposed small integration comparison after the objective
+trial. Keep UF/B/E, both Routers, E50 packets, actual native ROI+64-halo geometry,
+G decisions, seeds/strength and multiband fusion fixed. Compare legacy production
+LoRA, mixed400 initial and the RGB-temporal0.1 continuation; no further training
+or automatic promotion. The earlier shorthand "actual256" was inaccurate:
+REDS1024x576 uses 256x144 cores, interior384x272 inputs; UVG512 uses128x128
+cores, interior256x256 inputs. Both clip halo at frame edges, with no resizing.
+Use `bash tools/run_g_integration.sh` in tmux; `--smoke-only`, `--verify-only`
+and `tests` are available. Root: `/root/autodl-fs/DCVC/runs/routervc_g_integration_20261016`.
+Six previously used E50 windows only: REDS000/005/020, Beauty, ShakeNDry and
+HoneyBee f160-left. This is not a new full dataset RD benchmark. First verify
+legacy historical pixels, fresh reloads, partial-region recovery and G-off.
+New RVLGINT1 profile keeps the same inner packets and 121-byte envelope, names
+the actual G bundle, and transmits no mask. Candidate LoRA tensors are copied
+unchanged into a compatibility bundle whose old interface is disabled.
+Only selected retired outputs are decoded into this NEW run; do not repopulate
+old cache trees. Use per-region recovery, GPU mutex, 30s resources/cgroup and
+three-disk/inode guards, and the 8GiB output guard. No downloads, deletions or
+migration packaging. Research plan/results live only in Notion:
+https://app.notion.com/p/3fb8b22ebd8d8133a07cff3fad7c4813.
+
 ### G objective follow-up (2026-10-15; newest authorization)
 
 Completion review (2026-10-16; supersedes the startup handoff below): both
@@ -23,9 +46,9 @@ Results, all15 full processing views, three slow previews and resource records:
 https://app.notion.com/p/3fa8b22ebd8d8131a234fc64f7c10193.
 No production model was changed. The proposed next step is a small frozen-chain
 G replacement comparison (legacy / starting mixed400 / control continuation),
-keeping actual256 crops, B/E, G locations and fusion fixed. This is a proposal
-awaiting discussion, NOT authorization to launch more training, promote a model
-or silently switch inference to512. No further cleanup, download or migration
+keeping actual native ROI+64-halo crops, B/E, G locations and fusion fixed. This
+proposal has now been approved, as recorded above; it does NOT authorize more
+training, model promotion or a silent switch to512. No cleanup, download or migration
 packaging occurred in the completion review. Keep current assets until an
 explicitly scoped migration/retirement step; do not regenerate retired caches.
 
